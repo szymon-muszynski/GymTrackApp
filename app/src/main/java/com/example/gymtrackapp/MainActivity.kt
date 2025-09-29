@@ -1,0 +1,38 @@
+package com.example.gymtrackapp
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.gymtrackapp.data.ExerciseDatabase
+import com.example.gymtrackapp.data.repository.ExerciseRepository
+import com.example.gymtrackapp.ui.screens.MainScreen
+import com.example.gymtrackapp.ui.theme.GymTrackAppTheme
+import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
+import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModelFactory
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+
+        val db = ExerciseDatabase.getDatabase(applicationContext)
+        val repository = ExerciseRepository(db.exerciseDao(), applicationContext)
+
+        setContent {
+            GymTrackAppTheme {
+                val factory = ExerciseViewModelFactory(repository)
+                val viewModel: ExerciseViewModel = viewModel(factory = factory)
+
+                // ładowanie ćwiczeń przy starcie
+                LaunchedEffect(Unit) {
+                    viewModel.loadAllExercises()
+                }
+
+                MainScreen(viewModel = viewModel)
+            }
+        }
+    }
+}
