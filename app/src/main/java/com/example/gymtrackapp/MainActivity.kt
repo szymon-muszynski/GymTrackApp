@@ -8,10 +8,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.gymtrackapp.data.ExerciseDatabase
 import com.example.gymtrackapp.data.repository.ExerciseRepository
+import com.example.gymtrackapp.data.repository.TrainingRepository
 import com.example.gymtrackapp.ui.screens.MainScreen
 import com.example.gymtrackapp.ui.theme.GymTrackAppTheme
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModelFactory
+import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
+import com.example.gymtrackapp.ui.viewmodel.TrainingViewModelFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,15 +26,25 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             GymTrackAppTheme {
-                val factory = ExerciseViewModelFactory(repository)
-                val viewModel: ExerciseViewModel = viewModel(factory = factory)
+                // ExerciseViewModel
+                val exerciseFactory = ExerciseViewModelFactory(repository)
+                val exerciseViewModel: ExerciseViewModel = viewModel(factory = exerciseFactory)
 
-                // ładowanie ćwiczeń przy starcie
+                // TrainingViewModel
+                val trainingFactory = TrainingViewModelFactory(
+                    TrainingRepository(db.trainingDao(), applicationContext)
+                )
+                val trainingViewModel: TrainingViewModel = viewModel(factory = trainingFactory)
+
+                // Załaduj ćwiczenia na starcie
                 LaunchedEffect(Unit) {
-                    viewModel.loadAllExercises()
+                    exerciseViewModel.loadAllExercises()
                 }
 
-                MainScreen(viewModel = viewModel)
+                MainScreen(
+                    exerciseViewModel = exerciseViewModel,
+                    trainingViewModel = trainingViewModel
+                )
             }
         }
     }
