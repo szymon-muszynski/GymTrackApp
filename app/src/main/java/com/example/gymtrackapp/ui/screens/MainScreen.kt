@@ -28,10 +28,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
+import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(modifier: Modifier = Modifier, viewModel: ExerciseViewModel) {
+fun MainScreen(
+    modifier: Modifier = Modifier,
+    exerciseViewModel: ExerciseViewModel,
+    trainingViewModel: TrainingViewModel
+) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
 
     val navItemsList = listOf(
@@ -41,6 +46,7 @@ fun MainScreen(modifier: Modifier = Modifier, viewModel: ExerciseViewModel) {
     )
 
     var selectedIndex by remember { mutableStateOf(0) }
+    var showAddSessionDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -53,9 +59,7 @@ fun MainScreen(modifier: Modifier = Modifier, viewModel: ExerciseViewModel) {
                         icon = {
                             Icon(imageVector = navItem.icon, contentDescription = navItem.label)
                         },
-                        label = {
-                            Text(text = navItem.label)
-                        }
+                        label = { Text(text = navItem.label) }
                     )
                 }
             }
@@ -70,18 +74,18 @@ fun MainScreen(modifier: Modifier = Modifier, viewModel: ExerciseViewModel) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { /* do something */ }) {
+                    IconButton(onClick = { /* TODO */ }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Localized description"
+                            contentDescription = "Back"
                         )
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* do something */ }) {
+                    IconButton(onClick = { /* TODO */ }) {
                         Icon(
                             imageVector = Icons.Filled.Menu,
-                            contentDescription = "Localized description"
+                            contentDescription = "Menu"
                         )
                     }
                 },
@@ -90,8 +94,8 @@ fun MainScreen(modifier: Modifier = Modifier, viewModel: ExerciseViewModel) {
         },
         floatingActionButton = {
             if (selectedIndex == 1) {
-                FloatingActionButton(onClick = { /* TODO */ }) {
-                    Icon(Icons.Default.Add, contentDescription = "Dodaj zadanie")
+                FloatingActionButton(onClick = { showAddSessionDialog = true }) {
+                    Icon(Icons.Default.Add, contentDescription = "Dodaj sesję")
                 }
             }
         }
@@ -99,17 +103,32 @@ fun MainScreen(modifier: Modifier = Modifier, viewModel: ExerciseViewModel) {
         ContentScreen(
             modifier = Modifier.padding(innerPadding),
             selectedIndex = selectedIndex,
-            viewModel = viewModel
+            exerciseViewModel = exerciseViewModel,
+            trainingViewModel = trainingViewModel,
+            showAddSessionDialog = showAddSessionDialog,
+            onDismissDialog = { showAddSessionDialog = false }
         )
     }
 }
 
 @Composable
-fun ContentScreen(modifier: Modifier = Modifier, selectedIndex: Int, viewModel: ExerciseViewModel) {
+fun ContentScreen(
+    modifier: Modifier = Modifier,
+    selectedIndex: Int,
+    exerciseViewModel: ExerciseViewModel,
+    trainingViewModel: TrainingViewModel,
+    showAddSessionDialog: Boolean,
+    onDismissDialog: () -> Unit
+) {
     when (selectedIndex) {
         0 -> HomePage(modifier = modifier)
-        1 -> CalendarPage(modifier = modifier)
-        2 -> PlannerPage(modifier = modifier, viewModel = viewModel)
+        1 -> CalendarPage(
+            modifier = modifier,
+            trainingViewModel = trainingViewModel,
+            showAddSessionDialog = showAddSessionDialog,
+            onDismissDialog = onDismissDialog
+        )
+        2 -> PlannerPage(modifier = modifier, viewModel = exerciseViewModel)
         else -> Text(text = "No Page Found", modifier = modifier)
     }
 }

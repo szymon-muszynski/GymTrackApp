@@ -5,6 +5,7 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -16,15 +17,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,26 +41,30 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
 import java.time.LocalDate
 import java.time.format.TextStyle
-import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.launch
+import com.example.gymtrackapp.data.entity.TrainingSession
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun CalendarPage(modifier: Modifier = Modifier) {
-
-    val mockSessionsList = listOf(
-        TrainingSession("Chest Day", Date(2024 - 1900, 6, 10)),
-        TrainingSession("Leg Day", Date(2024 - 1900, 6, 10)),
-        TrainingSession("Back and Biceps", Date(2024 - 1900, 6, 10)),
-        TrainingSession("Shoulders", Date(2024 - 1900, 6, 11)),
-        TrainingSession("Cardio", Date(2024 - 1900, 6, 11))
-    )
-
-    var showDatePicker by remember { mutableStateOf(false) }
+fun CalendarPage(
+    modifier: Modifier = Modifier,
+    trainingViewModel: TrainingViewModel,
+    showAddSessionDialog: Boolean,
+    onDismissDialog: () -> Unit
+) {
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
+    val sessions by trainingViewModel.sessions.collectAsState()
+
+    var showEditDialog by remember { mutableStateOf(false) }
+    var sessionToEdit by remember { mutableStateOf<TrainingSession?>(null) }
+
+    LaunchedEffect(selectedDate) {
+        trainingViewModel.loadSessionsForDate(selectedDate.toEpochDay())
+    }
 
     Column(
         modifier = modifier
@@ -64,27 +73,46 @@ fun CalendarPage(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Horyzontalny, zapętlony kalendarz
         HorizontalInfiniteCalendar(
             selected = selectedDate,
-            onDateSelected = { selectedDate = it; showDatePicker = false },
-            onDateLongClick = { showDatePicker = true }
+            onDateSelected = { selectedDate = it }
         )
 
-        // Możesz filtrować sesje według selectedDate - tutaj pokazuję wszystkie
-        SessionsList(mockSessionsList)
+        SessionsList(
+            trainingSessions = sessions,
+            onEdit = { session ->
+                sessionToEdit = session
+                showEditDialog = true
+            },
+            onDelete = { session ->
+                trainingViewModel.deleteSession(session)
+            }
+        )
     }
 
-    if (showDatePicker) {
-        DatePickerModal(
-            onDateSelected = { millis ->
-                millis?.let {
-                    // konwersja millis -> LocalDate
-                    selectedDate = LocalDate.ofEpochDay(it / (24 * 60 * 60 * 1000))
-                }
-                showDatePicker = false
-            },
-            onDismiss = { showDatePicker = false }
+    if (showAddSessionDialog) {
+        AddSessionDialog(
+            onDismiss = onDismissDialog,
+            onConfirm = { description ->
+                trainingViewModel.createEmptySession(
+                    date = selectedDate.toEpochDay(),
+                    description = description
+                )
+                onDismissDialog()
+            }
+        )
+    }
+
+    if (showEditDialog && sessionToEdit != null) {
+        EditSessionDialog(
+            session = sessionToEdit!!,
+            onDismiss = { showEditDialog = false },
+            onConfirm = { newDescription ->
+                trainingViewModel.updateSession(
+                    sessionToEdit!!.copy(description = newDescription)
+                )
+                showEditDialog = false
+            }
         )
     }
 }
@@ -93,8 +121,7 @@ fun CalendarPage(modifier: Modifier = Modifier) {
 @Composable
 fun HorizontalInfiniteCalendar(
     selected: LocalDate,
-    onDateSelected: (LocalDate) -> Unit,
-    onDateLongClick: () -> Unit
+    onDateSelected: (LocalDate) -> Unit
 ) {
     val centerIndex = 50_000
     val totalCount = 100_000
@@ -102,7 +129,6 @@ fun HorizontalInfiniteCalendar(
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = centerIndex)
     val scope = rememberCoroutineScope()
 
-    // Ensure the visible item is centered on startup at the selected date offset
     LaunchedEffect(selected) {
         val offset = selected.toEpochDay() - today.toEpochDay()
         val targetIndex = (centerIndex + offset.toInt()).coerceIn(0, totalCount - 1)
@@ -127,8 +153,7 @@ fun HorizontalInfiniteCalendar(
             DayCard(
                 date = date,
                 selected = isSelected,
-                onClick = { onDateSelected(date) },
-                onLongClick = onDateLongClick
+                onClick = { onDateSelected(date) }
             )
         }
     }
@@ -139,8 +164,7 @@ fun HorizontalInfiniteCalendar(
 fun DayCard(
     date: LocalDate,
     selected: Boolean,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit
+    onClick: () -> Unit
 ) {
     val bg = if (selected) Color(0xFF2B6CB0) else Color.White
     val textColor = if (selected) Color.White else Color.Black
@@ -177,36 +201,12 @@ fun DayCard(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DatePickerModal(
-    onDateSelected: (Long?) -> Unit,
-    onDismiss: () -> Unit
+fun SessionsList(
+    trainingSessions: List<TrainingSession>,
+    onEdit: (TrainingSession) -> Unit,
+    onDelete: (TrainingSession) -> Unit
 ) {
-    val datePickerState = rememberDatePickerState()
-
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                onDateSelected(datePickerState.selectedDateMillis)
-                onDismiss()
-            }) {
-                Text("OK")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    ) {
-        DatePicker(state = datePickerState)
-    }
-}
-
-@Composable
-fun SessionsList(trainingSessions: List<TrainingSession>) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(8.dp)
@@ -214,14 +214,24 @@ fun SessionsList(trainingSessions: List<TrainingSession>) {
         items(trainingSessions) { session ->
             TrainingSessionItem(
                 modifier = Modifier.padding(vertical = 4.dp),
-                session = session
+                session = session,
+                onEdit = onEdit,
+                onDelete = onDelete
             )
         }
     }
 }
 
 @Composable
-fun TrainingSessionItem(modifier: Modifier = Modifier, session: TrainingSession) {
+fun TrainingSessionItem(
+    modifier: Modifier = Modifier,
+    session: TrainingSession,
+    onEdit: (TrainingSession) -> Unit = {},
+    onDelete: (TrainingSession) -> Unit = {}
+) {
+
+    var menuExpanded by remember { mutableStateOf(false) }
+
     Card(
         modifier = modifier.fillMaxWidth()
     ) {
@@ -229,7 +239,109 @@ fun TrainingSessionItem(modifier: Modifier = Modifier, session: TrainingSession)
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(8.dp)
         ) {
-            Text(text = session.name + ", " + session.date.toString())
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(8.dp),
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(text = session.description)
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    Button(onClick = { /* TODO: Start training session */ }) {
+                        Text("Add exercise")
+                    }
+                    Box {
+                        IconButton(onClick = { menuExpanded = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Więcej")
+                        }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Edytuj") },
+                                onClick = {
+                                    menuExpanded = false
+                                    onEdit(session)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Usuń") },
+                                onClick = {
+                                    menuExpanded = false
+                                    onDelete(session)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
+}
+
+@Composable
+fun AddSessionDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var description by remember { mutableStateOf("") }
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Nowa sesja treningowa") },
+        text = {
+            androidx.compose.material3.OutlinedTextField(
+                value = description,
+                onValueChange = { description = it },
+                label = { Text("Opis treningu") }
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(description) }
+            ) { Text("Utwórz") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Anuluj") }
+        }
+    )
+}
+
+@Composable
+fun EditSessionDialog(
+    session: TrainingSession,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var description by remember { mutableStateOf(session.description) }
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edytuj nazwę sesji") },
+        text = {
+            androidx.compose.material3.OutlinedTextField(
+                value = description,
+                onValueChange = { description = it },
+                label = { Text("Nowa nazwa") }
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(description) }
+            ) { Text("Potwierdź") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Anuluj") }
+        }
+    )
 }
