@@ -124,7 +124,7 @@ fun AddExerciseScreen(
                                 fontSize = 14.sp
                             )
                             Text(
-                                text = "Equipment: ${exercise.equipment ?: "Brak"}",
+                                text = "Equipment: ${exercise.equipment ?: "None"}",
                                 fontSize = 14.sp
                             )
                             Text(
