@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -31,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -41,20 +43,28 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
 import kotlinx.coroutines.launch
 import com.example.gymtrackapp.data.entity.TrainingSession
+import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
+import kotlin.collections.forEach
+import kotlin.collections.get
+import kotlin.text.toLong
+import androidx.compose.material3.CardDefaults
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun CalendarPage(
     modifier: Modifier = Modifier,
     trainingViewModel: TrainingViewModel,
+    exerciseViewModel: ExerciseViewModel,  // ← DODAJ TO
     showAddSessionDialog: Boolean,
-    onDismissDialog: () -> Unit
+    onDismissDialog: () -> Unit,
+    navController: NavHostController
 ) {
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
     val sessions by trainingViewModel.sessions.collectAsState()
@@ -80,12 +90,17 @@ fun CalendarPage(
 
         SessionsList(
             trainingSessions = sessions,
+            trainingViewModel = trainingViewModel,
+            exerciseViewModel = exerciseViewModel,
             onEdit = { session ->
                 sessionToEdit = session
                 showEditDialog = true
             },
             onDelete = { session ->
                 trainingViewModel.deleteSession(session)
+            },
+            onAddExercise = { session ->
+                navController.navigate("add_exercise/${session.id}")
             }
         )
     }
@@ -204,8 +219,11 @@ fun DayCard(
 @Composable
 fun SessionsList(
     trainingSessions: List<TrainingSession>,
+    trainingViewModel: TrainingViewModel,  // ← DODAJ TO
+    exerciseViewModel: ExerciseViewModel,   // ← DODAJ TO
     onEdit: (TrainingSession) -> Unit,
-    onDelete: (TrainingSession) -> Unit
+    onDelete: (TrainingSession) -> Unit,
+    onAddExercise: (TrainingSession) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -215,8 +233,11 @@ fun SessionsList(
             TrainingSessionItem(
                 modifier = Modifier.padding(vertical = 4.dp),
                 session = session,
+                trainingViewModel = trainingViewModel,  // ← DODAJ TO
+                exerciseViewModel = exerciseViewModel,   // ← DODAJ TO
                 onEdit = onEdit,
-                onDelete = onDelete
+                onDelete = onDelete,
+                onAddExercise = onAddExercise
             )
         }
     }
@@ -226,66 +247,145 @@ fun SessionsList(
 fun TrainingSessionItem(
     modifier: Modifier = Modifier,
     session: TrainingSession,
+    trainingViewModel: TrainingViewModel,  // ← DODAJ TO
+    exerciseViewModel: ExerciseViewModel,   // ← DODAJ TO
     onEdit: (TrainingSession) -> Unit = {},
-    onDelete: (TrainingSession) -> Unit = {}
+    onDelete: (TrainingSession) -> Unit = {},
+    onAddExercise: (TrainingSession) -> Unit = {}
 ) {
-
     var menuExpanded by remember { mutableStateOf(false) }
+    var isExpanded by remember { mutableStateOf(false) }
+
+    var showSetDialog by remember { mutableStateOf(false) }
+    var selectedExercise by remember { mutableStateOf<String?>(null) }
+
+    val sessionExercisesMap by trainingViewModel.sessionExercisesMap.collectAsState()
+    val sessionExercises = sessionExercisesMap[session.id.toLong()] ?: emptyList()
+
+    val allExercises by exerciseViewModel.exercises.observeAsState(emptyList())
+
+    LaunchedEffect(session.id, isExpanded) {
+        if (isExpanded) {
+            trainingViewModel.loadExercisesForSession(session.id.toLong())
+        }
+    }
 
     Card(
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { isExpanded = !isExpanded },
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFFFFF0F)  // Jasny niebieski
+        )
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(8.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(8.dp),
-                horizontalAlignment = Alignment.Start,
-                verticalArrangement = Arrangement.Center
+        Column {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(8.dp)
             ) {
-                Text(text = session.description)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(8.dp),
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(text = session.description)
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.End,
+                    ) {
+                        Button(onClick = { onAddExercise(session) }) {
+                            Text("Add exercise")
+                        }
+                        Box {
+                            IconButton(onClick = { menuExpanded = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "Więcej")
+                            }
+                            DropdownMenu(
+                                expanded = menuExpanded,
+                                onDismissRequest = { menuExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Edytuj") },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onEdit(session)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Usuń") },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onDelete(session)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
             }
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
+
+            // Lista ćwiczeń (gdy rozwinięte)
+            if (isExpanded) {
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.End,
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFF5F5F5)  // Jasny szary - lista ćwiczeń
+                    )
                 ) {
-                    Button(onClick = { /* TODO: Start training session */ }) {
-                        Text("Add exercise")
-                    }
-                    Box {
-                        IconButton(onClick = { menuExpanded = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "Więcej")
-                        }
-                        DropdownMenu(
-                            expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Edytuj") },
-                                onClick = {
-                                    menuExpanded = false
-                                    onEdit(session)
+                    if (sessionExercises.isEmpty()) {
+                        Text(
+                            text = "Sesja jest pusta",
+                            modifier = Modifier.padding(16.dp),
+                        )
+                    } else {
+                        Column {
+                            sessionExercises.forEach { sessionExercise ->
+                                val exercise = allExercises.find { it.id == sessionExercise.exerciseId }
+                                if (exercise != null) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                selectedExercise = exercise.name
+                                                showSetDialog = true
+                                            }
+                                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(text = exercise.name)
+                                        IconButton(onClick = {
+                                            trainingViewModel.deleteSessionExercise(sessionExercise)
+                                        }) {
+                                            Icon(Icons.Default.Delete, contentDescription = "Delete")
+                                        }
+                                    }
                                 }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Usuń") },
-                                onClick = {
-                                    menuExpanded = false
-                                    onDelete(session)
-                                }
-                            )
+                            }
                         }
                     }
                 }
             }
         }
+    }
+
+    if (showSetDialog && selectedExercise != null) {
+        AddSetDialog(
+            exerciseName = selectedExercise!!,
+            onDismiss = { showSetDialog = false },
+            onConfirm = {
+                showSetDialog = false
+            }
+        )
     }
 }
 
@@ -342,6 +442,37 @@ fun EditSessionDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Anuluj") }
+        }
+    )
+}
+
+@Composable
+fun AddSetDialog(
+    exerciseName: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    var textInput by remember { mutableStateOf("") }
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(exerciseName) },
+        text = {
+            androidx.compose.material3.OutlinedTextField(
+                value = textInput,
+                onValueChange = { textInput = it },
+                label = { Text("Enter data") }
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("Dodaj")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Anuluj")
+            }
         }
     )
 }

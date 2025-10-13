@@ -2,6 +2,7 @@ package com.example.gymtrackapp.data.repository
 
 import android.content.Context
 import com.example.gymtrackapp.data.dao.TrainingDao
+import com.example.gymtrackapp.data.entity.SessionExercise
 import com.example.gymtrackapp.data.entity.TrainingSession
 
 class TrainingRepository(
@@ -22,5 +23,24 @@ class TrainingRepository(
 
     suspend fun updateSession(session: TrainingSession) {
         trainingDao.updateSession(session)
+    }
+
+    suspend fun getExercisesForSession(sessionId: Long): List<SessionExercise> {
+        return trainingDao.getExercisesForSession(sessionId)
+    }
+
+    suspend fun addExerciseToSession(sessionId: Long, exerciseId: String) {
+        val maxOrder = trainingDao.getMaxOrderForSession(sessionId) ?: -1
+        val newExercise = SessionExercise(
+            trainingSessionId = sessionId,
+            exerciseId = exerciseId,
+            order = maxOrder + 1
+        )
+        trainingDao.insertSessionExercise(newExercise)
+    }
+
+    suspend fun deleteSessionExercise(exercise: SessionExercise) {
+        trainingDao.deleteSessionExercise(exercise)
+        trainingDao.reorderAfterDeletion(exercise.trainingSessionId, exercise.order)
     }
 }

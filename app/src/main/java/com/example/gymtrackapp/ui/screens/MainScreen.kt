@@ -27,6 +27,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
 import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
 
@@ -37,6 +41,7 @@ fun MainScreen(
     exerciseViewModel: ExerciseViewModel,
     trainingViewModel: TrainingViewModel
 ) {
+    val navController = rememberNavController()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
 
     val navItemsList = listOf(
@@ -48,66 +53,84 @@ fun MainScreen(
     var selectedIndex by remember { mutableStateOf(0) }
     var showAddSessionDialog by remember { mutableStateOf(false) }
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        bottomBar = {
-            NavigationBar {
-                navItemsList.forEachIndexed { index, navItem ->
-                    NavigationBarItem(
-                        selected = selectedIndex == index,
-                        onClick = { selectedIndex = index },
-                        icon = {
-                            Icon(imageVector = navItem.icon, contentDescription = navItem.label)
+    NavHost(
+        navController = navController,
+        startDestination = "main"
+    ) {
+        composable("main") {
+            Scaffold(
+                modifier = Modifier.fillMaxSize(),
+                bottomBar = {
+                    NavigationBar {
+                        navItemsList.forEachIndexed { index, navItem ->
+                            NavigationBarItem(
+                                selected = selectedIndex == index,
+                                onClick = { selectedIndex = index },
+                                icon = {
+                                    Icon(imageVector = navItem.icon, contentDescription = navItem.label)
+                                },
+                                label = { Text(text = navItem.label) }
+                            )
+                        }
+                    }
+                },
+                topBar = {
+                    CenterAlignedTopAppBar(
+                        title = {
+                            Text(
+                                "Gym Track",
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         },
-                        label = { Text(text = navItem.label) }
+                        navigationIcon = {
+                            IconButton(onClick = { /* TODO */ }) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back"
+                                )
+                            }
+                        },
+                        actions = {
+                            IconButton(onClick = { /* TODO */ }) {
+                                Icon(
+                                    imageVector = Icons.Filled.Menu,
+                                    contentDescription = "Menu"
+                                )
+                            }
+                        },
+                        scrollBehavior = scrollBehavior,
                     )
-                }
-            }
-        },
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        "Gym Track",
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
                 },
-                navigationIcon = {
-                    IconButton(onClick = { /* TODO */ }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
+                floatingActionButton = {
+                    if (selectedIndex == 1) {
+                        FloatingActionButton(onClick = { showAddSessionDialog = true }) {
+                            Icon(Icons.Default.Add, contentDescription = "Dodaj sesję")
+                        }
                     }
-                },
-                actions = {
-                    IconButton(onClick = { /* TODO */ }) {
-                        Icon(
-                            imageVector = Icons.Filled.Menu,
-                            contentDescription = "Menu"
-                        )
-                    }
-                },
-                scrollBehavior = scrollBehavior,
-            )
-        },
-        floatingActionButton = {
-            if (selectedIndex == 1) {
-                FloatingActionButton(onClick = { showAddSessionDialog = true }) {
-                    Icon(Icons.Default.Add, contentDescription = "Dodaj sesję")
                 }
+            ) { innerPadding ->
+                ContentScreen(
+                    modifier = Modifier.padding(innerPadding),
+                    selectedIndex = selectedIndex,
+                    exerciseViewModel = exerciseViewModel,
+                    trainingViewModel = trainingViewModel,
+                    showAddSessionDialog = showAddSessionDialog,
+                    onDismissDialog = { showAddSessionDialog = false },
+                    navController = navController
+                )
             }
         }
-    ) { innerPadding ->
-        ContentScreen(
-            modifier = Modifier.padding(innerPadding),
-            selectedIndex = selectedIndex,
-            exerciseViewModel = exerciseViewModel,
-            trainingViewModel = trainingViewModel,
-            showAddSessionDialog = showAddSessionDialog,
-            onDismissDialog = { showAddSessionDialog = false }
-        )
+
+        composable("add_exercise/{sessionId}") { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getString("sessionId")?.toLongOrNull() ?: 0L
+            AddExerciseScreen(
+                sessionId = sessionId,
+                onNavigateBack = { navController.popBackStack() },
+                exerciseViewModel = exerciseViewModel,
+                trainingViewModel = trainingViewModel  // ← DODAJ TO
+            )
+        }
     }
 }
 
@@ -118,15 +141,18 @@ fun ContentScreen(
     exerciseViewModel: ExerciseViewModel,
     trainingViewModel: TrainingViewModel,
     showAddSessionDialog: Boolean,
-    onDismissDialog: () -> Unit
+    onDismissDialog: () -> Unit,
+    navController: NavHostController
 ) {
     when (selectedIndex) {
         0 -> HomePage(modifier = modifier)
         1 -> CalendarPage(
             modifier = modifier,
             trainingViewModel = trainingViewModel,
+            exerciseViewModel = exerciseViewModel,  // ← DODAJ TO
             showAddSessionDialog = showAddSessionDialog,
-            onDismissDialog = onDismissDialog
+            onDismissDialog = onDismissDialog,
+            navController = navController
         )
         2 -> PlannerPage(modifier = modifier, viewModel = exerciseViewModel)
         else -> Text(text = "No Page Found", modifier = modifier)
