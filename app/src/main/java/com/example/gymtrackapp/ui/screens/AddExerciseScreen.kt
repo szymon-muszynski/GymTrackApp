@@ -147,10 +147,10 @@ fun AddExerciseScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     MultiSelectDropdown("Primary muscles", primaryMuscles, exerciseViewModel.tempPrimaryMuscles) { exerciseViewModel.tempPrimaryMuscles = it }
                     MultiSelectDropdown("Secondary muscles", secondaryMuscles, exerciseViewModel.tempSecondaryMuscles) { exerciseViewModel.tempSecondaryMuscles = it }
-                    MultiSelectDropdown("Poziom", levels, exerciseViewModel.tempLevels) { exerciseViewModel.tempLevels = it }
-                    MultiSelectDropdown("Sprzęt", equipments, exerciseViewModel.tempEquipments) { exerciseViewModel.tempEquipments = it }
-                    MultiSelectDropdown("Kategoria", categories, exerciseViewModel.tempCategories) { exerciseViewModel.tempCategories = it }
-                    MultiSelectDropdown("Mechanika", mechanics, exerciseViewModel.tempMechanics) { exerciseViewModel.tempMechanics = it }
+                    MultiSelectDropdown("Level", levels, exerciseViewModel.tempLevels) { exerciseViewModel.tempLevels = it }
+                    MultiSelectDropdown("Equipment", equipments, exerciseViewModel.tempEquipments) { exerciseViewModel.tempEquipments = it }
+                    MultiSelectDropdown("Category", categories, exerciseViewModel.tempCategories) { exerciseViewModel.tempCategories = it }
+                    MultiSelectDropdown("Mechanics", mechanics, exerciseViewModel.tempMechanics) { exerciseViewModel.tempMechanics = it }
                     MultiSelectDropdown("Force", forces, exerciseViewModel.tempForces) { exerciseViewModel.tempForces = it }
                 }
             },
