@@ -461,7 +461,7 @@ fun AddSetDialog(
             androidx.compose.material3.OutlinedTextField(
                 value = textInput,
                 onValueChange = { textInput = it },
-                label = { Text("Wprowadź dane") }
+                label = { Text("Enter data") }
             )
         },
         confirmButton = {
