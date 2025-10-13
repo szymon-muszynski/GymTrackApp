@@ -366,7 +366,7 @@ fun TrainingSessionItem(
                                         IconButton(onClick = {
                                             trainingViewModel.deleteSessionExercise(sessionExercise)
                                         }) {
-                                            Icon(Icons.Default.Delete, contentDescription = "Usuń")
+                                            Icon(Icons.Default.Delete, contentDescription = "Delete")
                                         }
                                     }
                                 }
