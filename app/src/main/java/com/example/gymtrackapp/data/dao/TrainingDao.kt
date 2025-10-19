@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
 import com.example.gymtrackapp.data.entity.SessionExercise
+import com.example.gymtrackapp.data.entity.SessionSetDetails
 import com.example.gymtrackapp.data.entity.TrainingSession
 
 @Dao
@@ -36,4 +37,20 @@ interface TrainingDao {
 
     @Query("UPDATE session_exercises SET `order` = `order` - 1 WHERE trainingSessionId = :sessionId AND `order` > :deletedOrder")
     suspend fun reorderAfterDeletion(sessionId: Long, deletedOrder: Int)
+
+    @Query("SELECT * FROM session_set_details WHERE sessionExerciseId = :sessionExerciseId ORDER BY `order`")
+    suspend fun getSetsForSessionExercise(sessionExerciseId: Long): List<SessionSetDetails>
+
+    @Insert
+    suspend fun insertSet(set: SessionSetDetails): Long
+
+    @Delete
+    suspend fun deleteSet(set: SessionSetDetails)
+
+    @Query("SELECT MAX(`order`) FROM session_set_details WHERE sessionExerciseId = :sessionExerciseId")
+    suspend fun getMaxOrderForSessionExercise(sessionExerciseId: Long): Int?
+
+    @Query("UPDATE session_set_details SET `order` = `order` - 1 WHERE sessionExerciseId = :sessionExerciseId AND `order` > :deletedOrder")
+    suspend fun reorderSetsAfterDeletion(sessionExerciseId: Long, deletedOrder: Int)
+
 }

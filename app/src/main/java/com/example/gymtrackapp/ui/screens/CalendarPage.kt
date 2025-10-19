@@ -55,6 +55,8 @@ import kotlin.collections.forEach
 import kotlin.collections.get
 import kotlin.text.toLong
 import androidx.compose.material3.CardDefaults
+import kotlin.collections.get
+import kotlin.text.toLong
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -101,6 +103,9 @@ fun CalendarPage(
             },
             onAddExercise = { session ->
                 navController.navigate("add_exercise/${session.id}")
+            },
+            onExerciseClick = { sessionExerciseId, exerciseId ->
+                navController.navigate("set_details/$sessionExerciseId/$exerciseId")
             }
         )
     }
@@ -219,11 +224,12 @@ fun DayCard(
 @Composable
 fun SessionsList(
     trainingSessions: List<TrainingSession>,
-    trainingViewModel: TrainingViewModel,  // ← DODAJ TO
-    exerciseViewModel: ExerciseViewModel,   // ← DODAJ TO
+    trainingViewModel: TrainingViewModel,
+    exerciseViewModel: ExerciseViewModel,
     onEdit: (TrainingSession) -> Unit,
     onDelete: (TrainingSession) -> Unit,
-    onAddExercise: (TrainingSession) -> Unit
+    onAddExercise: (TrainingSession) -> Unit,
+    onExerciseClick: (Long, String) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -233,11 +239,12 @@ fun SessionsList(
             TrainingSessionItem(
                 modifier = Modifier.padding(vertical = 4.dp),
                 session = session,
-                trainingViewModel = trainingViewModel,  // ← DODAJ TO
-                exerciseViewModel = exerciseViewModel,   // ← DODAJ TO
+                trainingViewModel = trainingViewModel,
+                exerciseViewModel = exerciseViewModel,
                 onEdit = onEdit,
                 onDelete = onDelete,
-                onAddExercise = onAddExercise
+                onAddExercise = onAddExercise,
+                onExerciseClick = onExerciseClick
             )
         }
     }
@@ -247,17 +254,15 @@ fun SessionsList(
 fun TrainingSessionItem(
     modifier: Modifier = Modifier,
     session: TrainingSession,
-    trainingViewModel: TrainingViewModel,  // ← DODAJ TO
-    exerciseViewModel: ExerciseViewModel,   // ← DODAJ TO
+    trainingViewModel: TrainingViewModel,
+    exerciseViewModel: ExerciseViewModel,
     onEdit: (TrainingSession) -> Unit = {},
     onDelete: (TrainingSession) -> Unit = {},
-    onAddExercise: (TrainingSession) -> Unit = {}
+    onAddExercise: (TrainingSession) -> Unit = {},
+    onExerciseClick: (Long, String) -> Unit = { _, _ -> }
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     var isExpanded by remember { mutableStateOf(false) }
-
-    var showSetDialog by remember { mutableStateOf(false) }
-    var selectedExercise by remember { mutableStateOf<String?>(null) }
 
     val sessionExercisesMap by trainingViewModel.sessionExercisesMap.collectAsState()
     val sessionExercises = sessionExercisesMap[session.id.toLong()] ?: emptyList()
@@ -275,7 +280,7 @@ fun TrainingSessionItem(
             .fillMaxWidth()
             .clickable { isExpanded = !isExpanded },
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFFFFF0F)  // Jasny niebieski
+            containerColor = Color(0xFF6B9BD1) // ← Zmieniony kolor na ciemniejszy niebieski
         )
     ) {
         Column {
@@ -290,7 +295,11 @@ fun TrainingSessionItem(
                     horizontalAlignment = Alignment.Start,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text(text = session.description)
+                    Text(
+                        text = session.description,
+                        fontWeight = FontWeight.Bold, // ← Pogrubienie
+                        fontSize = 18.sp // ← Można opcjonalnie zwiększyć
+                    )
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Row(
@@ -331,38 +340,56 @@ fun TrainingSessionItem(
                 }
             }
 
-            // Lista ćwiczeń (gdy rozwinięte)
             if (isExpanded) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFF5F5F5)  // Jasny szary - lista ćwiczeń
+                        containerColor = Color(0xFFF5F5F5)
                     )
                 ) {
                     if (sessionExercises.isEmpty()) {
                         Text(
                             text = "Sesja jest pusta",
                             modifier = Modifier.padding(16.dp),
+                            fontSize = 15.sp // ← Zwiększona czcionka
                         )
                     } else {
                         Column {
                             sessionExercises.forEach { sessionExercise ->
                                 val exercise = allExercises.find { it.id == sessionExercise.exerciseId }
                                 if (exercise != null) {
+                                    val sets by trainingViewModel.getSetsForSessionExercise(sessionExercise.id).collectAsState(initial = emptyList())
+
+                                    LaunchedEffect(sessionExercise.id) {
+                                        trainingViewModel.loadSetsForSessionExercise(sessionExercise.id)
+                                    }
+
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clickable {
-                                                selectedExercise = exercise.name
-                                                showSetDialog = true
+                                                onExerciseClick(sessionExercise.id, exercise.id)
                                             }
                                             .padding(horizontal = 16.dp, vertical = 8.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(text = exercise.name)
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = exercise.name,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 16.sp // ← Zwiększona czcionka
+                                            )
+                                            if (sets.isNotEmpty()) {
+                                                Text(
+                                                    text = sets.joinToString(", ") { "${it.weight}kg×${it.reps}" },
+                                                    fontSize = 14.sp, // ← Zwiększona z 12sp
+                                                    color = Color.Gray
+                                                )
+                                            }
+                                        }
                                         IconButton(onClick = {
                                             trainingViewModel.deleteSessionExercise(sessionExercise)
                                         }) {
@@ -376,16 +403,6 @@ fun TrainingSessionItem(
                 }
             }
         }
-    }
-
-    if (showSetDialog && selectedExercise != null) {
-        AddSetDialog(
-            exerciseName = selectedExercise!!,
-            onDismiss = { showSetDialog = false },
-            onConfirm = {
-                showSetDialog = false
-            }
-        )
     }
 }
 

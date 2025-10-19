@@ -3,10 +3,12 @@ package com.example.gymtrackapp.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.gymtrackapp.data.entity.SessionExercise
+import com.example.gymtrackapp.data.entity.SessionSetDetails
 import com.example.gymtrackapp.data.entity.TrainingSession
 import com.example.gymtrackapp.data.repository.TrainingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class TrainingViewModel(private val repository: TrainingRepository) : ViewModel() {
@@ -16,6 +18,8 @@ class TrainingViewModel(private val repository: TrainingRepository) : ViewModel(
 
     private val _sessionExercisesMap = MutableStateFlow<Map<Long, List<SessionExercise>>>(emptyMap())
     val sessionExercisesMap = _sessionExercisesMap.asStateFlow()
+
+    private val _sessionExerciseSetsMap = MutableStateFlow<Map<Long, List<SessionSetDetails>>>(emptyMap())
 
     fun loadSessionsForDate(date: Long) {
         viewModelScope.launch {
@@ -74,5 +78,31 @@ class TrainingViewModel(private val repository: TrainingRepository) : ViewModel(
 
     fun getExercisesForSession(sessionId: Long): List<SessionExercise> {
         return _sessionExercisesMap.value[sessionId] ?: emptyList()
+    }
+
+    fun getSetsForSessionExercise(sessionExerciseId: Long) =
+        _sessionExerciseSetsMap.map { it[sessionExerciseId] ?: emptyList() }
+
+    fun loadSetsForSessionExercise(sessionExerciseId: Long) {
+        viewModelScope.launch {
+            val sets = repository.getSetsForSessionExercise(sessionExerciseId)
+            _sessionExerciseSetsMap.value = _sessionExerciseSetsMap.value.toMutableMap().apply {
+                this[sessionExerciseId] = sets
+            }
+        }
+    }
+
+    fun addSetToSessionExercise(sessionExerciseId: Long, weight: Float, reps: Int) {
+        viewModelScope.launch {
+            repository.addSetToSessionExercise(sessionExerciseId, weight, reps)
+            loadSetsForSessionExercise(sessionExerciseId)
+        }
+    }
+
+    fun deleteSet(set: SessionSetDetails) {
+        viewModelScope.launch {
+            repository.deleteSet(set)
+            loadSetsForSessionExercise(set.sessionExerciseId)
+        }
     }
 }
