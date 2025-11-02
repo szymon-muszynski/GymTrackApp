@@ -3,6 +3,7 @@ package com.example.gymtrackapp.data.repository
 import android.content.Context
 import com.example.gymtrackapp.data.dao.TrainingDao
 import com.example.gymtrackapp.data.entity.SessionExercise
+import com.example.gymtrackapp.data.entity.SessionSetDetails
 import com.example.gymtrackapp.data.entity.TrainingSession
 
 class TrainingRepository(
@@ -43,4 +44,25 @@ class TrainingRepository(
         trainingDao.deleteSessionExercise(exercise)
         trainingDao.reorderAfterDeletion(exercise.trainingSessionId, exercise.order)
     }
+
+    suspend fun getSetsForSessionExercise(sessionExerciseId: Long): List<SessionSetDetails> {
+        return trainingDao.getSetsForSessionExercise(sessionExerciseId)
+    }
+
+    suspend fun addSetToSessionExercise(sessionExerciseId: Long, weight: Float, reps: Int) {
+        val maxOrder = trainingDao.getMaxOrderForSessionExercise(sessionExerciseId) ?: -1
+        val newSet = SessionSetDetails(
+            sessionExerciseId = sessionExerciseId,
+            order = maxOrder + 1,
+            reps = reps,
+            weight = weight
+        )
+        trainingDao.insertSet(newSet)
+    }
+
+    suspend fun deleteSet(set: SessionSetDetails) {
+        trainingDao.deleteSet(set)
+        trainingDao.reorderSetsAfterDeletion(set.sessionExerciseId, set.order)
+    }
+
 }

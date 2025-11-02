@@ -131,6 +131,18 @@ fun MainScreen(
                 trainingViewModel = trainingViewModel  // ← DODAJ TO
             )
         }
+
+        composable("set_details/{sessionExerciseId}/{exerciseId}") { backStackEntry ->
+            val sessionExerciseId = backStackEntry.arguments?.getString("sessionExerciseId")?.toLongOrNull() ?: 0L
+            val exerciseId = backStackEntry.arguments?.getString("exerciseId") ?: ""
+            SetDetailsScreen(
+                sessionExerciseId = sessionExerciseId,
+                exerciseId = exerciseId,
+                onNavigateBack = { navController.popBackStack() },
+                exerciseViewModel = exerciseViewModel,
+                trainingViewModel = trainingViewModel
+            )
+        }
     }
 }
 
