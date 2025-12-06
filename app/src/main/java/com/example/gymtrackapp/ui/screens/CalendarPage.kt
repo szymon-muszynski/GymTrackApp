@@ -63,7 +63,8 @@ import kotlin.text.toLong
 fun CalendarPage(
     modifier: Modifier = Modifier,
     trainingViewModel: TrainingViewModel,
-    exerciseViewModel: ExerciseViewModel,  // ← DODAJ TO
+    exerciseViewModel: ExerciseViewModel,
+    statisticsViewModel: com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel,
     showAddSessionDialog: Boolean,
     onDismissDialog: () -> Unit,
     navController: NavHostController
@@ -118,6 +119,7 @@ fun CalendarPage(
                     date = selectedDate.toEpochDay(),
                     description = description
                 )
+                statisticsViewModel.refresh() // Odświeżamy statystyki
                 onDismissDialog()
             }
         )
@@ -131,6 +133,7 @@ fun CalendarPage(
                 trainingViewModel.updateSession(
                     sessionToEdit!!.copy(description = newDescription)
                 )
+                statisticsViewModel.refresh() // Odświeżamy statystyki
                 showEditDialog = false
             }
         )

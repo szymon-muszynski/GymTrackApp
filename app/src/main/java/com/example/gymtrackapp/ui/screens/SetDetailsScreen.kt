@@ -25,7 +25,8 @@ fun SetDetailsScreen(
     exerciseId: String,
     onNavigateBack: () -> Unit,
     exerciseViewModel: ExerciseViewModel,
-    trainingViewModel: TrainingViewModel
+    trainingViewModel: TrainingViewModel,
+    statisticsViewModel: com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel
 ) {
     val allExercises by exerciseViewModel.exercises.observeAsState(emptyList())
     val exercise = allExercises.find { it.id == exerciseId }
@@ -105,6 +106,7 @@ fun SetDetailsScreen(
                                 }
                                 IconButton(onClick = {
                                     trainingViewModel.deleteSet(set)
+                                    statisticsViewModel.refresh() // Odświeżamy statystyki
                                 }) {
                                     Icon(Icons.Default.Delete, contentDescription = "Usuń")
                                 }
@@ -121,6 +123,7 @@ fun SetDetailsScreen(
             onDismiss = { showAddSetDialog = false },
             onConfirm = { weight, reps ->
                 trainingViewModel.addSetToSessionExercise(sessionExerciseId, weight, reps)
+                statisticsViewModel.refresh() // Odświeżamy statystyki
                 showAddSetDialog = false
             }
         )
