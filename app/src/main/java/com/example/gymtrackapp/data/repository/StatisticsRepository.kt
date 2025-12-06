@@ -8,7 +8,6 @@ import com.example.gymtrackapp.utils.OneRMCalculator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
-import kotlin.times
 
 /**
  * Repository odpowiedzialne za pobieranie i przetwarzanie danych statystycznych
