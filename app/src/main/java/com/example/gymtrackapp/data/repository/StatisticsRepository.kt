@@ -144,7 +144,7 @@ class StatisticsRepository(
                     } else {
                         // Nowa grupa mięśniowa
                         groupedData[primaryMuscle] = MuscleGroupVolume(
-                            muscleGroup = primaryMuscle.capitalize(),
+                            muscleGroup = primaryMuscle.replaceFirstChar { it.uppercase() },
                             totalVolume = raw.totalVolume,
                             exerciseCount = raw.exerciseCount,
                             setCount = raw.setCount
