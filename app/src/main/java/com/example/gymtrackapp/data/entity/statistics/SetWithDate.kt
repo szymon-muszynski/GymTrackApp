@@ -15,12 +15,6 @@ data class SetWithDate(
     val volume: Float
         get() = weight * reps
 
-    fun estimated1RM(formula: OneRMFormula = OneRMFormula.EPLEY): Float {
-        return when (formula) {
-            OneRMFormula.EPLEY -> weight * (1 + reps / 30f)
-            OneRMFormula.BRZYCKI -> if (reps == 1) weight else weight * (36f / (37f - reps))
-        }
-    }
 }
 
 enum class OneRMFormula {

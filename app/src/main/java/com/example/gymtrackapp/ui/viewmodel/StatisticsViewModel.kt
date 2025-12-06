@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 
 /**
  * ViewModel dla ekranu statystyk
@@ -90,11 +92,12 @@ class StatisticsViewModel(
         viewModelScope.launch {
             _isLoadingSummary.value = true
             try {
-                // Równoległe ładowanie danych
-                launch { loadHeatmapData() }
-                launch { loadTopPRs() }
-                launch { loadVolumeStats() }
-                launch { loadMuscleDistribution() }
+                awaitAll(
+                    async { loadHeatmapData() },
+                    async { loadTopPRs() },
+                    async { loadVolumeStats() },
+                    async { loadMuscleDistribution() }
+                )
             } finally {
                 _isLoadingSummary.value = false
             }
