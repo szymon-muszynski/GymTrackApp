@@ -20,6 +20,10 @@ class MainActivity : ComponentActivity() {
         val database = ExerciseDatabase.getDatabase(this)
         val exerciseRepository = ExerciseRepository(database.exerciseDao(), this)
         val trainingRepository = TrainingRepository(database.trainingDao(), this)
+        val statisticsRepository = com.example.gymtrackapp.data.repository.StatisticsRepository(
+            database.trainingDao(),
+            database.exerciseDao()
+        )
 
         setContent {
             GymTrackAppTheme {
@@ -31,6 +35,9 @@ class MainActivity : ComponentActivity() {
                 )
                 val trainingViewModel: TrainingViewModel = viewModel(
                     factory = TrainingViewModelFactory(trainingRepository)
+                )
+                val statisticsViewModel: com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel = viewModel(
+                    factory = com.example.gymtrackapp.ui.viewmodel.StatisticsViewModelFactory(statisticsRepository)
                 )
 
                 LaunchedEffect(Unit) {
@@ -47,6 +54,7 @@ class MainActivity : ComponentActivity() {
                         exerciseViewModel = exerciseViewModel,
                         trainingViewModel = trainingViewModel,
                         authViewModel = authViewModel,
+                        statisticsViewModel = statisticsViewModel,
                         onSignOut = { /* refresh nastąpi automatycznie przez collectAsState */ }
                     )
                 }

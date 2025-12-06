@@ -17,6 +17,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.gymtrackapp.ui.viewmodel.AuthViewModel
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
 import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
+import com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -25,6 +26,7 @@ fun MainScreen(
     exerciseViewModel: ExerciseViewModel,
     trainingViewModel: TrainingViewModel,
     authViewModel: AuthViewModel,
+    statisticsViewModel: StatisticsViewModel,
     onSignOut: () -> Unit
 ) {
     val navController = rememberNavController()
@@ -68,6 +70,7 @@ fun MainScreen(
                 CalendarPage(
                     trainingViewModel = trainingViewModel,
                     exerciseViewModel = exerciseViewModel,
+                    statisticsViewModel = statisticsViewModel,
                     showAddSessionDialog = showAddSessionDialog,
                     onDismissDialog = { showAddSessionDialog = false },
                     navController = navController
@@ -77,7 +80,10 @@ fun MainScreen(
                 PlannerPage(viewModel = exerciseViewModel)
             }
             composable("progress") {
-                ProgressPage()
+                ProgressPage(
+                    viewModel = statisticsViewModel,
+                    exerciseViewModel = exerciseViewModel
+                )
             }
             composable("friends") {
                 FriendsPage()
@@ -91,7 +97,8 @@ fun MainScreen(
                     sessionId = sessionId,
                     onNavigateBack = { navController.popBackStack() },
                     exerciseViewModel = exerciseViewModel,
-                    trainingViewModel = trainingViewModel
+                    trainingViewModel = trainingViewModel,
+                    statisticsViewModel = statisticsViewModel
                 )
             }
             composable("set_details/{sessionExerciseId}/{exerciseId}") { backStackEntry ->
@@ -102,7 +109,8 @@ fun MainScreen(
                     exerciseId = exerciseId,
                     onNavigateBack = { navController.popBackStack() },
                     exerciseViewModel = exerciseViewModel,
-                    trainingViewModel = trainingViewModel
+                    trainingViewModel = trainingViewModel,
+                    statisticsViewModel = statisticsViewModel
                 )
             }
         }

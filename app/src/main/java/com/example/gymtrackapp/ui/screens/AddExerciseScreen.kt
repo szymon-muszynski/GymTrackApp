@@ -26,7 +26,8 @@ fun AddExerciseScreen(
     sessionId: Long,
     onNavigateBack: () -> Unit,
     exerciseViewModel: ExerciseViewModel,
-    trainingViewModel: TrainingViewModel
+    trainingViewModel: TrainingViewModel,
+    statisticsViewModel: com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel
 ) {
     val allExercises by exerciseViewModel.exercises.observeAsState(emptyList())
     var searchQuery by remember { mutableStateOf("") }
