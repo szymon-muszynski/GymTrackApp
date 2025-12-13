@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -329,40 +330,110 @@ private fun WeeklyBarChart(weeklyData: List<com.example.gymtrackapp.data.entity.
         values.add(dayData?.totalVolume ?: 0f)
     }
 
-    val maxValue = values.maxOrNull()?.takeIf { it > 0 } ?: 1f
+    val maxDataValue = values.maxOrNull()?.takeIf { it > 0 } ?: 100f
+
+    // Dodaj 15% bufora nad maksymalną wartością
+    val maxWithBuffer = maxDataValue * 1.15f
+
+    // Zaokrąglij do ładnej liczby
+    val yAxisMax = when {
+        maxWithBuffer < 100 -> ((maxWithBuffer / 10).toInt() + 1) * 10f
+        maxWithBuffer < 500 -> ((maxWithBuffer / 50).toInt() + 1) * 50f
+        maxWithBuffer < 1000 -> ((maxWithBuffer / 100).toInt() + 1) * 100f
+        else -> ((maxWithBuffer / 500).toInt() + 1) * 500f
+    }
+
+    val yAxisMid = yAxisMax / 2f
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(150.dp)
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.Bottom
+        modifier = Modifier.fillMaxWidth()
     ) {
-        days.forEachIndexed { index, day ->
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Bottom,
-                modifier = Modifier.weight(1f)
+        // Oś Y z etykietami
+        Column(
+            modifier = Modifier
+                .width(45.dp)
+                .height(130.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.End
+        ) {
+            Text(
+                text = "${yAxisMax.toInt()}",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Normal,
+                color = Color(0xFF999999),
+                modifier = Modifier.padding(end = 4.dp, top = 2.dp)
+            )
+            Text(
+                text = "${yAxisMid.toInt()}",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Normal,
+                color = Color(0xFF999999),
+                modifier = Modifier.padding(end = 4.dp)
+            )
+            Text(
+                text = "0",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Normal,
+                color = Color(0xFF999999),
+                modifier = Modifier.padding(end = 4.dp, bottom = 2.dp)
+            )
+        }
+
+        // Wykres słupkowy
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            // Obszar wykresu
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(130.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.Bottom
             ) {
-                // Bar
-                Box(
-                    modifier = Modifier
-                        .width(36.dp)
-                        .height(((values[index] / maxValue) * 110).dp.coerceAtLeast(4.dp))
-                        .background(
-                            color = if (values[index] > 0) Color(0xFF4CAF50) else Color(0xFFEEEEEE),
-                            shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
+                days.forEachIndexed { index, day ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Bottom,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        // Wysokość słupka proporcjonalna do yAxisMax (z buforem)
+                        val barHeight = if (values[index] > 0) {
+                            ((values[index] / yAxisMax) * 120).dp
+                        } else {
+                            4.dp
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .width(36.dp)
+                                .height(barHeight)
+                                .background(
+                                    color = if (values[index] > 0) Color(0xFF4CAF50) else Color(0xFFEEEEEE),
+                                    shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
+                                )
                         )
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                // Label
-                Text(
-                    text = day,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF757575)
-                )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Etykiety dni (poza obszarem wykresu)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                days.forEach { day ->
+                    Text(
+                        text = day,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF757575),
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }
