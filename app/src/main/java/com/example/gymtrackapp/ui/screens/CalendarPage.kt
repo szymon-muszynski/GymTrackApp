@@ -67,9 +67,10 @@ fun CalendarPage(
     statisticsViewModel: com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel,
     showAddSessionDialog: Boolean,
     onDismissDialog: () -> Unit,
-    navController: NavHostController
+    navController: NavHostController,
+    initialDate: LocalDate? = null
 ) {
-    var selectedDate by remember { mutableStateOf(LocalDate.now()) }
+    var selectedDate by remember { mutableStateOf(initialDate ?: LocalDate.now()) }
     val sessions by trainingViewModel.sessions.collectAsState()
 
     var showEditDialog by remember { mutableStateOf(false) }

@@ -189,6 +189,12 @@ interface TrainingDao {
     """)
     suspend fun getTopSetsByDate(exerciseId: String): List<TopSetByDateRaw>
 
+    /**
+     * Pobiera ostatnie N sesji treningowych
+     */
+    @Query("SELECT * FROM training_sessions ORDER BY date DESC LIMIT :limit")
+    suspend fun getRecentSessions(limit: Int): List<TrainingSession>
+
 }
 
 // ============= RAW DATA CLASSES FOR ROOM QUERIES =============

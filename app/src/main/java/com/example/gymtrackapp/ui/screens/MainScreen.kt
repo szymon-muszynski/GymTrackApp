@@ -4,11 +4,11 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -41,7 +41,7 @@ fun MainScreen(
                         authViewModel.signOut()
                         onSignOut()
                     }) {
-                        Icon(Icons.Default.ExitToApp, contentDescription = "Wyloguj")
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Wyloguj")
                     }
                 }
             )
@@ -64,9 +64,64 @@ fun MainScreen(
             modifier = Modifier.padding(paddingValues)
         ) {
             composable("home") {
-                HomePage()
+                val currentUser by authViewModel.currentUser.collectAsState()
+
+                // Wyświetl email użytkownika
+                val userName = currentUser?.email
+
+                HomePage(
+                    onNavigateToStatistics = { navController.navigate("progress") },
+                    onNavigateToPlans = { navController.navigate("planner") },
+                    onNavigateToSettings = { navController.navigate("profile") },
+                    onAddWorkoutSession = {
+                        showAddSessionDialog = true
+                        navController.navigate("calendar")
+                    },
+                    onNavigateToSession = { sessionId, epochDay ->
+                        // Konwertuj epochDay (dni od 1970) na timestamp w milisekundach
+                        val timestampMillis = epochDay * 24 * 60 * 60 * 1000
+                        navController.navigate("calendar/$timestampMillis")
+                    },
+                    userName = userName,
+                    statisticsViewModel = statisticsViewModel,
+                    trainingViewModel = trainingViewModel
+                )
+            }
+            composable("calendar/{date}") { backStackEntry ->
+                // Odczyt daty z argumentów (Long timestamp w milisekundach)
+                val dateArg = backStackEntry.arguments?.getString("date")?.toLongOrNull()
+
+                // Konwertuj timestamp na LocalDate
+                val initialDate = dateArg?.let { timestampMillis ->
+                    java.time.Instant.ofEpochMilli(timestampMillis)
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .toLocalDate()
+                }
+
+                // Reset dialog state when navigating away
+                DisposableEffect(Unit) {
+                    onDispose {
+                        showAddSessionDialog = false
+                    }
+                }
+
+                CalendarPage(
+                    trainingViewModel = trainingViewModel,
+                    exerciseViewModel = exerciseViewModel,
+                    statisticsViewModel = statisticsViewModel,
+                    showAddSessionDialog = showAddSessionDialog,
+                    onDismissDialog = { showAddSessionDialog = false },
+                    navController = navController,
+                    initialDate = initialDate
+                )
             }
             composable("calendar") {
+                DisposableEffect(Unit) {
+                    onDispose {
+                        showAddSessionDialog = false
+                    }
+                }
+
                 CalendarPage(
                     trainingViewModel = trainingViewModel,
                     exerciseViewModel = exerciseViewModel,
@@ -115,6 +170,7 @@ fun MainScreen(
             }
         }
     }
+
 }
 
 @Composable
@@ -132,20 +188,30 @@ fun BottomNavigationBar(navController: NavHostController) {
         val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
 
         items.forEach { item ->
+            val route = item.label.lowercase()
             NavigationBarItem(
                 icon = { Icon(item.icon, contentDescription = item.label) },
                 label = { Text(item.label) },
-                selected = currentRoute == item.label.lowercase(),
+                selected = currentRoute == route,
                 onClick = {
-                    navController.navigate(item.label.lowercase()) {
-                        popUpTo(navController.graph.startDestinationId) {
-                            saveState = true
+                    if (currentRoute != route) {
+                        navController.navigate(route) {
+                            if (route == "home") {
+                                popUpTo(0) {
+                                    inclusive = false
+                                }
+                            } else {
+                                popUpTo("home") {
+                                    inclusive = false
+                                }
+                            }
+                            launchSingleTop = true
+                            restoreState = false
                         }
-                        launchSingleTop = true
-                        restoreState = true
                     }
                 }
             )
         }
     }
 }
+
