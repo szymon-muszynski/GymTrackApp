@@ -77,18 +77,45 @@ fun MainScreen(
                         showAddSessionDialog = true
                         navController.navigate("calendar")
                     },
-                    onNavigateToSession = { sessionId, date ->
-                        // Przejdź do calendar i załaduj sesję z danego dnia
-                        navController.navigate("calendar")
-                        trainingViewModel.loadSessionsForDate(date)
+                    onNavigateToSession = { sessionId, epochDay ->
+                        // Konwertuj epochDay (dni od 1970) na timestamp w milisekundach
+                        val timestampMillis = epochDay * 24 * 60 * 60 * 1000
+                        navController.navigate("calendar/$timestampMillis")
                     },
                     userName = userName,
                     statisticsViewModel = statisticsViewModel,
                     trainingViewModel = trainingViewModel
                 )
             }
-            composable("calendar") {
+            composable("calendar/{date}") { backStackEntry ->
+                // Odczyt daty z argumentów (Long timestamp w milisekundach)
+                val dateArg = backStackEntry.arguments?.getString("date")?.toLongOrNull()
+
+                // Konwertuj timestamp na LocalDate
+                val initialDate = dateArg?.let { timestampMillis ->
+                    java.time.Instant.ofEpochMilli(timestampMillis)
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .toLocalDate()
+                }
+
                 // Reset dialog state when navigating away
+                DisposableEffect(Unit) {
+                    onDispose {
+                        showAddSessionDialog = false
+                    }
+                }
+
+                CalendarPage(
+                    trainingViewModel = trainingViewModel,
+                    exerciseViewModel = exerciseViewModel,
+                    statisticsViewModel = statisticsViewModel,
+                    showAddSessionDialog = showAddSessionDialog,
+                    onDismissDialog = { showAddSessionDialog = false },
+                    navController = navController,
+                    initialDate = initialDate
+                )
+            }
+            composable("calendar") {
                 DisposableEffect(Unit) {
                     onDispose {
                         showAddSessionDialog = false

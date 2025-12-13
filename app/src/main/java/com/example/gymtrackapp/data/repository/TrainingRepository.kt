@@ -68,26 +68,28 @@ class TrainingRepository(
     suspend fun getRecentSessionsWithExercises(limit: Int): List<com.example.gymtrackapp.data.entity.RecentSessionWithExercises> {
         val recentSessions = trainingDao.getRecentSessions(limit)
 
+        // Wczytaj i sparsuj exercises.json tylko raz, zbuduj mapę ID -> nazwa
+        val exerciseIdToName: Map<String, String> = try {
+            val exerciseJson = context.assets.open("exercises.json")
+                .bufferedReader()
+                .use { it.readText() }
+            val jsonArray = org.json.JSONArray(exerciseJson)
+            val map = mutableMapOf<String, String>()
+            for (i in 0 until jsonArray.length()) {
+                val obj = jsonArray.getJSONObject(i)
+                val id = obj.getString("id")
+                val name = obj.getString("name")
+                map[id] = name
+            }
+            map
+        } catch (e: Exception) {
+            emptyMap()
+        }
+
         return recentSessions.map { session ->
             val exercises = trainingDao.getExercisesForSession(session.id.toLong())
             val exerciseNames = exercises.mapNotNull { sessionExercise ->
-                // Pobierz nazwę ćwiczenia z ExerciseDao
-                try {
-                    val exercise = context.assets.open("exercises.json")
-                        .bufferedReader()
-                        .use { it.readText() }
-                    // Parsuj JSON i znajdź nazwę ćwiczenia
-                    val jsonArray = org.json.JSONArray(exercise)
-                    for (i in 0 until jsonArray.length()) {
-                        val obj = jsonArray.getJSONObject(i)
-                        if (obj.getString("id") == sessionExercise.exerciseId) {
-                            return@mapNotNull obj.getString("name")
-                        }
-                    }
-                    null
-                } catch (e: Exception) {
-                    null
-                }
+                exerciseIdToName[sessionExercise.exerciseId]
             }
 
             com.example.gymtrackapp.data.entity.RecentSessionWithExercises(
