@@ -21,6 +21,9 @@ class TrainingViewModel(private val repository: TrainingRepository) : ViewModel(
 
     private val _sessionExerciseSetsMap = MutableStateFlow<Map<Long, List<SessionSetDetails>>>(emptyMap())
 
+    private val _recentSessions = MutableStateFlow<List<com.example.gymtrackapp.data.entity.RecentSessionWithExercises>>(emptyList())
+    val recentSessions = _recentSessions.asStateFlow()
+
     fun loadSessionsForDate(date: Long) {
         viewModelScope.launch {
             _sessions.value = repository.loadSessionsForDate(date)
@@ -103,6 +106,12 @@ class TrainingViewModel(private val repository: TrainingRepository) : ViewModel(
         viewModelScope.launch {
             repository.deleteSet(set)
             loadSetsForSessionExercise(set.sessionExerciseId)
+        }
+    }
+
+    fun loadRecentSessions(limit: Int = 3) {
+        viewModelScope.launch {
+            _recentSessions.value = repository.getRecentSessionsWithExercises(limit)
         }
     }
 }

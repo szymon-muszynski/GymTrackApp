@@ -18,29 +18,34 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/**
- * Ekran główny aplikacji (Home Page)
- */
 @Composable
 fun HomePage(
     onNavigateToStatistics: () -> Unit = {},
     onNavigateToPlans: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onAddWorkoutSession: () -> Unit = {},
+    onNavigateToSession: (Long, Long) -> Unit = { _, _ -> },
     userName: String? = null,
     statisticsViewModel: com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel? = null,
+    trainingViewModel: com.example.gymtrackapp.ui.viewmodel.TrainingViewModel? = null,
     modifier: Modifier = Modifier
 ) {
     // Pobierz dane o ostatnim tygodniu
     val weeklyData = statisticsViewModel?.heatmapData?.collectAsState()?.value ?: emptyList()
 
+    // Pobierz ostatnie sesje treningowe
+    val recentSessions = trainingViewModel?.recentSessions?.collectAsState()?.value ?: emptyList()
+
     // Załaduj dane przy pierwszym otwarciu
-    LaunchedEffect(statisticsViewModel) {
+    LaunchedEffect(statisticsViewModel, trainingViewModel) {
         statisticsViewModel?.setHeatmapDaysRange(7)
+        trainingViewModel?.loadRecentSessions(3)
     }
 
     Column(
@@ -49,10 +54,8 @@ fun HomePage(
             .background(Color(0xFFF5F5F5))
             .verticalScroll(rememberScrollState())
     ) {
-        // Header
         HomePageHeader(userName = userName)
 
-        // Quick Actions
         QuickActionsSection(
             onNavigateToStatistics = onNavigateToStatistics,
             onNavigateToPlans = onNavigateToPlans,
@@ -60,16 +63,15 @@ fun HomePage(
             onAddWorkoutSession = onAddWorkoutSession
         )
 
-        // Weekly Load Chart
         WeeklyLoadChartCard(weeklyData = weeklyData)
 
-        // Today Summary
         TodaySummaryCard()
 
-        // Recent Activity
-        RecentActivityCard()
+        RecentActivityCard(
+            recentSessions = recentSessions,
+            onNavigateToSession = onNavigateToSession
+        )
 
-        // Bottom spacing
         Spacer(modifier = Modifier.height(16.dp))
     }
 }
@@ -119,7 +121,6 @@ private fun QuickActionsSection(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // First row - two main actions
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -420,7 +421,10 @@ private fun TodaySummaryCard() {
 }
 
 @Composable
-private fun RecentActivityCard() {
+private fun RecentActivityCard(
+    recentSessions: List<com.example.gymtrackapp.data.entity.RecentSessionWithExercises>,
+    onNavigateToSession: (Long, Long) -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -436,94 +440,133 @@ private fun RecentActivityCard() {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Section header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Text(
+                text = "Ostatnie sesje",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF212121)
+            )
+
+            if (recentSessions.isEmpty()) {
+                // Placeholder gdy brak sesji
                 Text(
-                    text = "Ostatnie sesje",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF212121)
+                    text = "Brak ostatnich treningów",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = Color(0xFF757575),
+                    modifier = Modifier.padding(vertical = 16.dp)
                 )
-                TextButton(
-                    onClick = { /* Show all */ },
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Text(
-                        text = "Pokaż wszystkie",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF4CAF50)
+            } else {
+                // Lista ostatnich sesji
+                recentSessions.forEachIndexed { index, session ->
+                    RecentSessionItem(
+                        session = session,
+                        onShowClick = { onNavigateToSession(session.sessionId, session.sessionDate) }
                     )
+
+                    if (index < recentSessions.size - 1) {
+                        HorizontalDivider(
+                            color = Color(0xFFEEEEEE),
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                    }
                 }
             }
-
-            // Mock recent sessions
-            RecentSessionItem(
-                title = "Trening FBW",
-                subtitle = "Wczoraj • 1 200 kg • 12 ćwiczeń",
-                duration = "45 min"
-            )
-            HorizontalDivider(color = Color(0xFFEEEEEE))
-
-            RecentSessionItem(
-                title = "Trening górnej partii",
-                subtitle = "2 dni temu • 850 kg • 8 ćwiczeń",
-                duration = "38 min"
-            )
-            HorizontalDivider(color = Color(0xFFEEEEEE))
-
-            RecentSessionItem(
-                title = "Trening nóg",
-                subtitle = "3 dni temu • 1 500 kg • 10 ćwiczeń",
-                duration = "52 min"
-            )
         }
     }
 }
 
 @Composable
 private fun RecentSessionItem(
-    title: String,
-    subtitle: String,
-    duration: String
+    session: com.example.gymtrackapp.data.entity.RecentSessionWithExercises,
+    onShowClick: () -> Unit
 ) {
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+        // Nagłówek z tytułem i datą
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            // Tytuł większą czcionką
             Text(
-                text = title,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF212121)
+                text = session.sessionDescription,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF212121),
+                modifier = Modifier.weight(1f)
             )
+
+            // Data
             Text(
-                text = subtitle,
+                text = formatSessionDate(session.sessionDate),
                 fontSize = 12.sp,
-                fontWeight = FontWeight.Normal,
+                fontWeight = FontWeight.Medium,
                 color = Color(0xFF757575)
             )
         }
-        Surface(
-            shape = RoundedCornerShape(8.dp),
-            color = Color(0xFFF5F5F5)
+
+        // Lista ćwiczeń po przecinku
+        if (session.exerciseNames.isNotEmpty()) {
+            Text(
+                text = session.exerciseNames.joinToString(", "),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Normal,
+                color = Color(0xFF757575),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        } else {
+            Text(
+                text = "Brak ćwiczeń",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Normal,
+                color = Color(0xFFBDBDBD),
+                fontStyle = FontStyle.Italic
+            )
+        }
+
+        // Przycisk "Pokaż"
+        Button(
+            onClick = onShowClick,
+            shape = RoundedCornerShape(24.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF4CAF50)
+            ),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+            modifier = Modifier.align(Alignment.End)
         ) {
             Text(
-                text = duration,
+                text = "Pokaż",
                 fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF4CAF50),
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                fontWeight = FontWeight.SemiBold
             )
         }
     }
 }
 
+/**
+ * Formatuje datę sesji treningowej
+ */
+private fun formatSessionDate(epochDay: Long): String {
+    val calendar = java.util.Calendar.getInstance()
+    calendar.timeInMillis = epochDay * (24 * 60 * 60 * 1000)
+
+    val now = java.util.Calendar.getInstance()
+    val diffDays = ((now.timeInMillis - calendar.timeInMillis) / (24 * 60 * 60 * 1000)).toInt()
+
+    return when (diffDays) {
+        0 -> "Dzisiaj"
+        1 -> "Wczoraj"
+        in 2..6 -> "$diffDays dni temu"
+        else -> {
+            val day = calendar.get(java.util.Calendar.DAY_OF_MONTH)
+            val month = calendar.get(java.util.Calendar.MONTH) + 1
+            val year = calendar.get(java.util.Calendar.YEAR)
+            "$day.$month.$year"
+        }
+    }
+}

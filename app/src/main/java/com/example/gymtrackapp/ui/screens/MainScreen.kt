@@ -65,7 +65,9 @@ fun MainScreen(
         ) {
             composable("home") {
                 val currentUser by authViewModel.currentUser.collectAsState()
-                val userName = currentUser?.displayName ?: currentUser?.email?.substringBefore("@")
+
+                // Wyświetl email użytkownika
+                val userName = currentUser?.email
 
                 HomePage(
                     onNavigateToStatistics = { navController.navigate("progress") },
@@ -75,8 +77,14 @@ fun MainScreen(
                         showAddSessionDialog = true
                         navController.navigate("calendar")
                     },
+                    onNavigateToSession = { sessionId, date ->
+                        // Przejdź do calendar i załaduj sesję z danego dnia
+                        navController.navigate("calendar")
+                        trainingViewModel.loadSessionsForDate(date)
+                    },
                     userName = userName,
-                    statisticsViewModel = statisticsViewModel
+                    statisticsViewModel = statisticsViewModel,
+                    trainingViewModel = trainingViewModel
                 )
             }
             composable("calendar") {
@@ -161,13 +169,11 @@ fun BottomNavigationBar(navController: NavHostController) {
                 onClick = {
                     if (currentRoute != route) {
                         navController.navigate(route) {
-                            // Dla Home - wyczyść cały backstack
                             if (route == "home") {
                                 popUpTo(0) {
                                     inclusive = false
                                 }
                             } else {
-                                // Dla innych - wróć do home ale nie usuwaj go
                                 popUpTo("home") {
                                     inclusive = false
                                 }

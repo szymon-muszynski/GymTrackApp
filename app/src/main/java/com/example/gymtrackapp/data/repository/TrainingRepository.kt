@@ -65,4 +65,38 @@ class TrainingRepository(
         trainingDao.reorderSetsAfterDeletion(set.sessionExerciseId, set.order)
     }
 
+    suspend fun getRecentSessionsWithExercises(limit: Int): List<com.example.gymtrackapp.data.entity.RecentSessionWithExercises> {
+        val recentSessions = trainingDao.getRecentSessions(limit)
+
+        return recentSessions.map { session ->
+            val exercises = trainingDao.getExercisesForSession(session.id.toLong())
+            val exerciseNames = exercises.mapNotNull { sessionExercise ->
+                // Pobierz nazwę ćwiczenia z ExerciseDao
+                try {
+                    val exercise = context.assets.open("exercises.json")
+                        .bufferedReader()
+                        .use { it.readText() }
+                    // Parsuj JSON i znajdź nazwę ćwiczenia
+                    val jsonArray = org.json.JSONArray(exercise)
+                    for (i in 0 until jsonArray.length()) {
+                        val obj = jsonArray.getJSONObject(i)
+                        if (obj.getString("id") == sessionExercise.exerciseId) {
+                            return@mapNotNull obj.getString("name")
+                        }
+                    }
+                    null
+                } catch (e: Exception) {
+                    null
+                }
+            }
+
+            com.example.gymtrackapp.data.entity.RecentSessionWithExercises(
+                sessionId = session.id.toLong(),
+                sessionDate = session.date,
+                sessionDescription = session.description,
+                exerciseNames = exerciseNames
+            )
+        }
+    }
+
 }
