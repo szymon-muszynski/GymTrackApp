@@ -31,8 +31,12 @@ class StatisticsRepository(
 
         // Konwertujemy raw data do TrainingDayData
         rawData.map { raw ->
+            // Konwersja epochDay na milisekundy (początek dnia, 00:00:00)
+            // Używamy tego samego podejścia co w kalendarzu treningowym
+            val epochDayMillis = raw.date * (24 * 60 * 60 * 1000)
+
             TrainingDayData(
-                date = raw.date * (24 * 60 * 60 * 1000), // Konwersja epochDay z powrotem na milisekundy
+                date = DateRangeHelper.getStartOfDay(epochDayMillis),
                 sessionCount = raw.sessionCount,
                 totalVolume = raw.totalVolume
             )
