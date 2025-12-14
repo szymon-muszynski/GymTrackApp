@@ -1,145 +1,236 @@
 package com.example.gymtrackapp.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.navigation.NavHostController
+import com.example.gymtrackapp.data.entity.WorkoutTemplate
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
+import com.example.gymtrackapp.ui.viewmodel.TemplateViewModel
 
 @Composable
-fun PlannerPage(modifier: Modifier = Modifier, viewModel: ExerciseViewModel) {
-    val exercises by viewModel.exercises.observeAsState(emptyList())
-    var showDialog by remember { mutableStateOf(false) }
+fun PlannerPage(
+    modifier: Modifier = Modifier,
+    templateViewModel: TemplateViewModel,
+    exerciseViewModel: ExerciseViewModel,
+    navController: NavHostController
+) {
+    val templates by templateViewModel.templates.collectAsState()
+    var showAddTemplateDialog by remember { mutableStateOf(false) }
 
-    val levels by viewModel.levels.observeAsState(emptyList())
-    val equipments by viewModel.equipments.observeAsState(emptyList())
-    val categories by viewModel.categories.observeAsState(emptyList())
-    val mechanics by viewModel.mechanics.observeAsState(emptyList())
-    val forces by viewModel.forces.observeAsState(emptyList())
-    val primaryMuscles by viewModel.primaryMuscles.observeAsState(emptyList())
-    val secondaryMuscles by viewModel.secondaryMuscles.observeAsState(emptyList())
+    // Ładujemy szablony przy wejściu na ekran
+    LaunchedEffect(Unit) {
+        templateViewModel.loadTemplates()
+    }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color(0xFF90E39A)),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        ExerciseFilter(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            onClick = {
-                // Przy otwarciu dialogu kopiujemy aktualne wartości
-                viewModel.copySelectionsToTemp()
-                showDialog = true
-            },
-        )
-
-        if (showDialog) {
-            AlertDialog(
-                onDismissRequest = { showDialog = false },
-                title = { Text("Filter exercises") },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        MultiSelectDropdown("Primary muscles", primaryMuscles, viewModel.tempPrimaryMuscles) { viewModel.tempPrimaryMuscles = it }
-                        MultiSelectDropdown("Secondary muscles", secondaryMuscles, viewModel.tempSecondaryMuscles) { viewModel.tempSecondaryMuscles = it }
-                        MultiSelectDropdown("Poziom", levels, viewModel.tempLevels) { viewModel.tempLevels = it }
-                        MultiSelectDropdown("Sprzęt", equipments, viewModel.tempEquipments) { viewModel.tempEquipments = it }
-                        MultiSelectDropdown("Kategoria", categories, viewModel.tempCategories) { viewModel.tempCategories = it }
-                        MultiSelectDropdown("Mechanika", mechanics, viewModel.tempMechanics) { viewModel.tempMechanics = it }
-                        MultiSelectDropdown("Force", forces, viewModel.tempForces) { viewModel.tempForces = it }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        viewModel.confirmSelections()
-                        showDialog = false
-                    }) {
-                        Text("OK")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showDialog = false }) {
-                        Text("Anuluj")
-                    }
-                }
-            )
-        }
-
-        when {
-            exercises.isEmpty() -> {
-                Text(
-                    text = "Brak ćwiczeń dla wybranych kryteriów",
-                    modifier = Modifier.padding(16.dp),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(onClick = { showAddTemplateDialog = true }) {
+                Icon(Icons.Default.Add, contentDescription = "Dodaj szablon")
             }
-            else -> {
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .background(Color(0xFF90E39A))
+                .padding(paddingValues),
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (templates.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Brak szablonów. Utwórz nowy!",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(exercises) { exercise ->
-                        Card(
-                            modifier = Modifier.padding(8.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(text = exercise.name, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                                Text(text = "Poziom: ${exercise.level}", fontSize = 14.sp)
-                                Text(text = "Sprzęt: ${exercise.equipment ?: "Brak"}", fontSize = 14.sp)
+                    items(templates) { template ->
+                        TemplateCard(
+                            template = template,
+                            templateViewModel = templateViewModel,
+                            exerciseViewModel = exerciseViewModel,
+                            onAddExercise = {
+                                navController.navigate("add_template_exercise/${template.id}")
+                            },
+                            onDeleteTemplate = {
+                                templateViewModel.deleteTemplate(template)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (showAddTemplateDialog) {
+        AddTemplateDialog(
+            onDismiss = { showAddTemplateDialog = false },
+            onConfirm = { name ->
+                templateViewModel.createTemplate(name, null)
+                showAddTemplateDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+fun TemplateCard(
+    template: WorkoutTemplate,
+    templateViewModel: TemplateViewModel,
+    exerciseViewModel: ExerciseViewModel,
+    onAddExercise: () -> Unit,
+    onDeleteTemplate: () -> Unit
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+    val templateExercisesMap by templateViewModel.templateExercisesMap.collectAsState()
+
+    val templateExercises = templateExercisesMap[template.id] ?: emptyList()
+
+    val allExercises by exerciseViewModel.exercises.observeAsState(emptyList())
+
+    // Ładujemy ćwiczenia dla tego szablonu, gdy karta jest rozwijana
+    LaunchedEffect(template.id, isExpanded) {
+        if (isExpanded) {
+            templateViewModel.loadExercisesForTemplate(template.id)
+        }
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { isExpanded = !isExpanded },
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = template.name,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
+                IconButton(onClick = onDeleteTemplate) {
+                    Icon(Icons.Default.Delete, contentDescription = "Usuń szablon", tint = Color.Gray)
+                }
+            }
+
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (templateExercises.isEmpty()) {
+                    Text(
+                        text = "Brak ćwiczeń w szablonie",
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                        color = Color.Gray
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        templateExercises.forEach { templateExercise ->
+                            val exercise = allExercises.find { it.id == templateExercise.exerciseId }
+                            if (exercise != null) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = exercise.name,
+                                        fontSize = 16.sp
+                                    )
+                                    IconButton(
+                                        onClick = {
+                                            templateViewModel.deleteTemplateExercise(templateExercise)
+                                        },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = "Usuń ćwiczenie",
+                                            tint = Color.Red
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = onAddExercise,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Dodaj ćwiczenie")
+                }
             }
         }
     }
 }
 
 @Composable
-fun ExerciseFilter(modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Button(modifier = modifier, onClick = onClick) {
-        Text(text = "Filter Exercises")
-    }
+fun AddTemplateDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Nowy szablon treningowy") },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Nazwa szablonu") },
+                singleLine = true
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (name.isNotBlank()) {
+                        onConfirm(name)
+                    }
+                }
+            ) { Text("Utwórz") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Anuluj") }
+        }
+    )
 }
 
-/**
- * 🔹 Dropdown z wielokrotnym wyborem (checkboxy)
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MultiSelectDropdown(

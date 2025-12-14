@@ -7,6 +7,7 @@ import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.gymtrackapp.data.ExerciseDatabase
 import com.example.gymtrackapp.data.repository.ExerciseRepository
+import com.example.gymtrackapp.data.repository.TemplateRepository
 import com.example.gymtrackapp.data.repository.TrainingRepository
 import com.example.gymtrackapp.ui.screens.AuthScreen
 import com.example.gymtrackapp.ui.screens.MainScreen
@@ -20,6 +21,8 @@ class MainActivity : ComponentActivity() {
         val database = ExerciseDatabase.getDatabase(this)
         val exerciseRepository = ExerciseRepository(database.exerciseDao(), this)
         val trainingRepository = TrainingRepository(database.trainingDao(), this)
+        val templateRepository = TemplateRepository(database.templateDao())
+
         val statisticsRepository = com.example.gymtrackapp.data.repository.StatisticsRepository(
             database.trainingDao(),
             database.exerciseDao()
@@ -36,8 +39,13 @@ class MainActivity : ComponentActivity() {
                 val trainingViewModel: TrainingViewModel = viewModel(
                     factory = TrainingViewModelFactory(trainingRepository)
                 )
-                val statisticsViewModel: com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel = viewModel(
-                    factory = com.example.gymtrackapp.ui.viewmodel.StatisticsViewModelFactory(statisticsRepository)
+
+                val templateViewModel: TemplateViewModel = viewModel(
+                    factory = TemplateViewModelFactory(templateRepository)
+                )
+
+                val statisticsViewModel: StatisticsViewModel = viewModel(
+                    factory = StatisticsViewModelFactory(statisticsRepository)
                 )
 
                 LaunchedEffect(Unit) {
@@ -53,6 +61,7 @@ class MainActivity : ComponentActivity() {
                     MainScreen(
                         exerciseViewModel = exerciseViewModel,
                         trainingViewModel = trainingViewModel,
+                        templateViewModel = templateViewModel,
                         authViewModel = authViewModel,
                         statisticsViewModel = statisticsViewModel,
                         onSignOut = { /* refresh nastąpi automatycznie przez collectAsState */ }

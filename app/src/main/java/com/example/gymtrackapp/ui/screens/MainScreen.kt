@@ -18,6 +18,7 @@ import com.example.gymtrackapp.ui.viewmodel.AuthViewModel
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
 import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
 import com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel
+import com.example.gymtrackapp.ui.viewmodel.TemplateViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -25,6 +26,7 @@ import com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel
 fun MainScreen(
     exerciseViewModel: ExerciseViewModel,
     trainingViewModel: TrainingViewModel,
+    templateViewModel: TemplateViewModel,
     authViewModel: AuthViewModel,
     statisticsViewModel: StatisticsViewModel,
     onSignOut: () -> Unit
@@ -132,7 +134,11 @@ fun MainScreen(
                 )
             }
             composable("planner") {
-                PlannerPage(viewModel = exerciseViewModel)
+                PlannerPage(
+                    templateViewModel = templateViewModel,
+                    exerciseViewModel = exerciseViewModel,
+                    navController = navController
+                )
             }
             composable("progress") {
                 ProgressPage(
@@ -156,6 +162,17 @@ fun MainScreen(
                     statisticsViewModel = statisticsViewModel
                 )
             }
+
+            composable("add_template_exercise/{templateId}") { backStackEntry ->
+                val templateId = backStackEntry.arguments?.getString("templateId")?.toLongOrNull() ?: 0L
+                AddTemplateExerciseScreen(
+                    templateId = templateId,
+                    onNavigateBack = { navController.popBackStack() },
+                    exerciseViewModel = exerciseViewModel,
+                    templateViewModel = templateViewModel
+                )
+            }
+
             composable("set_details/{sessionExerciseId}/{exerciseId}") { backStackEntry ->
                 val sessionExerciseId = backStackEntry.arguments?.getString("sessionExerciseId")?.toLongOrNull() ?: 0L
                 val exerciseId = backStackEntry.arguments?.getString("exerciseId") ?: ""
