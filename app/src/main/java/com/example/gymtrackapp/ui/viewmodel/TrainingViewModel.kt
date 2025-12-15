@@ -114,4 +114,15 @@ class TrainingViewModel(private val repository: TrainingRepository) : ViewModel(
             _recentSessions.value = repository.getRecentSessionsWithExercises(limit)
         }
     }
+
+    fun createSessionFromTemplate(
+        templateId: Long,
+        date: Long,
+        description: String
+    ) {
+        viewModelScope.launch {
+            repository.createSessionFromTemplate(templateId, date, description)
+            loadSessionsForDate(date)
+        }
+    }
 }

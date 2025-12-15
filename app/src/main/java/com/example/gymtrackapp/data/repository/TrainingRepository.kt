@@ -1,6 +1,7 @@
 package com.example.gymtrackapp.data.repository
 
 import android.content.Context
+import com.example.gymtrackapp.data.dao.TemplateDao
 import com.example.gymtrackapp.data.dao.TrainingDao
 import com.example.gymtrackapp.data.entity.SessionExercise
 import com.example.gymtrackapp.data.entity.SessionSetDetails
@@ -8,7 +9,8 @@ import com.example.gymtrackapp.data.entity.TrainingSession
 
 class TrainingRepository(
     private val trainingDao: TrainingDao,
-    private val context: Context
+    private val context: Context,
+    private val templateDao: TemplateDao
 ) {
     suspend fun loadSessionsForDate(timestamp: Long): List<TrainingSession> {
         return trainingDao.getSessionsForDate(timestamp)
@@ -101,4 +103,33 @@ class TrainingRepository(
         }
     }
 
+    suspend fun createSessionFromTemplate(
+        templateId: Long,
+        date: Long,
+        description: String
+    ): Long {
+        // 1. Utwórz sesję
+        val sessionId = trainingDao.createEmptySession(
+            TrainingSession(
+                date = date,
+                description = description
+            )
+        )
+
+        // 2. Pobierz ćwiczenia z szablonu
+        val templateExercises = templateDao.getExercisesForTemplate(templateId)
+
+        // 3. Wstaw SessionExercise na podstawie TemplateExercise
+        templateExercises.forEach { templateExercise ->
+            trainingDao.insertSessionExercise(
+                SessionExercise(
+                    trainingSessionId = sessionId,
+                    exerciseId = templateExercise.exerciseId,
+                    order = templateExercise.order
+                )
+            )
+        }
+
+        return sessionId
+    }
 }

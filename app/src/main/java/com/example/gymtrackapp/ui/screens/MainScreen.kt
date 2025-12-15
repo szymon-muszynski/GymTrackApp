@@ -53,7 +53,7 @@ fun MainScreen(
         },
         floatingActionButton = {
             val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
-            if (currentRoute == "calendar") {
+            if (currentRoute == "calendar" || currentRoute == "calendar/{date}") {
                 FloatingActionButton(onClick = { showAddSessionDialog = true }) {
                     Icon(Icons.Default.Add, contentDescription = "Dodaj sesję")
                 }
@@ -111,6 +111,7 @@ fun MainScreen(
                     trainingViewModel = trainingViewModel,
                     exerciseViewModel = exerciseViewModel,
                     statisticsViewModel = statisticsViewModel,
+                    templateViewModel = templateViewModel,
                     showAddSessionDialog = showAddSessionDialog,
                     onDismissDialog = { showAddSessionDialog = false },
                     navController = navController,
@@ -128,6 +129,7 @@ fun MainScreen(
                     trainingViewModel = trainingViewModel,
                     exerciseViewModel = exerciseViewModel,
                     statisticsViewModel = statisticsViewModel,
+                    templateViewModel = templateViewModel,
                     showAddSessionDialog = showAddSessionDialog,
                     onDismissDialog = { showAddSessionDialog = false },
                     navController = navController
