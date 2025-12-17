@@ -39,34 +39,33 @@ fun PlannerPage(
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddTemplateDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Dodaj szablon")
+            FloatingActionButton(
+                onClick = { showAddTemplateDialog = true },
+                containerColor = Color(0xFF4CAF50)
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "Dodaj szablon",
+                    tint = Color.White
+                )
             }
         }
     ) { paddingValues ->
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .background(Color(0xFF90E39A))
-                .padding(paddingValues),
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.CenterHorizontally
+                .background(Color(0xFFF5F5F5))
+                .padding(paddingValues)
         ) {
+            // Nagłówek
+            PlannerPageHeader()
+
             if (templates.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Brak szablonów. Utwórz nowy!",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                EmptyTemplatesPlaceholder(onAddTemplate = { showAddTemplateDialog = true })
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(templates) { template ->
@@ -82,6 +81,10 @@ fun PlannerPage(
                             }
                         )
                     }
+                    // Dodatkowy spacer na końcu
+                    item {
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
                 }
             }
         }
@@ -95,6 +98,87 @@ fun PlannerPage(
                 showAddTemplateDialog = false
             }
         )
+    }
+}
+
+@Composable
+private fun PlannerPageHeader() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Text(
+                text = "Szablony Treningowe",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF4CAF50)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Twórz i zarządzaj swoimi planami treningowymi",
+                fontSize = 14.sp,
+                color = Color(0xFF757575)
+            )
+        }
+    }
+}
+
+@Composable
+private fun EmptyTemplatesPlaceholder(onAddTemplate: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = null,
+                modifier = Modifier.size(64.dp),
+                tint = Color(0xFFBDBDBD)
+            )
+            Text(
+                text = "Brak szablonów treningowych",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF424242)
+            )
+            Text(
+                text = "Utwórz swój pierwszy szablon, aby szybko planować treningi",
+                fontSize = 14.sp,
+                color = Color(0xFF757575),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Button(
+                onClick = onAddTemplate,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF4CAF50)
+                ),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Dodaj szablon")
+            }
+        }
     }
 }
 
@@ -124,61 +208,110 @@ fun TemplateCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { isExpanded = !isExpanded },
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            // Nagłówek karty
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = template.name,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
-                )
-                IconButton(onClick = onDeleteTemplate) {
-                    Icon(Icons.Default.Delete, contentDescription = "Usuń szablon", tint = Color.Gray)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = template.name,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = Color(0xFF212121)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "${templateExercises.size} ${if (templateExercises.size == 1) "ćwiczenie" else if (templateExercises.size in 2..4) "ćwiczenia" else "ćwiczeń"}",
+                        fontSize = 13.sp,
+                        color = Color(0xFF757575)
+                    )
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onDeleteTemplate) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Usuń szablon",
+                            tint = Color(0xFFE57373)
+                        )
+                    }
                 }
             }
 
             if (isExpanded) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Divider()
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = Color(0xFFE0E0E0))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 if (templateExercises.isEmpty()) {
-                    Text(
-                        text = "Brak ćwiczeń w szablonie",
-                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                        color = Color.Gray
-                    )
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Brak ćwiczeń w szablonie",
+                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                color = Color(0xFF9E9E9E),
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         templateExercises.forEach { templateExercise ->
                             val exercise = allExercises.find { it.id == templateExercise.exerciseId }
                             if (exercise != null) {
-                                Row(
+                                Card(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
                                 ) {
-                                    Text(
-                                        text = exercise.name,
-                                        fontSize = 16.sp
-                                    )
-                                    IconButton(
-                                        onClick = {
-                                            templateViewModel.deleteTemplateExercise(templateExercise)
-                                        },
-                                        modifier = Modifier.size(24.dp)
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(
-                                            Icons.Default.Delete,
-                                            contentDescription = "Usuń ćwiczenie",
-                                            tint = Color.Red
-                                        )
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = exercise.name,
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = Color(0xFF424242)
+                                            )
+                                            Text(
+                                                text = exercise.primaryMuscles.joinToString(", "),
+                                                fontSize = 12.sp,
+                                                color = Color(0xFF757575)
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = {
+                                                templateViewModel.deleteTemplateExercise(templateExercise)
+                                            },
+                                            modifier = Modifier.size(36.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Delete,
+                                                contentDescription = "Usuń ćwiczenie",
+                                                tint = Color(0xFFE57373),
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -189,9 +322,16 @@ fun TemplateCard(
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = onAddExercise,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF4CAF50)
+                    ),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(vertical = 12.dp)
                 ) {
-                    Text("Dodaj ćwiczenie")
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Dodaj ćwiczenie", fontSize = 15.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -207,26 +347,58 @@ fun AddTemplateDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Nowy szablon treningowy") },
-        text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Nazwa szablonu") },
-                singleLine = true
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+        title = {
+            Text(
+                "Nowy szablon treningowy",
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
             )
         },
+        text = {
+            Column {
+                Text(
+                    text = "Nadaj nazwę swojemu szablonowi treningowemu",
+                    fontSize = 14.sp,
+                    color = Color(0xFF757575)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Nazwa szablonu") },
+                    singleLine = true,
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF4CAF50),
+                        focusedLabelColor = Color(0xFF4CAF50)
+                    )
+                )
+            }
+        },
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = {
                     if (name.isNotBlank()) {
                         onConfirm(name)
                     }
-                }
-            ) { Text("Utwórz") }
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF4CAF50)
+                ),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+            ) {
+                Text("Utwórz", fontWeight = FontWeight.Medium)
+            }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Anuluj") }
+            OutlinedButton(
+                onClick = onDismiss,
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
+            ) {
+                Text("Anuluj", color = Color(0xFF757575))
+            }
         }
     )
 }
@@ -258,7 +430,7 @@ fun MultiSelectDropdown(
                 readOnly = true,
                 label = { Text(label) },
                 modifier = Modifier
-                    .menuAnchor()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                     .fillMaxWidth()
             )
 
