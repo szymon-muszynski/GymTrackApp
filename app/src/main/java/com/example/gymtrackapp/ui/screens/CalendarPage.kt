@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -52,11 +53,14 @@ import kotlinx.coroutines.launch
 import com.example.gymtrackapp.data.entity.TrainingSession
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
 import kotlin.collections.forEach
-import kotlin.collections.get
-import kotlin.text.toLong
 import androidx.compose.material3.CardDefaults
-import kotlin.collections.get
-import kotlin.text.toLong
+import com.example.gymtrackapp.ui.viewmodel.TemplateViewModel
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Divider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import com.example.gymtrackapp.data.entity.WorkoutTemplate
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -65,6 +69,7 @@ fun CalendarPage(
     trainingViewModel: TrainingViewModel,
     exerciseViewModel: ExerciseViewModel,
     statisticsViewModel: com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel,
+    templateViewModel: TemplateViewModel,
     showAddSessionDialog: Boolean,
     onDismissDialog: () -> Unit,
     navController: NavHostController,
@@ -75,6 +80,12 @@ fun CalendarPage(
 
     var showEditDialog by remember { mutableStateOf(false) }
     var sessionToEdit by remember { mutableStateOf<TrainingSession?>(null) }
+
+    val templates by templateViewModel.templates.collectAsState()
+
+    LaunchedEffect(Unit) {
+        templateViewModel.loadTemplates()
+    }
 
     LaunchedEffect(selectedDate) {
         trainingViewModel.loadSessionsForDate(selectedDate.toEpochDay())
@@ -114,14 +125,21 @@ fun CalendarPage(
 
     if (showAddSessionDialog) {
         AddSessionDialog(
+            date = selectedDate,
+            templates = templates,
             onDismiss = onDismissDialog,
-            onConfirm = { description ->
+            onCreateEmptySession = { description ->
                 trainingViewModel.createEmptySession(
                     date = selectedDate.toEpochDay(),
                     description = description
                 )
-                statisticsViewModel.refresh() // Odświeżamy statystyki
-                onDismissDialog()
+            },
+            onCreateSessionFromTemplate = { templateId, description ->
+                trainingViewModel.createSessionFromTemplate(
+                    templateId = templateId,
+                    date = selectedDate.toEpochDay(),
+                    description = description
+                )
             }
         )
     }
@@ -412,28 +430,83 @@ fun TrainingSessionItem(
 
 @Composable
 fun AddSessionDialog(
+    date: LocalDate,
+    templates: List<WorkoutTemplate>,
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
+    onCreateEmptySession: (String) -> Unit,
+    onCreateSessionFromTemplate: (Long, String) -> Unit
 ) {
     var description by remember { mutableStateOf("") }
 
-    androidx.compose.material3.AlertDialog(
+    AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Nowa sesja treningowa") },
+        title = { Text("Dodaj sesję treningową") },
         text = {
-            androidx.compose.material3.OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
-                label = { Text("Opis treningu") }
-            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Opis sesji (opcjonalnie)") },
+                    singleLine = false,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Divider()
+
+                Text(
+                    text = "Utwórz pustą sesję",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Button(
+                    onClick = {
+                        onCreateEmptySession(description)
+                        onDismiss()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Pusta sesja")
+                }
+
+                if (templates.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Lub wybierz szablon",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        templates.forEach { template ->
+                            OutlinedButton(
+                                onClick = {
+                                    onCreateSessionFromTemplate(template.id, description)
+                                    onDismiss()
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(template.name)
+                            }
+                        }
+                    }
+                } else {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Brak szablonów. Dodaj je w zakładce Planner.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         },
         confirmButton = {
-            TextButton(
-                onClick = { onConfirm(description) }
-            ) { Text("Utwórz") }
+            // zostaw puste, korzystamy z przycisków w `text`
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Anuluj") }
+            TextButton(onClick = onDismiss) {
+                Text("Anuluj")
+            }
         }
     )
 }

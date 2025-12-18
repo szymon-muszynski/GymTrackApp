@@ -74,6 +74,30 @@ object DateRangeHelper {
     fun getLast90Days(): Pair<Long, Long> = getLastNDays(90)
 
     /**
+     * Pobiera zakres dat obejmujący przeszłość i przyszłość
+     * @param daysBack liczba dni wstecz od dzisiaj
+     * @param daysForward liczba dni w przód od dzisiaj
+     * @return Pair(startTimestamp, endTimestamp)
+     */
+    fun getDateRangeWithFuture(daysBack: Int, daysForward: Int): Pair<Long, Long> {
+        val now = System.currentTimeMillis()
+
+        val startCalendar = Calendar.getInstance().apply {
+            timeInMillis = now
+            add(Calendar.DAY_OF_YEAR, -daysBack)
+        }
+        val startOfRange = getStartOfDay(startCalendar.timeInMillis)
+
+        val endCalendar = Calendar.getInstance().apply {
+            timeInMillis = now
+            add(Calendar.DAY_OF_YEAR, daysForward)
+        }
+        val endOfRange = getEndOfDay(endCalendar.timeInMillis)
+
+        return Pair(startOfRange, endOfRange)
+    }
+
+    /**
      * Sprawdza czy dwie daty są tego samego dnia
      */
     fun isSameDay(timestamp1: Long, timestamp2: Long): Boolean {

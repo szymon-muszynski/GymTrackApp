@@ -114,4 +114,28 @@ class TrainingViewModel(private val repository: TrainingRepository) : ViewModel(
             _recentSessions.value = repository.getRecentSessionsWithExercises(limit)
         }
     }
+
+    private val _sessionCreationError = MutableStateFlow<String?>(null)
+    val sessionCreationError = _sessionCreationError.asStateFlow()
+
+    fun clearSessionCreationError() {
+        _sessionCreationError.value = null
+    }
+
+    fun createSessionFromTemplate(
+        templateId: Long,
+        date: Long,
+        description: String
+    ) {
+        viewModelScope.launch {
+            try {
+                repository.createSessionFromTemplate(templateId, date, description)
+                _sessionCreationError.value = null
+                loadSessionsForDate(date)
+            } catch (t: Throwable) {
+                _sessionCreationError.value =
+                    t.message ?: "Nie udało się utworzyć treningu z szablonu."
+            }
+        }
+    }
 }

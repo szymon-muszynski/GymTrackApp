@@ -19,24 +19,40 @@ class StatisticsRepository(
 
     /**
      * Pobiera dane o aktywności treningowej dla heatmapy/kalendarza
+     * Obejmuje zarówno przeszłość jak i przyszłość, aby obsłużyć zaplanowane treningi
      */
     suspend fun getTrainingHeatmapData(days: Int): List<TrainingDayData> = withContext(Dispatchers.IO) {
-        val (startDate, endDate) = DateRangeHelper.getLastNDays(days)
+        // Zamiast tylko 'days' wstecz, ładujemy szerszy zakres:
+        // - przeszłość: więcej dni, aby pokryć poprzednie miesiące
+        // - przyszłość: kilka dni w przód, aby obsłużyć zaplanowane treningi
+        val (startDate, endDate) = DateRangeHelper.getDateRangeWithFuture(
+            daysBack = 90,      // 90 dni wstecz (pokrywa ~3 miesiące)
+            daysForward = 30    // 30 dni w przód (pokrywa przyszły miesiąc)
+        )
 
         // Konwersja milisekund na epochDay (TrainingSession.date przechowuje dni, nie milisekundy)
-        val startEpochDay = startDate / (24 * 60 * 60 * 1000)
-        val endEpochDay = endDate / (24 * 60 * 60 * 1000)
+        // Używamy LocalDate do konwersji, aby poprawnie obsłużyć strefy czasowe
+        val startEpochDay = java.time.Instant.ofEpochMilli(startDate)
+            .atZone(java.time.ZoneId.systemDefault())
+            .toLocalDate()
+            .toEpochDay()
+        val endEpochDay = java.time.Instant.ofEpochMilli(endDate)
+            .atZone(java.time.ZoneId.systemDefault())
+            .toLocalDate()
+            .toEpochDay()
 
         val rawData = trainingDao.getTrainingDaysData(startEpochDay, endEpochDay)
 
         // Konwertujemy raw data do TrainingDayData
         rawData.map { raw ->
-            // Konwersja epochDay na milisekundy (początek dnia, 00:00:00)
-            // Używamy tego samego podejścia co w kalendarzu treningowym
-            val epochDayMillis = raw.date * (24 * 60 * 60 * 1000)
+            // Konwersja epochDay na milisekundy
+            // raw.date to epochDay (dni od 1970-01-01)
+            // Używamy LocalDate do konwersji, aby być spójnym z zapisem w TrainingSession
+            val localDate = java.time.LocalDate.ofEpochDay(raw.date)
+            val timestamp = localDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
 
             TrainingDayData(
-                date = DateRangeHelper.getStartOfDay(epochDayMillis),
+                date = timestamp,
                 sessionCount = raw.sessionCount,
                 totalVolume = raw.totalVolume
             )
