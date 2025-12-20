@@ -19,5 +19,11 @@ data class Exercise(
     val secondaryMuscles: List<String>,
     val instructions: List<String>,
     val category: String,         // strength, cardio, etc.
-    val images: List<String>
+    val images: List<String>,
+
+    // --- Custom exercises metadata ---
+    // Seedowane ćwiczenia z assets mają isCustom=false i createdByUserId=null
+    val isCustom: Boolean = false,
+    val createdByUserId: String? = null,
+    val createdAt: Long = System.currentTimeMillis()
 )

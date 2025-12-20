@@ -187,6 +187,15 @@ fun MainScreen(
                     statisticsViewModel = statisticsViewModel
                 )
             }
+
+            composable("custom_exercise_details/{exerciseId}") { backStackEntry ->
+                val exerciseId = backStackEntry.arguments?.getString("exerciseId") ?: ""
+                CustomExerciseDetailsScreen(
+                    exerciseId = exerciseId,
+                    onNavigateBack = { navController.popBackStack() },
+                    exerciseViewModel = exerciseViewModel
+                )
+            }
         }
     }
 
@@ -233,4 +242,3 @@ fun BottomNavigationBar(navController: NavHostController) {
         }
     }
 }
-
