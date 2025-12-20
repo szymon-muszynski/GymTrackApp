@@ -13,9 +13,18 @@ import androidx.room.PrimaryKey
             parentColumns = ["id"],
             childColumns = ["trainingSessionId"],
             onDelete = ForeignKey.CASCADE // <--- TO JEST KLUCZOWE
+        ),
+        ForeignKey(
+            entity = Exercise::class,
+            parentColumns = ["id"],
+            childColumns = ["exerciseId"],
+            onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("trainingSessionId")]
+    indices = [
+        Index("trainingSessionId"),
+        Index("exerciseId")
+    ]
 )
 data class SessionExercise(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

@@ -1,6 +1,7 @@
 package com.example.gymtrackapp.data.repository
 
 import android.content.Context
+import com.example.gymtrackapp.data.dao.ExerciseDao
 import com.example.gymtrackapp.data.dao.TemplateDao
 import com.example.gymtrackapp.data.dao.TrainingDao
 import com.example.gymtrackapp.data.entity.SessionExercise
@@ -10,7 +11,8 @@ import com.example.gymtrackapp.data.entity.TrainingSession
 class TrainingRepository(
     private val trainingDao: TrainingDao,
     private val context: Context,
-    private val templateDao: TemplateDao
+    private val templateDao: TemplateDao,
+    private val exerciseDao: ExerciseDao
 ) {
     suspend fun loadSessionsForDate(timestamp: Long): List<TrainingSession> {
         return trainingDao.getSessionsForDate(timestamp)
@@ -70,20 +72,9 @@ class TrainingRepository(
     suspend fun getRecentSessionsWithExercises(limit: Int): List<com.example.gymtrackapp.data.entity.RecentSessionWithExercises> {
         val recentSessions = trainingDao.getRecentSessions(limit)
 
-        // Wczytaj i sparsuj exercises.json tylko raz, zbuduj mapę ID -> nazwa
+        // Mapa ID -> nazwa z bazy (seed + custom)
         val exerciseIdToName: Map<String, String> = try {
-            val exerciseJson = context.assets.open("exercises.json")
-                .bufferedReader()
-                .use { it.readText() }
-            val jsonArray = org.json.JSONArray(exerciseJson)
-            val map = mutableMapOf<String, String>()
-            for (i in 0 until jsonArray.length()) {
-                val obj = jsonArray.getJSONObject(i)
-                val id = obj.getString("id")
-                val name = obj.getString("name")
-                map[id] = name
-            }
-            map
+            exerciseDao.getAllExercises().associate { it.id to it.name }
         } catch (e: Exception) {
             emptyMap()
         }
