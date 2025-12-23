@@ -1,7 +1,9 @@
 package com.example.gymtrackapp.ui.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.gymtrackapp.data.sync.TrainingPullService
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -9,8 +11,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-class AuthViewModel : ViewModel() {
+class AuthViewModel(
+    private val appContext: Context
+) : ViewModel() {
     private val auth = FirebaseAuth.getInstance()
+    private val trainingPullService = TrainingPullService(appContext.applicationContext)
 
     private val _currentUser = MutableStateFlow<FirebaseUser?>(null)
     val currentUser = _currentUser.asStateFlow()
@@ -28,6 +33,12 @@ class AuthViewModel : ViewModel() {
                 _authState.value = AuthState.Loading
                 val result = auth.createUserWithEmailAndPassword(email, password).await()
                 _currentUser.value = result.user
+
+                val uid = result.user?.uid
+                if (uid != null) {
+                    trainingPullService.pullAllForUser(uid)
+                }
+
                 _authState.value = AuthState.Success
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Błąd rejestracji")
@@ -41,6 +52,12 @@ class AuthViewModel : ViewModel() {
                 _authState.value = AuthState.Loading
                 val result = auth.signInWithEmailAndPassword(email, password).await()
                 _currentUser.value = result.user
+
+                val uid = result.user?.uid
+                if (uid != null) {
+                    trainingPullService.pullAllForUser(uid)
+                }
+
                 _authState.value = AuthState.Success
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Błąd logowania")
@@ -49,9 +66,18 @@ class AuthViewModel : ViewModel() {
     }
 
     fun signOut() {
-        auth.signOut()
-        _currentUser.value = null
-        _authState.value = AuthState.Idle
+        viewModelScope.launch {
+            // MVP: czyścimy lokalne dane treningowe na wylogowaniu, żeby uniknąć mieszania kont.
+            try {
+                trainingPullService.wipeLocalTrainingData()
+            } catch (_: Throwable) {
+                // ignore
+            }
+
+            auth.signOut()
+            _currentUser.value = null
+            _authState.value = AuthState.Idle
+        }
     }
 
     fun resetAuthState() {

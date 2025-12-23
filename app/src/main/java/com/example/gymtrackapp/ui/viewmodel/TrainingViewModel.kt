@@ -32,12 +32,7 @@ class TrainingViewModel(private val repository: TrainingRepository) : ViewModel(
 
     fun createEmptySession(date: Long, description: String) {
         viewModelScope.launch {
-            repository.createEmptySession(
-                TrainingSession(
-                    date = date,
-                    description = description
-                )
-            )
+            repository.createEmptySession(date = date, description = description)
             loadSessionsForDate(date)
         }
     }

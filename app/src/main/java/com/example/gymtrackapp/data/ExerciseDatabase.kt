@@ -25,7 +25,7 @@ import com.example.gymtrackapp.data.entity.WorkoutTemplate
         WorkoutTemplate::class,
         TemplateExercise::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

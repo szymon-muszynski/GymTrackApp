@@ -9,4 +9,3 @@ data class RecentSessionWithExercises(
     val sessionDescription: String,
     val exerciseNames: List<String>
 )
-

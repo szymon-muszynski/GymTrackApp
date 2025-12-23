@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -19,6 +20,7 @@ import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
 import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
 import com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel
 import com.example.gymtrackapp.ui.viewmodel.TemplateViewModel
+import com.example.gymtrackapp.utils.NetworkStatus
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,14 +36,40 @@ fun MainScreen(
     val navController = rememberNavController()
     var showAddSessionDialog by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
+    var showOfflineLogoutDialog by remember { mutableStateOf(false) }
+
+    if (showOfflineLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showOfflineLogoutDialog = false },
+            confirmButton = {
+                TextButton(onClick = { showOfflineLogoutDialog = false }) {
+                    Text("OK")
+                }
+            },
+            title = { Text("Brak internetu") },
+            text = {
+                Text(
+                    "Wylogowanie zostało wyłączone, gdy nie ma internetu, aby zapobiec utracie danych, " +
+                        "które mogłyby nie zostać zsynchronizowane z chmurą.\n\n" +
+                        "Połącz się z internetem i spróbuj ponownie."
+                )
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Gym Track App") },
                 actions = {
                     IconButton(onClick = {
-                        authViewModel.signOut()
-                        onSignOut()
+                        if (NetworkStatus.isOnline(context)) {
+                            authViewModel.signOut()
+                            onSignOut()
+                        } else {
+                            showOfflineLogoutDialog = true
+                        }
                     }) {
                         Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Wyloguj")
                     }
