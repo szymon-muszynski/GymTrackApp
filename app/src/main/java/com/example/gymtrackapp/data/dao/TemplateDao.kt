@@ -1,9 +1,7 @@
 package com.example.gymtrackapp.data.dao
 
 import androidx.room.Dao
-import androidx.room.Delete
 import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.example.gymtrackapp.data.entity.TemplateExercise
@@ -11,27 +9,69 @@ import com.example.gymtrackapp.data.entity.WorkoutTemplate
 
 @Dao
 interface TemplateDao {
-    @Query("SELECT * FROM workout_templates ORDER BY createdAt DESC")
+    // ===== UI QUERIES (soft delete filtered) =====
+
+    @Query("SELECT * FROM workout_templates WHERE deletedAtMs IS NULL ORDER BY createdAt DESC")
     suspend fun getAllTemplates(): List<WorkoutTemplate>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Query("SELECT * FROM template_exercises WHERE templateId = :templateId AND deletedAtMs IS NULL ORDER BY `order` ASC")
+    suspend fun getExercisesForTemplate(templateId: Long): List<TemplateExercise>
+
+    @Query("SELECT MAX(`order`) FROM template_exercises WHERE templateId = :templateId AND deletedAtMs IS NULL")
+    suspend fun getMaxOrderForTemplate(templateId: Long): Int?
+
+    // ===== BASIC MUTATIONS =====
+
+    @Insert
     suspend fun insertTemplate(template: WorkoutTemplate): Long
 
     @Update
     suspend fun updateTemplate(template: WorkoutTemplate)
 
-    @Delete
-    suspend fun deleteTemplate(template: WorkoutTemplate)
+    @Insert
+    suspend fun insertTemplateExercise(templateExercise: TemplateExercise): Long
 
-    @Query("SELECT * FROM template_exercises WHERE templateId = :templateId ORDER BY `order` ASC")
-    suspend fun getExercisesForTemplate(templateId: Long): List<TemplateExercise>
+    @Update
+    suspend fun updateTemplateExercise(templateExercise: TemplateExercise)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertTemplateExercise(templateExercise: TemplateExercise)
+    // ===== SOFT DELETE (kaskadowo) =====
 
-    @Query("DELETE FROM template_exercises WHERE templateId = :templateId AND exerciseId = :exerciseId")
-    suspend fun removeExerciseFromTemplate(templateId: Long, exerciseId: String)
+    @Query("UPDATE workout_templates SET deletedAtMs = :deletedAtMs, updatedAtMs = :updatedAtMs, syncStatus = 2 WHERE id = :templateId")
+    suspend fun softDeleteTemplate(templateId: Long, deletedAtMs: Long, updatedAtMs: Long)
 
-    @Query("SELECT MAX(`order`) FROM template_exercises WHERE templateId = :templateId")
-    suspend fun getMaxOrderForTemplate(templateId: Long): Int?
+    @Query("UPDATE template_exercises SET deletedAtMs = :deletedAtMs, updatedAtMs = :updatedAtMs, syncStatus = 2 WHERE templateId = :templateId")
+    suspend fun softDeleteExercisesForTemplate(templateId: Long, deletedAtMs: Long, updatedAtMs: Long)
+
+    @Query("UPDATE template_exercises SET deletedAtMs = :deletedAtMs, updatedAtMs = :updatedAtMs, syncStatus = 2 WHERE id = :templateExerciseId")
+    suspend fun softDeleteTemplateExercise(templateExerciseId: Long, deletedAtMs: Long, updatedAtMs: Long)
+
+    @Query("UPDATE template_exercises SET `order` = `order` - 1 WHERE templateId = :templateId AND deletedAtMs IS NULL AND `order` > :deletedOrder")
+    suspend fun reorderAfterDeletion(templateId: Long, deletedOrder: Int)
+
+    // ===== SYNC QUERIES (pending queue) =====
+
+    @Query("SELECT * FROM workout_templates WHERE syncStatus != 0 ORDER BY updatedAtMs ASC LIMIT :limit")
+    suspend fun getPendingTemplates(limit: Int = 100): List<WorkoutTemplate>
+
+    @Query("SELECT * FROM template_exercises WHERE syncStatus != 0 ORDER BY updatedAtMs ASC LIMIT :limit")
+    suspend fun getPendingTemplateExercises(limit: Int = 300): List<TemplateExercise>
+
+    @Query("UPDATE workout_templates SET syncStatus = 0 WHERE id = :templateId")
+    suspend fun markTemplateSynced(templateId: Long)
+
+    @Query("UPDATE template_exercises SET syncStatus = 0 WHERE id = :templateExerciseId")
+    suspend fun markTemplateExerciseSynced(templateExerciseId: Long)
+
+    // ===== HELPERS FOR WORKER (parent -> remoteId) =====
+
+    @Query("SELECT remoteId FROM workout_templates WHERE id = :templateId")
+    suspend fun getTemplateRemoteId(templateId: Long): String?
+
+    // ===== HELPERS FOR PULL/WIPE =====
+
+    @Query("DELETE FROM template_exercises")
+    suspend fun clearTemplateExercises()
+
+    @Query("DELETE FROM workout_templates")
+    suspend fun clearTemplates()
 }

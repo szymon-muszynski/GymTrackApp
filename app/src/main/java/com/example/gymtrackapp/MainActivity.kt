@@ -28,7 +28,10 @@ class MainActivity : ComponentActivity() {
             database.templateDao(),
             database.exerciseDao()
         )
-        val templateRepository = TemplateRepository(database.templateDao())
+        val templateRepository = TemplateRepository(
+            database.templateDao(),
+            this
+        )
 
         val statisticsRepository = com.example.gymtrackapp.data.repository.StatisticsRepository(
             database.trainingDao(),

@@ -3,6 +3,7 @@ package com.example.gymtrackapp.ui.viewmodel
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.gymtrackapp.data.sync.TemplatePullService
 import com.example.gymtrackapp.data.sync.TrainingPullService
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -12,10 +13,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 class AuthViewModel(
-    private val appContext: Context
+    appContext: Context
 ) : ViewModel() {
     private val auth = FirebaseAuth.getInstance()
     private val trainingPullService = TrainingPullService(appContext.applicationContext)
+    private val templatePullService = TemplatePullService(appContext.applicationContext)
 
     private val _currentUser = MutableStateFlow<FirebaseUser?>(null)
     val currentUser = _currentUser.asStateFlow()
@@ -37,6 +39,7 @@ class AuthViewModel(
                 val uid = result.user?.uid
                 if (uid != null) {
                     trainingPullService.pullAllForUser(uid)
+                    templatePullService.pullAllForUser(uid)
                 }
 
                 _authState.value = AuthState.Success
@@ -56,6 +59,7 @@ class AuthViewModel(
                 val uid = result.user?.uid
                 if (uid != null) {
                     trainingPullService.pullAllForUser(uid)
+                    templatePullService.pullAllForUser(uid)
                 }
 
                 _authState.value = AuthState.Success
@@ -67,9 +71,13 @@ class AuthViewModel(
 
     fun signOut() {
         viewModelScope.launch {
-            // MVP: czyścimy lokalne dane treningowe na wylogowaniu, żeby uniknąć mieszania kont.
             try {
                 trainingPullService.wipeLocalTrainingData()
+            } catch (_: Throwable) {
+                // ignore
+            }
+            try {
+                templatePullService.wipeLocalTemplateData()
             } catch (_: Throwable) {
                 // ignore
             }
