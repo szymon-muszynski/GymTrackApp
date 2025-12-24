@@ -46,6 +46,8 @@ class ExerciseRepository(val exerciseDao: ExerciseDao, private val context: Cont
         val trimmedName = name.trim()
         require(trimmedName.isNotEmpty()) { "Nazwa ćwiczenia nie może być pusta" }
 
+        val now = System.currentTimeMillis()
+
         val exercise = Exercise(
             id = "custom_${UUID.randomUUID()}",
             name = trimmedName,
@@ -60,19 +62,49 @@ class ExerciseRepository(val exerciseDao: ExerciseDao, private val context: Cont
             images = emptyList(),
             isCustom = true,
             createdByUserId = createdByUserId,
-            createdAt = System.currentTimeMillis()
+            createdAt = now,
+            syncStatus = com.example.gymtrackapp.data.entity.ExerciseSyncStatus.PENDING_UPSERT,
+            updatedAtMs = now,
+            deletedAtMs = null
         )
 
         exerciseDao.insertExercise(exercise)
+        com.example.gymtrackapp.data.sync.ExerciseSyncScheduler.enqueue(context.applicationContext)
         return exercise
     }
 
-    suspend fun deleteExercise(exercise: Exercise) {
-        exerciseDao.deleteExercise(exercise)
+    suspend fun updateCustomExercise(exercise: Exercise): Exercise {
+        require(exercise.isCustom) { "updateCustomExercise można wywołać tylko dla isCustom=true" }
+
+        val now = System.currentTimeMillis()
+        val updated = exercise.copy(
+            updatedAtMs = now,
+            syncStatus = com.example.gymtrackapp.data.entity.ExerciseSyncStatus.PENDING_UPSERT
+        )
+
+        exerciseDao.updateExercise(updated)
+        com.example.gymtrackapp.data.sync.ExerciseSyncScheduler.enqueue(context.applicationContext)
+        return updated
     }
 
+    /** Soft delete + sync do chmury (dla custom). */
+    suspend fun deleteExercise(exercise: Exercise) {
+        if (!exercise.isCustom) return
+
+        val now = System.currentTimeMillis()
+        exerciseDao.softDeleteExerciseById(
+            id = exercise.id,
+            deletedAtMs = now,
+            updatedAtMs = now,
+            syncStatus = com.example.gymtrackapp.data.entity.ExerciseSyncStatus.PENDING_DELETE
+        )
+        com.example.gymtrackapp.data.sync.ExerciseSyncScheduler.enqueue(context.applicationContext)
+    }
+
+    /** Soft delete + sync do chmury (dla custom). */
     suspend fun deleteExerciseById(id: String) {
-        exerciseDao.deleteExerciseById(id)
+        val existing = exerciseDao.getExerciseById(id) ?: return
+        deleteExercise(existing)
     }
 
     suspend fun getExercisesForMuscle(muscle: String): List<Exercise> {
