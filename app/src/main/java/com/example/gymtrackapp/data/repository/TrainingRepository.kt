@@ -9,6 +9,7 @@ import com.example.gymtrackapp.data.entity.SessionExercise
 import com.example.gymtrackapp.data.entity.SessionSetDetails
 import com.example.gymtrackapp.data.entity.TrainingSession
 import com.example.gymtrackapp.data.sync.TrainingSyncScheduler
+import kotlinx.coroutines.flow.Flow
 
 class TrainingRepository(
     private val trainingDao: TrainingDao,
@@ -18,6 +19,9 @@ class TrainingRepository(
 ) {
     suspend fun loadSessionsForDate(timestamp: Long): List<TrainingSession> =
         trainingDao.getSessionsForDate(timestamp)
+
+    fun observeSessionsForDate(timestamp: Long): Flow<List<TrainingSession>> =
+        trainingDao.observeSessionsForDate(timestamp)
 
     suspend fun createEmptySession(date: Long, description: String): Long {
         val sessionId = trainingDao.createEmptySession(

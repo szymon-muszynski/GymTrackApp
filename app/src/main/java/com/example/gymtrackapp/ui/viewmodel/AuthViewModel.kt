@@ -1,6 +1,7 @@
 package com.example.gymtrackapp.ui.viewmodel
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.gymtrackapp.data.sync.ExercisePullService
@@ -8,10 +9,12 @@ import com.example.gymtrackapp.data.sync.TemplatePullService
 import com.example.gymtrackapp.data.sync.TrainingPullService
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 
 class AuthViewModel(
     appContext: Context
@@ -35,19 +38,38 @@ class AuthViewModel(
         viewModelScope.launch {
             try {
                 _authState.value = AuthState.Loading
+                Log.d(TAG, "signUp: start")
+
                 val result = auth.createUserWithEmailAndPassword(email, password).await()
                 _currentUser.value = result.user
 
                 val uid = result.user?.uid
+                Log.d(TAG, "signUp: firebase success uid=$uid")
+
                 if (uid != null) {
-                    trainingPullService.pullAllForUser(uid)
-                    templatePullService.pullAllForUser(uid)
-                    exercisePullService.pullAllCustomForUser(uid)
+                    withContext(Dispatchers.IO) {
+                        // 1) Custom exercises first (FK prerequisite for session_exercises.exerciseId)
+                        Log.d(TAG, "signUp: pull customExercises START")
+                        exercisePullService.pullAllCustomForUser(uid)
+                        Log.d(TAG, "signUp: pull customExercises DONE")
+
+                        // 2) Trainings
+                        Log.d(TAG, "signUp: pull training START")
+                        trainingPullService.pullAllForUser(uid)
+                        Log.d(TAG, "signUp: pull training DONE")
+
+                        // 3) Templates
+                        Log.d(TAG, "signUp: pull template START")
+                        templatePullService.pullAllForUser(uid)
+                        Log.d(TAG, "signUp: pull template DONE")
+                    }
                 }
 
                 _authState.value = AuthState.Success
-            } catch (e: Exception) {
-                _authState.value = AuthState.Error(e.message ?: "Błąd rejestracji")
+                Log.d(TAG, "signUp: success")
+            } catch (t: Throwable) {
+                Log.e(TAG, "signUp: failed", t)
+                _authState.value = AuthState.Error(t.message ?: "Błąd rejestracji")
             }
         }
     }
@@ -56,49 +78,80 @@ class AuthViewModel(
         viewModelScope.launch {
             try {
                 _authState.value = AuthState.Loading
+                Log.d(TAG, "signIn: start")
+
                 val result = auth.signInWithEmailAndPassword(email, password).await()
                 _currentUser.value = result.user
 
                 val uid = result.user?.uid
+                Log.d(TAG, "signIn: firebase success uid=$uid")
+
                 if (uid != null) {
-                    trainingPullService.pullAllForUser(uid)
-                    templatePullService.pullAllForUser(uid)
-                    exercisePullService.pullAllCustomForUser(uid)
+                    withContext(Dispatchers.IO) {
+                        // 1) Custom exercises first (FK prerequisite for session_exercises.exerciseId)
+                        Log.d(TAG, "signIn: pull customExercises START")
+                        exercisePullService.pullAllCustomForUser(uid)
+                        Log.d(TAG, "signIn: pull customExercises DONE")
+
+                        // 2) Trainings
+                        Log.d(TAG, "signIn: pull training START")
+                        trainingPullService.pullAllForUser(uid)
+                        Log.d(TAG, "signIn: pull training DONE")
+
+                        // 3) Templates
+                        Log.d(TAG, "signIn: pull template START")
+                        templatePullService.pullAllForUser(uid)
+                        Log.d(TAG, "signIn: pull template DONE")
+                    }
                 }
 
                 _authState.value = AuthState.Success
-            } catch (e: Exception) {
-                _authState.value = AuthState.Error(e.message ?: "Błąd logowania")
+                Log.d(TAG, "signIn: success")
+            } catch (t: Throwable) {
+                Log.e(TAG, "signIn: failed", t)
+                _authState.value = AuthState.Error(t.message ?: "Błąd logowania")
             }
         }
     }
 
     fun signOut() {
         viewModelScope.launch {
-            try {
-                trainingPullService.wipeLocalTrainingData()
-            } catch (_: Throwable) {
-                // ignore
-            }
-            try {
-                templatePullService.wipeLocalTemplateData()
-            } catch (_: Throwable) {
-                // ignore
-            }
-            try {
-                exercisePullService.wipeLocalCustomExercises()
-            } catch (_: Throwable) {
-                // ignore
+            Log.d(TAG, "signOut: start")
+
+            withContext(Dispatchers.IO) {
+                try {
+                    trainingPullService.wipeLocalTrainingData()
+                    Log.d(TAG, "signOut: wipe training OK")
+                } catch (t: Throwable) {
+                    Log.e(TAG, "signOut: wipe training FAILED", t)
+                }
+                try {
+                    templatePullService.wipeLocalTemplateData()
+                    Log.d(TAG, "signOut: wipe template OK")
+                } catch (t: Throwable) {
+                    Log.e(TAG, "signOut: wipe template FAILED", t)
+                }
+                try {
+                    exercisePullService.wipeLocalCustomExercises()
+                    Log.d(TAG, "signOut: wipe customExercises OK")
+                } catch (t: Throwable) {
+                    Log.e(TAG, "signOut: wipe customExercises FAILED", t)
+                }
             }
 
             auth.signOut()
             _currentUser.value = null
             _authState.value = AuthState.Idle
+            Log.d(TAG, "signOut: done")
         }
     }
 
     fun resetAuthState() {
         _authState.value = AuthState.Idle
+    }
+
+    private companion object {
+        private const val TAG = "AuthViewModel"
     }
 }
 

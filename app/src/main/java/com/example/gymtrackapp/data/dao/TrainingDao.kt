@@ -7,11 +7,16 @@ import androidx.room.Update
 import com.example.gymtrackapp.data.entity.SessionExercise
 import com.example.gymtrackapp.data.entity.SessionSetDetails
 import com.example.gymtrackapp.data.entity.TrainingSession
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TrainingDao {
     @Query("SELECT * FROM training_sessions WHERE date = :timestamp AND deletedAtMs IS NULL")
     suspend fun getSessionsForDate(timestamp: Long): List<TrainingSession>
+
+    /** Reaktywna wersja: aktualizuje UI gdy w Room przybywają sesje (np. podczas pull). */
+    @Query("SELECT * FROM training_sessions WHERE date = :timestamp AND deletedAtMs IS NULL")
+    fun observeSessionsForDate(timestamp: Long): Flow<List<TrainingSession>>
 
     @Insert
     suspend fun createEmptySession(session: TrainingSession): Long
@@ -253,6 +258,20 @@ interface TrainingDao {
 
     @Insert
     suspend fun insertSessionSetDetails(set: SessionSetDetails): Long
+
+    // ============= PULL DEBUG HELPERS =============
+
+    @Query("SELECT COUNT(*) FROM training_sessions")
+    suspend fun countTrainingSessionsAll(): Int
+
+    @Query("SELECT COUNT(*) FROM session_exercises")
+    suspend fun countSessionExercisesAll(): Int
+
+    @Query("SELECT COUNT(*) FROM session_set_details")
+    suspend fun countSessionSetsAll(): Int
+
+    @Query("SELECT COUNT(*) FROM exercises WHERE id = :exerciseId")
+    suspend fun countExercisesById(exerciseId: String): Int
 
 }
 
