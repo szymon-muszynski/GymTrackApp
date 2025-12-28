@@ -2,6 +2,7 @@ package com.example.gymtrackapp.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.gymtrackapp.data.entity.RecentSessionWithExercises
 import com.example.gymtrackapp.data.entity.SessionExercise
 import com.example.gymtrackapp.data.entity.SessionSetDetails
 import com.example.gymtrackapp.data.entity.TrainingSession
@@ -22,11 +23,13 @@ class TrainingViewModel(private val repository: TrainingRepository) : ViewModel(
 
     private val _sessionExerciseSetsMap = MutableStateFlow<Map<Long, List<SessionSetDetails>>>(emptyMap())
 
-    private val _recentSessions = MutableStateFlow<List<com.example.gymtrackapp.data.entity.RecentSessionWithExercises>>(emptyList())
+    private val _recentSessions = MutableStateFlow<List<RecentSessionWithExercises>>(emptyList())
     val recentSessions = _recentSessions.asStateFlow()
 
     private var sessionsForDateJob: Job? = null
     private var currentObservedDate: Long? = null
+
+    private var recentSessionsJob: Job? = null
 
     fun loadSessionsForDate(date: Long) {
         // Jeśli UI woła to wiele razy dla tej samej daty (np. recomposition), nie twórz nowych collectów
@@ -37,6 +40,21 @@ class TrainingViewModel(private val repository: TrainingRepository) : ViewModel(
         sessionsForDateJob = viewModelScope.launch {
             repository.observeSessionsForDate(date).collect { list ->
                 _sessions.value = list
+            }
+        }
+    }
+
+    /**
+     * Reaktywne ładowanie ostatnich sesji (do HomePage).
+     * HomePage może to zawołać raz, a lista będzie sama się odświeżać gdy Room się zmieni.
+     */
+    fun loadRecentSessions(limit: Int = 3) {
+        // jeśli ktoś woła kilkukrotnie, nie rób wielu kolektorów
+        if (recentSessionsJob?.isActive == true) return
+
+        recentSessionsJob = viewModelScope.launch {
+            repository.observeRecentSessionsWithExercises(limit).collect { list ->
+                _recentSessions.value = list
             }
         }
     }
@@ -116,11 +134,6 @@ class TrainingViewModel(private val repository: TrainingRepository) : ViewModel(
         }
     }
 
-    fun loadRecentSessions(limit: Int = 3) {
-        viewModelScope.launch {
-            _recentSessions.value = repository.getRecentSessionsWithExercises(limit)
-        }
-    }
 
     private val _sessionCreationError = MutableStateFlow<String?>(null)
     val sessionCreationError = _sessionCreationError.asStateFlow()

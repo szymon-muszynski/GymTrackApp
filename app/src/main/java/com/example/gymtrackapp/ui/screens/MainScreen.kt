@@ -58,6 +58,12 @@ fun MainScreen(
         )
     }
 
+    // Kick initial loads for HomePage (best effort)
+    LaunchedEffect(Unit) {
+        statisticsViewModel.setHeatmapDaysRange(7)
+        trainingViewModel.loadRecentSessions(3)
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(

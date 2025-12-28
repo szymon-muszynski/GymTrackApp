@@ -217,6 +217,10 @@ interface TrainingDao {
     @Query("SELECT * FROM training_sessions WHERE deletedAtMs IS NULL ORDER BY date DESC LIMIT :limit")
     suspend fun getRecentSessions(limit: Int): List<TrainingSession>
 
+    /** Reaktywna wersja do HomePage – odświeża się gdy Room się zmienia (np. w trakcie pull). */
+    @Query("SELECT * FROM training_sessions WHERE deletedAtMs IS NULL ORDER BY date DESC LIMIT :limit")
+    fun observeRecentSessions(limit: Int): Flow<List<TrainingSession>>
+
     @Query("SELECT * FROM training_sessions WHERE id = :sessionId")
     suspend fun getSessionById(sessionId: Long): TrainingSession?
 

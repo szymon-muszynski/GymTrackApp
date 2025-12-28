@@ -10,6 +10,7 @@ import com.example.gymtrackapp.data.entity.SessionSetDetails
 import com.example.gymtrackapp.data.entity.TrainingSession
 import com.example.gymtrackapp.data.sync.TrainingSyncScheduler
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 class TrainingRepository(
     private val trainingDao: TrainingDao,
@@ -143,6 +144,23 @@ class TrainingRepository(
             )
         }
     }
+
+    fun observeRecentSessionsWithExercises(limit: Int): Flow<List<RecentSessionWithExercises>> =
+        trainingDao.observeRecentSessions(limit).map { sessions ->
+            sessions.map { session ->
+                val exercises = trainingDao.getExercisesForSession(session.id)
+                val exerciseNames = exercises.mapNotNull { se ->
+                    exerciseDao.getExerciseById(se.exerciseId)?.name
+                }
+
+                RecentSessionWithExercises(
+                    sessionId = session.id,
+                    sessionDate = session.date,
+                    sessionDescription = session.description,
+                    exerciseNames = exerciseNames
+                )
+            }
+        }
 
     suspend fun createSessionFromTemplate(
         templateId: Long,
