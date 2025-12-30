@@ -111,8 +111,12 @@ interface TrainingDao {
                COUNT(DISTINCT ts.id) as sessionCount,
                COALESCE(SUM(ssd.reps * ssd.weight), 0) as totalVolume
         FROM training_sessions ts
-        LEFT JOIN session_exercises se ON ts.id = se.trainingSessionId
-        LEFT JOIN session_set_details ssd ON se.id = ssd.sessionExerciseId
+        LEFT JOIN session_exercises se 
+               ON ts.id = se.trainingSessionId
+              AND se.deletedAtMs IS NULL
+        LEFT JOIN session_set_details ssd 
+               ON se.id = ssd.sessionExerciseId
+              AND ssd.deletedAtMs IS NULL
         WHERE ts.date >= :startDate AND ts.date <= :endDate
           AND ts.deletedAtMs IS NULL
         GROUP BY ts.date
@@ -123,8 +127,12 @@ interface TrainingDao {
     @Query("""
         SELECT COALESCE(SUM(ssd.reps * ssd.weight), 0)
         FROM training_sessions ts
-        JOIN session_exercises se ON ts.id = se.trainingSessionId
-        JOIN session_set_details ssd ON se.id = ssd.sessionExerciseId
+        JOIN session_exercises se 
+          ON ts.id = se.trainingSessionId
+         AND se.deletedAtMs IS NULL
+        JOIN session_set_details ssd 
+          ON se.id = ssd.sessionExerciseId
+         AND ssd.deletedAtMs IS NULL
         WHERE ts.date >= :startDate AND ts.date <= :endDate
           AND ts.deletedAtMs IS NULL
     """)
@@ -138,10 +146,14 @@ interface TrainingDao {
                ssd.reps,
                ssd.`order`
         FROM session_set_details ssd
-        JOIN session_exercises se ON ssd.sessionExerciseId = se.id
-        JOIN training_sessions ts ON se.trainingSessionId = ts.id
+        JOIN session_exercises se 
+          ON ssd.sessionExerciseId = se.id
+         AND se.deletedAtMs IS NULL
+        JOIN training_sessions ts 
+          ON se.trainingSessionId = ts.id
+         AND ts.deletedAtMs IS NULL
         WHERE se.exerciseId = :exerciseId
-          AND ts.deletedAtMs IS NULL
+          AND ssd.deletedAtMs IS NULL
         ORDER BY ts.date ASC, ssd.`order` ASC
     """)
     suspend fun getAllSetsForExerciseWithDates(exerciseId: String): List<SetWithDateRaw>
@@ -153,9 +165,13 @@ interface TrainingDao {
                ts.date,
                MAX(ssd.weight * (1 + ssd.reps / 30.0)) as estimated1RM
         FROM session_set_details ssd
-        JOIN session_exercises se ON ssd.sessionExerciseId = se.id
-        JOIN training_sessions ts ON se.trainingSessionId = ts.id
-        WHERE ts.deletedAtMs IS NULL
+        JOIN session_exercises se 
+          ON ssd.sessionExerciseId = se.id
+         AND se.deletedAtMs IS NULL
+        JOIN training_sessions ts 
+          ON se.trainingSessionId = ts.id
+         AND ts.deletedAtMs IS NULL
+        WHERE ssd.deletedAtMs IS NULL
         GROUP BY se.exerciseId, ssd.weight, ssd.reps, ts.date
         ORDER BY ts.date DESC
         LIMIT :limit
@@ -168,8 +184,12 @@ interface TrainingDao {
                COUNT(ssd.id) as setCount,
                COALESCE(SUM(ssd.reps * ssd.weight), 0) as totalVolume
         FROM training_sessions ts
-        JOIN session_exercises se ON ts.id = se.trainingSessionId
-        JOIN session_set_details ssd ON se.id = ssd.sessionExerciseId
+        JOIN session_exercises se 
+          ON ts.id = se.trainingSessionId
+         AND se.deletedAtMs IS NULL
+        JOIN session_set_details ssd 
+          ON se.id = ssd.sessionExerciseId
+         AND ssd.deletedAtMs IS NULL
         JOIN exercises e ON se.exerciseId = e.id
         WHERE ts.date >= :startDate AND ts.date <= :endDate
           AND ts.deletedAtMs IS NULL
@@ -184,10 +204,14 @@ interface TrainingDao {
                ts.date,
                se.exerciseId
         FROM session_set_details ssd
-        JOIN session_exercises se ON ssd.sessionExerciseId = se.id
-        JOIN training_sessions ts ON se.trainingSessionId = ts.id
+        JOIN session_exercises se 
+          ON ssd.sessionExerciseId = se.id
+         AND se.deletedAtMs IS NULL
+        JOIN training_sessions ts 
+          ON se.trainingSessionId = ts.id
+         AND ts.deletedAtMs IS NULL
         WHERE se.exerciseId = :exerciseId
-          AND ts.deletedAtMs IS NULL
+          AND ssd.deletedAtMs IS NULL
         GROUP BY ssd.reps
         ORDER BY ssd.reps ASC
     """)
@@ -197,9 +221,14 @@ interface TrainingDao {
         SELECT ts.date,
                COALESCE(SUM(ssd.reps * ssd.weight), 0) as volume
         FROM training_sessions ts
-        LEFT JOIN session_exercises se ON ts.id = se.trainingSessionId
-        LEFT JOIN session_set_details ssd ON se.id = ssd.sessionExerciseId
-        WHERE se.exerciseId = :exerciseId AND ts.date >= :startDate AND ts.date <= :endDate
+        LEFT JOIN session_exercises se 
+               ON ts.id = se.trainingSessionId
+              AND se.deletedAtMs IS NULL
+        LEFT JOIN session_set_details ssd 
+               ON se.id = ssd.sessionExerciseId
+              AND ssd.deletedAtMs IS NULL
+        WHERE se.exerciseId = :exerciseId 
+          AND ts.date >= :startDate AND ts.date <= :endDate
           AND ts.deletedAtMs IS NULL
         GROUP BY ts.date
         ORDER BY ts.date ASC
@@ -211,10 +240,14 @@ interface TrainingDao {
                MAX(ssd.weight) as weight,
                ssd.reps
         FROM session_set_details ssd
-        JOIN session_exercises se ON ssd.sessionExerciseId = se.id
-        JOIN training_sessions ts ON se.trainingSessionId = ts.id
+        JOIN session_exercises se 
+          ON ssd.sessionExerciseId = se.id
+         AND se.deletedAtMs IS NULL
+        JOIN training_sessions ts 
+          ON se.trainingSessionId = ts.id
+         AND ts.deletedAtMs IS NULL
         WHERE se.exerciseId = :exerciseId
-          AND ts.deletedAtMs IS NULL
+          AND ssd.deletedAtMs IS NULL
         GROUP BY ts.date
         HAVING MAX(ssd.weight)
         ORDER BY ts.date ASC
