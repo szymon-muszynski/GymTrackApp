@@ -29,13 +29,17 @@ data class Exercise(
 
     // --- Sync metadata (offline-first) ---
     // 0=SYNCED, 1=PENDING_UPSERT, 2=PENDING_DELETE
-    val syncStatus: Int = 0,
+    val syncStatus: Int = SyncStatus.SYNCED,
     val updatedAtMs: Long = createdAt,
     val deletedAtMs: Long? = null,
 )
 
+/**
+ * Alias dla wstecznej kompatybilności ze starszym kodem.
+ * Docelowo możemy stopniowo przejść na używanie SyncStatus bezpośrednio.
+ */
 object ExerciseSyncStatus {
-    const val SYNCED = 0
-    const val PENDING_UPSERT = 1
-    const val PENDING_DELETE = 2
+    const val SYNCED = SyncStatus.SYNCED
+    const val PENDING_UPSERT = SyncStatus.PENDING_UPSERT
+    const val PENDING_DELETE = SyncStatus.PENDING_DELETE
 }

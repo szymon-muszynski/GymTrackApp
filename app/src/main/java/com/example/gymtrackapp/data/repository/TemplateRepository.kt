@@ -2,6 +2,7 @@ package com.example.gymtrackapp.data.repository
 
 import android.content.Context
 import com.example.gymtrackapp.data.dao.TemplateDao
+import com.example.gymtrackapp.data.entity.SyncStatus
 import com.example.gymtrackapp.data.entity.TemplateExercise
 import com.example.gymtrackapp.data.entity.WorkoutTemplate
 import com.example.gymtrackapp.data.sync.TemplateSyncScheduler
@@ -20,7 +21,7 @@ class TemplateRepository(
                 name = name,
                 createdAt = System.currentTimeMillis(),
                 updatedAtMs = System.currentTimeMillis(),
-                syncStatus = 1
+                syncStatus = SyncStatus.PENDING_UPSERT
             )
         )
         TemplateSyncScheduler.enqueue(context)
@@ -43,7 +44,7 @@ class TemplateRepository(
             exerciseId = exerciseId,
             order = maxOrder + 1,
             updatedAtMs = System.currentTimeMillis(),
-            syncStatus = 1
+            syncStatus = SyncStatus.PENDING_UPSERT
         )
         templateDao.insertTemplateExercise(newExercise)
         TemplateSyncScheduler.enqueue(context)
@@ -60,7 +61,7 @@ class TemplateRepository(
         val updated = template.copy(
             name = newName,
             updatedAtMs = System.currentTimeMillis(),
-            syncStatus = 1
+            syncStatus = SyncStatus.PENDING_UPSERT
         )
         templateDao.updateTemplate(updated)
         TemplateSyncScheduler.enqueue(context)

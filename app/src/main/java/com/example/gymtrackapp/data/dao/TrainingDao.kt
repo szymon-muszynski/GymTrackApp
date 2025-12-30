@@ -276,8 +276,9 @@ interface TrainingDao {
 
     @Query("SELECT COUNT(*) FROM exercises WHERE id = :exerciseId")
     suspend fun countExercisesById(exerciseId: String): Int
-
 }
+
+
 
 // ============= RAW DATA CLASSES FOR ROOM QUERIES =============
 

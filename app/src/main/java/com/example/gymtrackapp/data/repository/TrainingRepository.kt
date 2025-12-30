@@ -7,6 +7,7 @@ import com.example.gymtrackapp.data.dao.TrainingDao
 import com.example.gymtrackapp.data.entity.RecentSessionWithExercises
 import com.example.gymtrackapp.data.entity.SessionExercise
 import com.example.gymtrackapp.data.entity.SessionSetDetails
+import com.example.gymtrackapp.data.entity.SyncStatus
 import com.example.gymtrackapp.data.entity.TrainingSession
 import com.example.gymtrackapp.data.sync.TrainingSyncScheduler
 import kotlinx.coroutines.flow.Flow
@@ -39,7 +40,7 @@ class TrainingRepository(
         trainingDao.updateSession(
             session.copy(
                 updatedAtMs = System.currentTimeMillis(),
-                syncStatus = 1
+                syncStatus = SyncStatus.PENDING_UPSERT
             )
         )
         TrainingSyncScheduler.enqueue(context)
@@ -73,7 +74,7 @@ class TrainingRepository(
         trainingDao.updateSessionExercise(
             exercise.copy(
                 updatedAtMs = System.currentTimeMillis(),
-                syncStatus = 1
+                syncStatus = SyncStatus.PENDING_UPSERT
             )
         )
         TrainingSyncScheduler.enqueue(context)
@@ -114,7 +115,7 @@ class TrainingRepository(
         trainingDao.updateSet(
             set.copy(
                 updatedAtMs = System.currentTimeMillis(),
-                syncStatus = 1
+                syncStatus = SyncStatus.PENDING_UPSERT
             )
         )
         TrainingSyncScheduler.enqueue(context)

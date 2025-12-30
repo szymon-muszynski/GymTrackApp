@@ -12,12 +12,6 @@ import kotlinx.coroutines.tasks.await
 
 /**
  * MVP worker: wypycha lokalne zmiany (pending) do Firestore.
- *
- * Założenia:
- * - Room jest źródłem prawdy; zawsze zapisujemy lokalnie.
- * - syncStatus: 0=SYNCED, 1=PENDING_UPSERT, 2=PENDING_DELETE
- * - deletedAtMs != null oznacza soft delete.
- * - soft delete kaskadowy: gdy usuwasz sesję, w Room oznaczasz też exercises/sets.
  */
 class TrainingSyncWorker(
     appContext: Context,

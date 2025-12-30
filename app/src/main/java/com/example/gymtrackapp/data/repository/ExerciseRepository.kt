@@ -3,12 +3,17 @@ package com.example.gymtrackapp.data.repository
 import android.content.Context
 import com.example.gymtrackapp.data.dao.ExerciseDao
 import com.example.gymtrackapp.data.entity.Exercise
+import com.example.gymtrackapp.data.entity.ExerciseSyncStatus
+import com.example.gymtrackapp.data.sync.ExerciseSyncScheduler
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 
-class ExerciseRepository(val exerciseDao: ExerciseDao, private val context: Context) {
+class ExerciseRepository(
+    private val exerciseDao: ExerciseDao,
+    private val context: Context
+) {
     suspend fun loadExercisesFromAssets() {
         // Otwieramy plik z assets
         val json = context.assets.open("exercises.json").bufferedReader().use { it.readText() }
@@ -63,13 +68,13 @@ class ExerciseRepository(val exerciseDao: ExerciseDao, private val context: Cont
             isCustom = true,
             createdByUserId = createdByUserId,
             createdAt = now,
-            syncStatus = com.example.gymtrackapp.data.entity.ExerciseSyncStatus.PENDING_UPSERT,
+            syncStatus = ExerciseSyncStatus.PENDING_UPSERT,
             updatedAtMs = now,
             deletedAtMs = null
         )
 
         exerciseDao.insertExercise(exercise)
-        com.example.gymtrackapp.data.sync.ExerciseSyncScheduler.enqueue(context.applicationContext)
+        ExerciseSyncScheduler.enqueue(context.applicationContext)
         return exercise
     }
 
@@ -79,11 +84,11 @@ class ExerciseRepository(val exerciseDao: ExerciseDao, private val context: Cont
         val now = System.currentTimeMillis()
         val updated = exercise.copy(
             updatedAtMs = now,
-            syncStatus = com.example.gymtrackapp.data.entity.ExerciseSyncStatus.PENDING_UPSERT
+            syncStatus = ExerciseSyncStatus.PENDING_UPSERT
         )
 
         exerciseDao.updateExercise(updated)
-        com.example.gymtrackapp.data.sync.ExerciseSyncScheduler.enqueue(context.applicationContext)
+        ExerciseSyncScheduler.enqueue(context.applicationContext)
         return updated
     }
 
@@ -96,9 +101,9 @@ class ExerciseRepository(val exerciseDao: ExerciseDao, private val context: Cont
             id = exercise.id,
             deletedAtMs = now,
             updatedAtMs = now,
-            syncStatus = com.example.gymtrackapp.data.entity.ExerciseSyncStatus.PENDING_DELETE
+            syncStatus = ExerciseSyncStatus.PENDING_DELETE
         )
-        com.example.gymtrackapp.data.sync.ExerciseSyncScheduler.enqueue(context.applicationContext)
+        ExerciseSyncScheduler.enqueue(context.applicationContext)
     }
 
     /** Soft delete + sync do chmury (dla custom). */
@@ -131,5 +136,13 @@ class ExerciseRepository(val exerciseDao: ExerciseDao, private val context: Cont
             .sorted()
     }
 
+    suspend fun getAllLevels(): List<String> = exerciseDao.getAllLevels()
 
+    suspend fun getAllEquipments(): List<String> = exerciseDao.getAllEquipments()
+
+    suspend fun getAllCategories(): List<String> = exerciseDao.getAllCategories()
+
+    suspend fun getAllMechanics(): List<String> = exerciseDao.getAllMechanics()
+
+    suspend fun getAllForces(): List<String> = exerciseDao.getAllForces()
 }

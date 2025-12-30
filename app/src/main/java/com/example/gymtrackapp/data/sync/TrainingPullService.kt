@@ -6,6 +6,7 @@ import com.example.gymtrackapp.data.ExerciseDatabase
 import com.example.gymtrackapp.data.dao.TrainingDao
 import com.example.gymtrackapp.data.entity.SessionExercise
 import com.example.gymtrackapp.data.entity.SessionSetDetails
+import com.example.gymtrackapp.data.entity.SyncStatus
 import com.example.gymtrackapp.data.entity.TrainingSession
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
@@ -86,7 +87,7 @@ class TrainingPullService(
                         description = session.description,
                         remoteId = sessionRemoteId,
                         updatedAtMs = session.updatedAtMs,
-                        syncStatus = 0,
+                        syncStatus = SyncStatus.SYNCED,
                         deletedAtMs = session.deletedAtMs
                     )
                 )
@@ -145,7 +146,7 @@ class TrainingPullService(
                             order = exercise.order,
                             remoteId = exerciseRemoteId,
                             updatedAtMs = exercise.updatedAtMs,
-                            syncStatus = 0,
+                            syncStatus = SyncStatus.SYNCED,
                             deletedAtMs = exercise.deletedAtMs
                         )
                     )
@@ -204,7 +205,7 @@ class TrainingPullService(
                                 weight = set.weight,
                                 remoteId = setRemoteId,
                                 updatedAtMs = set.updatedAtMs,
-                                syncStatus = 0,
+                                syncStatus = SyncStatus.SYNCED,
                                 deletedAtMs = set.deletedAtMs
                             )
                         )

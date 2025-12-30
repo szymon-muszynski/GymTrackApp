@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.example.gymtrackapp.data.ExerciseDatabase
 import com.example.gymtrackapp.data.dao.TemplateDao
+import com.example.gymtrackapp.data.entity.SyncStatus
 import com.example.gymtrackapp.data.entity.TemplateExercise
 import com.example.gymtrackapp.data.entity.WorkoutTemplate
 import com.google.firebase.firestore.FirebaseFirestore
@@ -73,7 +74,7 @@ class TemplatePullService(
                         createdAt = template.createdAt,
                         remoteId = templateRemoteId,
                         updatedAtMs = template.updatedAtMs,
-                        syncStatus = 0,
+                        syncStatus = SyncStatus.SYNCED,
                         deletedAtMs = template.deletedAtMs
                     )
                 )
@@ -112,7 +113,7 @@ class TemplatePullService(
                             order = exercise.order,
                             remoteId = exerciseRemoteId,
                             updatedAtMs = exercise.updatedAtMs,
-                            syncStatus = 0,
+                            syncStatus = SyncStatus.SYNCED,
                             deletedAtMs = exercise.deletedAtMs
                         )
                     )

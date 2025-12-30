@@ -35,6 +35,6 @@ data class TemplateExercise(
     val remoteId: String = UUID.randomUUID().toString(),
     val updatedAtMs: Long = System.currentTimeMillis(),
     /** 0=SYNCED, 1=PENDING_UPSERT, 2=PENDING_DELETE */
-    val syncStatus: Int = 1,
+    val syncStatus: Int = SyncStatus.PENDING_UPSERT,
     val deletedAtMs: Long? = null,
 )

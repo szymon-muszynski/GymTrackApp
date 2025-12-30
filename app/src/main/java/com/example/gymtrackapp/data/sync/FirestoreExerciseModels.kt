@@ -1,6 +1,7 @@
 package com.example.gymtrackapp.data.sync
 
 import com.example.gymtrackapp.data.entity.Exercise
+import com.example.gymtrackapp.data.entity.SyncStatus
 
 /**
  * DTO dla customowych ćwiczeń w Firestore.
@@ -59,8 +60,7 @@ internal fun CustomExerciseDoc.toEntity(uid: String): Exercise = Exercise(
     isCustom = true,
     createdByUserId = uid,
     createdAt = createdAt,
-    syncStatus = 0,
+    syncStatus = SyncStatus.SYNCED,
     updatedAtMs = updatedAtMs,
     deletedAtMs = deletedAtMs,
 )
-
