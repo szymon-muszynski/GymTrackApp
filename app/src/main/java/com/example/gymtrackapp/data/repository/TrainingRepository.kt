@@ -4,6 +4,7 @@ import android.content.Context
 import com.example.gymtrackapp.data.dao.ExerciseDao
 import com.example.gymtrackapp.data.dao.TemplateDao
 import com.example.gymtrackapp.data.dao.TrainingDao
+import com.example.gymtrackapp.data.dao.RecentSessionExerciseRow
 import com.example.gymtrackapp.data.entity.RecentSessionWithExercises
 import com.example.gymtrackapp.data.entity.SessionExercise
 import com.example.gymtrackapp.data.entity.SessionSetDetails
@@ -144,18 +145,27 @@ class TrainingRepository(
     }
 
     fun observeRecentSessionsWithExercises(limit: Int): Flow<List<RecentSessionWithExercises>> =
-        trainingDao.observeRecentSessions(limit).map { sessions ->
-            sessions.map { session ->
-                val exercises = trainingDao.getExercisesForSession(session.id)
-                val exerciseNames = exercises.mapNotNull { se ->
-                    exerciseDao.getExerciseById(se.exerciseId)?.name
-                }
+        trainingDao.observeRecentSessionExerciseRows(limit).map { rows: List<RecentSessionExerciseRow> ->
+            if (rows.isEmpty()) return@map emptyList()
+
+            // rows są już posortowane: date DESC, order ASC.
+            // Grupujemy po sesji w kolejności pojawienia się (LinkedHashMap).
+            val grouped = LinkedHashMap<Long, MutableList<RecentSessionExerciseRow>>()
+            for (row in rows) {
+                grouped.getOrPut(row.sessionId) { mutableListOf() }.add(row)
+            }
+
+            grouped.values.map { sessionRows ->
+                val first = sessionRows.first()
+                val names = sessionRows
+                    .sortedBy { it.exerciseOrder ?: Int.MAX_VALUE }
+                    .mapNotNull { it.exerciseName }
 
                 RecentSessionWithExercises(
-                    sessionId = session.id,
-                    sessionDate = session.date,
-                    sessionDescription = session.description,
-                    exerciseNames = exerciseNames
+                    sessionId = first.sessionId,
+                    sessionDate = first.sessionDate,
+                    sessionDescription = first.sessionDescription,
+                    exerciseNames = names
                 )
             }
         }

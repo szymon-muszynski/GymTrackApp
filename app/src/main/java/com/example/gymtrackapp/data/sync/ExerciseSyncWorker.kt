@@ -26,7 +26,7 @@ class ExerciseSyncWorker(
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 
     override suspend fun doWork(): Result {
-        val user = auth.currentUser ?: return Result.retry()
+        val user = auth.currentUser ?: return Result.success()
         val uid = user.uid
 
         val exerciseDao: ExerciseDao = ExerciseDatabase

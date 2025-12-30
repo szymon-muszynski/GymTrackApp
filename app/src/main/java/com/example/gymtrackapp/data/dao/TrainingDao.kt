@@ -261,6 +261,39 @@ interface TrainingDao {
     @Query("SELECT * FROM training_sessions WHERE deletedAtMs IS NULL ORDER BY date DESC LIMIT :limit")
     fun observeRecentSessions(limit: Int): Flow<List<TrainingSession>>
 
+    // ============= HOME PAGE (RECENT SESSIONS + EXERCISES) =============
+
+    /**
+     * Reaktywne źródło danych dla 'ostatnich sesji' na HomePage.
+     *
+     * LIMIT dotyczy sesji (a nie wierszy JOIN), dlatego używamy CTE.
+     */
+    @Query(
+        """
+        WITH recent AS (
+            SELECT id, date, description
+            FROM training_sessions
+            WHERE deletedAtMs IS NULL
+            ORDER BY date DESC
+            LIMIT :limit
+        )
+        SELECT 
+            recent.id AS sessionId,
+            recent.date AS sessionDate,
+            recent.description AS sessionDescription,
+            se.`order` AS exerciseOrder,
+            e.name AS exerciseName
+        FROM recent
+        LEFT JOIN session_exercises se
+               ON se.trainingSessionId = recent.id
+              AND se.deletedAtMs IS NULL
+        LEFT JOIN exercises e
+               ON e.id = se.exerciseId
+        ORDER BY recent.date DESC, se.`order` ASC
+        """
+    )
+    fun observeRecentSessionExerciseRows(limit: Int): Flow<List<RecentSessionExerciseRow>>
+
     @Query("SELECT * FROM training_sessions WHERE id = :sessionId")
     suspend fun getSessionById(sessionId: Long): TrainingSession?
 
@@ -373,4 +406,16 @@ data class TopSetByDateRaw(
     val date: Long,
     val weight: Float,
     val reps: Int
+)
+
+/**
+ * Pojedynczy wiersz (sesja × ćwiczenie) do zbudowania UI dla "ostatnich sesji".
+ * exerciseName może być null (sesja bez ćwiczeń).
+ */
+data class RecentSessionExerciseRow(
+    val sessionId: Long,
+    val sessionDate: Long,
+    val sessionDescription: String,
+    val exerciseOrder: Int?,
+    val exerciseName: String?
 )
