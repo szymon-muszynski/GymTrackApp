@@ -87,11 +87,8 @@ class TrainingRepository(
         // reordering tylko na aktywnych rekordach (DAO już filtruje deletedAtMs)
         trainingDao.reorderAfterDeletion(exercise.trainingSessionId, exercise.order)
 
-        // soft delete serii pod tym ćwiczeniem (optymalnie jednym query)
-        val sets = trainingDao.getSetsForSessionExercise(exercise.id)
-        for (set in sets) {
-            trainingDao.softDeleteSet(set.id, deletedAtMs = now, updatedAtMs = now)
-        }
+        // soft delete serii pod tym ćwiczeniem (jednym query)
+        trainingDao.softDeleteSetsForSessionExercise(exercise.id, deletedAtMs = now, updatedAtMs = now)
 
         TrainingSyncScheduler.enqueue(context)
     }

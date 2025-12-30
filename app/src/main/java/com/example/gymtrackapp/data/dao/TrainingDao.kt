@@ -71,6 +71,13 @@ interface TrainingDao {
     @Query("UPDATE session_set_details SET deletedAtMs = :deletedAtMs, updatedAtMs = :updatedAtMs, syncStatus = 2 WHERE id = :setId")
     suspend fun softDeleteSet(setId: Long, deletedAtMs: Long, updatedAtMs: Long)
 
+    @Query("""
+        UPDATE session_set_details
+        SET deletedAtMs = :deletedAtMs, updatedAtMs = :updatedAtMs, syncStatus = 2
+        WHERE sessionExerciseId = :sessionExerciseId
+    """)
+    suspend fun softDeleteSetsForSessionExercise(sessionExerciseId: Long, deletedAtMs: Long, updatedAtMs: Long)
+
     @Query("SELECT MAX(`order`) FROM session_set_details WHERE sessionExerciseId = :sessionExerciseId AND deletedAtMs IS NULL")
     suspend fun getMaxOrderForSessionExercise(sessionExerciseId: Long): Int?
 
