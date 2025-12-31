@@ -74,4 +74,19 @@ interface TemplateDao {
 
     @Query("DELETE FROM workout_templates")
     suspend fun clearTemplates()
+
+    // ===== ORPHANED PENDING CLEANUP =====
+
+    /**
+     * Usuwa pending TemplateExercise, które wskazują na nieistniejącą templatkę.
+     * Bezpieczne, bo dotyka tylko syncStatus!=SYNCED.
+     */
+    @Query(
+        """
+        DELETE FROM template_exercises
+        WHERE syncStatus != 0
+          AND templateId NOT IN (SELECT id FROM workout_templates)
+        """
+    )
+    suspend fun deleteOrphanedPendingTemplateExercises(): Int
 }

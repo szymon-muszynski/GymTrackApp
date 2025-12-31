@@ -1,6 +1,7 @@
 package com.example.gymtrackapp.data.sync
 
 import android.content.Context
+import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.gymtrackapp.data.ExerciseDatabase
@@ -33,7 +34,9 @@ class TrainingSyncWorker(
             // 1) Sessions (parent)
             val pendingSessions = trainingDao.getPendingSessions()
             for (session in pendingSessions) {
-                val sessionRef = TrainingFirestorePaths.sessionsCol(db, uid).document(session.remoteId)
+                val sessionRef = TrainingFirestorePaths.sessionsCol(db, uid)
+                    .document(session.remoteId)
+
                 sessionRef.set(session.toDoc(), SetOptions.merge()).await()
                 trainingDao.markSessionSynced(session.id)
             }
@@ -42,7 +45,13 @@ class TrainingSyncWorker(
             val pendingExercises = trainingDao.getPendingSessionExercises()
             for (se in pendingExercises) {
                 val sessionRemoteId = trainingDao.getSessionRemoteId(se.trainingSessionId)
-                    ?: return Result.retry()
+                if (sessionRemoteId.isNullOrBlank()) {
+                    Log.w(
+                        TAG,
+                        "doWork: SKIP SessionExercise id=${se.id} remoteId=${se.remoteId} because parent sessionId=${se.trainingSessionId} has no remoteId"
+                    )
+                    continue
+                }
 
                 val exerciseRef = TrainingFirestorePaths.exercisesCol(db, uid, sessionRemoteId)
                     .document(se.remoteId)
@@ -55,10 +64,22 @@ class TrainingSyncWorker(
             val pendingSets = trainingDao.getPendingSessionSets()
             for (set in pendingSets) {
                 val parentExercise = trainingDao.getSessionExerciseById(set.sessionExerciseId)
-                    ?: return Result.retry()
+                if (parentExercise == null) {
+                    Log.w(
+                        TAG,
+                        "doWork: SKIP SessionSetDetails id=${set.id} remoteId=${set.remoteId} because parent sessionExerciseId=${set.sessionExerciseId} not found"
+                    )
+                    continue
+                }
 
                 val sessionRemoteId = trainingDao.getSessionRemoteId(parentExercise.trainingSessionId)
-                    ?: return Result.retry()
+                if (sessionRemoteId.isNullOrBlank()) {
+                    Log.w(
+                        TAG,
+                        "doWork: SKIP SessionSetDetails id=${set.id} remoteId=${set.remoteId} because parent sessionId=${parentExercise.trainingSessionId} has no remoteId"
+                    )
+                    continue
+                }
 
                 val setRef = TrainingFirestorePaths.setsCol(
                     db,
@@ -72,8 +93,13 @@ class TrainingSyncWorker(
             }
 
             Result.success()
-        } catch (_: Throwable) {
+        } catch (t: Throwable) {
+            Log.e(TAG, "doWork: FAILED", t)
             Result.retry()
         }
+    }
+
+    companion object {
+        private const val TAG = "TrainingSyncWorker"
     }
 }

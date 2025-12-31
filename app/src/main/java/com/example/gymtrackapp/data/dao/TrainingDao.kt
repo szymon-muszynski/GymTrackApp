@@ -349,6 +349,34 @@ interface TrainingDao {
 
     @Query("SELECT COUNT(*) FROM exercises WHERE id = :exerciseId")
     suspend fun countExercisesById(exerciseId: String): Int
+
+    // ============= ORPHANED PENDING CLEANUP =============
+
+    /**
+     * Usuwa pending SessionExercise, które wskazują na nieistniejącą sesję.
+     * Bezpieczne, bo dotyka tylko syncStatus!=SYNCED.
+     */
+    @Query(
+        """
+        DELETE FROM session_exercises
+        WHERE syncStatus != 0
+          AND trainingSessionId NOT IN (SELECT id FROM training_sessions)
+        """
+    )
+    suspend fun deleteOrphanedPendingSessionExercises(): Int
+
+    /**
+     * Usuwa pending SessionSetDetails, które wskazują na nieistniejące ćwiczenie w sesji.
+     * Bezpieczne, bo dotyka tylko syncStatus!=SYNCED.
+     */
+    @Query(
+        """
+        DELETE FROM session_set_details
+        WHERE syncStatus != 0
+          AND sessionExerciseId NOT IN (SELECT id FROM session_exercises)
+        """
+    )
+    suspend fun deleteOrphanedPendingSessionSets(): Int
 }
 
 

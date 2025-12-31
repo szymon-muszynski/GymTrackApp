@@ -1,6 +1,7 @@
 package com.example.gymtrackapp.data.sync
 
 import android.content.Context
+import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.gymtrackapp.data.ExerciseDatabase
@@ -42,7 +43,13 @@ class TemplateSyncWorker(
             val pendingExercises = templateDao.getPendingTemplateExercises()
             for (te in pendingExercises) {
                 val templateRemoteId = templateDao.getTemplateRemoteId(te.templateId)
-                    ?: return Result.retry()
+                if (templateRemoteId.isNullOrBlank()) {
+                    Log.w(
+                        TAG,
+                        "doWork: SKIP TemplateExercise id=${te.id} remoteId=${te.remoteId} because parent templateId=${te.templateId} has no remoteId"
+                    )
+                    continue
+                }
 
                 val ref = TemplateFirestorePaths.exercisesCol(db, uid, templateRemoteId)
                     .document(te.remoteId)
@@ -52,8 +59,13 @@ class TemplateSyncWorker(
             }
 
             Result.success()
-        } catch (_: Throwable) {
+        } catch (t: Throwable) {
+            Log.e(TAG, "doWork: FAILED", t)
             Result.retry()
         }
+    }
+
+    companion object {
+        private const val TAG = "TemplateSyncWorker"
     }
 }

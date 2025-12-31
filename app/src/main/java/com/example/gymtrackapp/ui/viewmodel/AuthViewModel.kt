@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.gymtrackapp.data.sync.ExercisePullService
+import com.example.gymtrackapp.data.sync.OrphanedPendingCleanup
 import com.example.gymtrackapp.data.sync.TemplatePullService
 import com.example.gymtrackapp.data.sync.TrainingPullService
 import com.google.firebase.auth.FirebaseAuth
@@ -19,6 +20,7 @@ import kotlinx.coroutines.withContext
 class AuthViewModel(
     appContext: Context
 ) : ViewModel() {
+    private val appContext: Context = appContext.applicationContext
     private val auth = FirebaseAuth.getInstance()
     private val trainingPullService = TrainingPullService(appContext.applicationContext)
     private val templatePullService = TemplatePullService(appContext.applicationContext)
@@ -62,6 +64,9 @@ class AuthViewModel(
                         Log.d(TAG, "signUp: pull template START")
                         templatePullService.pullAllForUser(uid)
                         Log.d(TAG, "signUp: pull template DONE")
+
+                        // 4) Cleanup orphaned pending (best-effort)
+                        OrphanedPendingCleanup.cleanup(appContext.applicationContext)
                     }
                 }
 
@@ -102,6 +107,9 @@ class AuthViewModel(
                         Log.d(TAG, "signIn: pull template START")
                         templatePullService.pullAllForUser(uid)
                         Log.d(TAG, "signIn: pull template DONE")
+
+                        // 4) Cleanup orphaned pending (best-effort)
+                        OrphanedPendingCleanup.cleanup(appContext.applicationContext)
                     }
                 }
 
