@@ -76,11 +76,11 @@ class ExerciseViewModel(private val repository: ExerciseRepository): ViewModel()
         viewModelScope.launch {
             repository.loadExercisesFromAssets()
 
-            _levels.value = repository.exerciseDao.getAllLevels()
-            _equipments.value = repository.exerciseDao.getAllEquipments()
-            _categories.value = repository.exerciseDao.getAllCategories()
-            _mechanics.value = repository.exerciseDao.getAllMechanics()
-            _forces.value = repository.exerciseDao.getAllForces()
+            _levels.value = repository.getAllLevels()
+            _equipments.value = repository.getAllEquipments()
+            _categories.value = repository.getAllCategories()
+            _mechanics.value = repository.getAllMechanics()
+            _forces.value = repository.getAllForces()
             _primaryMuscles.value = repository.getAllPrimaryMuscles()
             _secondaryMuscles.value = repository.getAllSecondaryMuscles()
 

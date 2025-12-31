@@ -25,5 +25,21 @@ data class Exercise(
     // Seedowane ćwiczenia z assets mają isCustom=false i createdByUserId=null
     val isCustom: Boolean = false,
     val createdByUserId: String? = null,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+
+    // --- Sync metadata (offline-first) ---
+    // 0=SYNCED, 1=PENDING_UPSERT, 2=PENDING_DELETE
+    val syncStatus: Int = SyncStatus.SYNCED,
+    val updatedAtMs: Long = createdAt,
+    val deletedAtMs: Long? = null,
 )
+
+/**
+ * Alias dla wstecznej kompatybilności ze starszym kodem.
+ * Docelowo możemy stopniowo przejść na używanie SyncStatus bezpośrednio.
+ */
+object ExerciseSyncStatus {
+    const val SYNCED = SyncStatus.SYNCED
+    const val PENDING_UPSERT = SyncStatus.PENDING_UPSERT
+    const val PENDING_DELETE = SyncStatus.PENDING_DELETE
+}

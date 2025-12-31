@@ -93,4 +93,7 @@ dependencies {
 
     // Firebase Firestore
     implementation("com.google.firebase:firebase-firestore-ktx")
+
+    // WorkManager (sync offline-first)
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 }

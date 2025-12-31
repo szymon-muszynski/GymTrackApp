@@ -1,56 +1,69 @@
 package com.example.gymtrackapp.data.repository
 
+import android.content.Context
 import com.example.gymtrackapp.data.dao.TemplateDao
+import com.example.gymtrackapp.data.entity.SyncStatus
 import com.example.gymtrackapp.data.entity.TemplateExercise
 import com.example.gymtrackapp.data.entity.WorkoutTemplate
+import com.example.gymtrackapp.data.sync.TemplateSyncScheduler
 
-class TemplateRepository(private val templateDao: TemplateDao) {
+class TemplateRepository(
+    private val templateDao: TemplateDao,
+    private val context: Context
+) {
 
-    suspend fun getAllTemplates(): List<WorkoutTemplate> {
-        return templateDao.getAllTemplates()
-    }
+    suspend fun getAllTemplates(): List<WorkoutTemplate> = templateDao.getAllTemplates()
 
-    // description jest obecnie ignorowane, bo WorkoutTemplate nie ma tego pola
     suspend fun createTemplate(name: String, description: String?) {
-        val template = WorkoutTemplate(
-            name = name,
-            createdAt = System.currentTimeMillis()
+        // description jest obecnie ignorowane, bo WorkoutTemplate nie ma tego pola
+        templateDao.insertTemplate(
+            WorkoutTemplate(
+                name = name,
+                createdAt = System.currentTimeMillis(),
+                updatedAtMs = System.currentTimeMillis(),
+                syncStatus = SyncStatus.PENDING_UPSERT
+            )
         )
-        templateDao.insertTemplate(template)
+        TemplateSyncScheduler.enqueue(context)
     }
 
     suspend fun deleteTemplate(template: WorkoutTemplate) {
-        templateDao.deleteTemplate(template)
+        val now = System.currentTimeMillis()
+        templateDao.softDeleteExercisesForTemplate(template.id, deletedAtMs = now, updatedAtMs = now)
+        templateDao.softDeleteTemplate(template.id, deletedAtMs = now, updatedAtMs = now)
+        TemplateSyncScheduler.enqueue(context)
     }
 
-    suspend fun getExercisesForTemplate(templateId: Long): List<TemplateExercise> {
-        return templateDao.getExercisesForTemplate(templateId)
-    }
+    suspend fun getExercisesForTemplate(templateId: Long): List<TemplateExercise> =
+        templateDao.getExercisesForTemplate(templateId)
 
     suspend fun addExerciseToTemplate(templateId: Long, exerciseId: String) {
-        // Możesz użyć getMaxOrderForTemplate, żeby nie ściągać całej listy
         val maxOrder = templateDao.getMaxOrderForTemplate(templateId) ?: -1
-        val newOrder = maxOrder + 1
-
         val newExercise = TemplateExercise(
             templateId = templateId,
             exerciseId = exerciseId,
-            order = newOrder
+            order = maxOrder + 1,
+            updatedAtMs = System.currentTimeMillis(),
+            syncStatus = SyncStatus.PENDING_UPSERT
         )
         templateDao.insertTemplateExercise(newExercise)
+        TemplateSyncScheduler.enqueue(context)
     }
 
     suspend fun deleteTemplateExercise(exercise: TemplateExercise) {
-        templateDao.removeExerciseFromTemplate(
-            templateId = exercise.templateId,
-            exerciseId = exercise.exerciseId
-        )
-        // Opcjonalnie: można tu później dodać porządkowanie order,
-        // ale wymaga to dodania @Update w TemplateDao.
+        val now = System.currentTimeMillis()
+        templateDao.softDeleteTemplateExercise(exercise.id, deletedAtMs = now, updatedAtMs = now)
+        templateDao.reorderAfterDeletion(exercise.templateId, exercise.order)
+        TemplateSyncScheduler.enqueue(context)
     }
 
     suspend fun renameTemplate(template: WorkoutTemplate, newName: String) {
-        val updated = template.copy(name = newName)
+        val updated = template.copy(
+            name = newName,
+            updatedAtMs = System.currentTimeMillis(),
+            syncStatus = SyncStatus.PENDING_UPSERT
+        )
         templateDao.updateTemplate(updated)
+        TemplateSyncScheduler.enqueue(context)
     }
 }

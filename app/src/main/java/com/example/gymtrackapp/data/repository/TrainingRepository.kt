@@ -4,9 +4,15 @@ import android.content.Context
 import com.example.gymtrackapp.data.dao.ExerciseDao
 import com.example.gymtrackapp.data.dao.TemplateDao
 import com.example.gymtrackapp.data.dao.TrainingDao
+import com.example.gymtrackapp.data.dao.RecentSessionExerciseRow
+import com.example.gymtrackapp.data.entity.RecentSessionWithExercises
 import com.example.gymtrackapp.data.entity.SessionExercise
 import com.example.gymtrackapp.data.entity.SessionSetDetails
+import com.example.gymtrackapp.data.entity.SyncStatus
 import com.example.gymtrackapp.data.entity.TrainingSession
+import com.example.gymtrackapp.data.sync.TrainingSyncScheduler
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 class TrainingRepository(
     private val trainingDao: TrainingDao,
@@ -14,25 +20,45 @@ class TrainingRepository(
     private val templateDao: TemplateDao,
     private val exerciseDao: ExerciseDao
 ) {
-    suspend fun loadSessionsForDate(timestamp: Long): List<TrainingSession> {
-        return trainingDao.getSessionsForDate(timestamp)
-    }
+    suspend fun loadSessionsForDate(timestamp: Long): List<TrainingSession> =
+        trainingDao.getSessionsForDate(timestamp)
 
-    suspend fun createEmptySession(session: TrainingSession): Long {
-        return trainingDao.createEmptySession(session)
-    }
+    fun observeSessionsForDate(timestamp: Long): Flow<List<TrainingSession>> =
+        trainingDao.observeSessionsForDate(timestamp)
 
-    suspend fun deleteSession(session: TrainingSession) {
-        trainingDao.deleteSession(session)
+    suspend fun createEmptySession(date: Long, description: String): Long {
+        val sessionId = trainingDao.createEmptySession(
+            TrainingSession(
+                date = date,
+                description = description
+            )
+        )
+        TrainingSyncScheduler.enqueue(context)
+        return sessionId
     }
 
     suspend fun updateSession(session: TrainingSession) {
-        trainingDao.updateSession(session)
+        trainingDao.updateSession(
+            session.copy(
+                updatedAtMs = System.currentTimeMillis(),
+                syncStatus = SyncStatus.PENDING_UPSERT
+            )
+        )
+        TrainingSyncScheduler.enqueue(context)
     }
 
-    suspend fun getExercisesForSession(sessionId: Long): List<SessionExercise> {
-        return trainingDao.getExercisesForSession(sessionId)
+    /** Soft delete kaskadowy: sesja + ćwiczenia + serie. */
+    suspend fun deleteSession(session: TrainingSession) {
+        val now = System.currentTimeMillis()
+        // DAO robi soft delete i ustawia syncStatus=2
+        trainingDao.softDeleteSetsForSession(session.id, deletedAtMs = now, updatedAtMs = now)
+        trainingDao.softDeleteExercisesForSession(session.id, deletedAtMs = now, updatedAtMs = now)
+        trainingDao.softDeleteSession(session.id, deletedAtMs = now, updatedAtMs = now)
+        TrainingSyncScheduler.enqueue(context)
     }
+
+    suspend fun getExercisesForSession(sessionId: Long): List<SessionExercise> =
+        trainingDao.getExercisesForSession(sessionId)
 
     suspend fun addExerciseToSession(sessionId: Long, exerciseId: String) {
         val maxOrder = trainingDao.getMaxOrderForSession(sessionId) ?: -1
@@ -42,16 +68,34 @@ class TrainingRepository(
             order = maxOrder + 1
         )
         trainingDao.insertSessionExercise(newExercise)
+        TrainingSyncScheduler.enqueue(context)
+    }
+
+    suspend fun updateSessionExercise(exercise: SessionExercise) {
+        trainingDao.updateSessionExercise(
+            exercise.copy(
+                updatedAtMs = System.currentTimeMillis(),
+                syncStatus = SyncStatus.PENDING_UPSERT
+            )
+        )
+        TrainingSyncScheduler.enqueue(context)
     }
 
     suspend fun deleteSessionExercise(exercise: SessionExercise) {
-        trainingDao.deleteSessionExercise(exercise)
+        val now = System.currentTimeMillis()
+        // soft delete ćwiczenia
+        trainingDao.softDeleteSessionExercise(exercise.id, deletedAtMs = now, updatedAtMs = now)
+        // reordering tylko na aktywnych rekordach (DAO już filtruje deletedAtMs)
         trainingDao.reorderAfterDeletion(exercise.trainingSessionId, exercise.order)
+
+        // soft delete serii pod tym ćwiczeniem (jednym query)
+        trainingDao.softDeleteSetsForSessionExercise(exercise.id, deletedAtMs = now, updatedAtMs = now)
+
+        TrainingSyncScheduler.enqueue(context)
     }
 
-    suspend fun getSetsForSessionExercise(sessionExerciseId: Long): List<SessionSetDetails> {
-        return trainingDao.getSetsForSessionExercise(sessionExerciseId)
-    }
+    suspend fun getSetsForSessionExercise(sessionExerciseId: Long): List<SessionSetDetails> =
+        trainingDao.getSetsForSessionExercise(sessionExerciseId)
 
     suspend fun addSetToSessionExercise(sessionExerciseId: Long, weight: Float, reps: Int) {
         val maxOrder = trainingDao.getMaxOrderForSessionExercise(sessionExerciseId) ?: -1
@@ -62,31 +106,37 @@ class TrainingRepository(
             weight = weight
         )
         trainingDao.insertSet(newSet)
+        TrainingSyncScheduler.enqueue(context)
+    }
+
+    suspend fun updateSet(set: SessionSetDetails) {
+        trainingDao.updateSet(
+            set.copy(
+                updatedAtMs = System.currentTimeMillis(),
+                syncStatus = SyncStatus.PENDING_UPSERT
+            )
+        )
+        TrainingSyncScheduler.enqueue(context)
     }
 
     suspend fun deleteSet(set: SessionSetDetails) {
-        trainingDao.deleteSet(set)
+        val now = System.currentTimeMillis()
+        trainingDao.softDeleteSet(set.id, deletedAtMs = now, updatedAtMs = now)
         trainingDao.reorderSetsAfterDeletion(set.sessionExerciseId, set.order)
+        TrainingSyncScheduler.enqueue(context)
     }
 
-    suspend fun getRecentSessionsWithExercises(limit: Int): List<com.example.gymtrackapp.data.entity.RecentSessionWithExercises> {
+    suspend fun getRecentSessionsWithExercises(limit: Int): List<RecentSessionWithExercises> {
         val recentSessions = trainingDao.getRecentSessions(limit)
 
-        // Mapa ID -> nazwa z bazy (seed + custom)
-        val exerciseIdToName: Map<String, String> = try {
-            exerciseDao.getAllExercises().associate { it.id to it.name }
-        } catch (e: Exception) {
-            emptyMap()
-        }
-
         return recentSessions.map { session ->
-            val exercises = trainingDao.getExercisesForSession(session.id.toLong())
-            val exerciseNames = exercises.mapNotNull { sessionExercise ->
-                exerciseIdToName[sessionExercise.exerciseId]
+            val exercises = trainingDao.getExercisesForSession(session.id)
+            val exerciseNames = exercises.mapNotNull { se ->
+                exerciseDao.getExerciseById(se.exerciseId)?.name
             }
 
-            com.example.gymtrackapp.data.entity.RecentSessionWithExercises(
-                sessionId = session.id.toLong(),
+            RecentSessionWithExercises(
+                sessionId = session.id,
                 sessionDate = session.date,
                 sessionDescription = session.description,
                 exerciseNames = exerciseNames
@@ -94,23 +144,40 @@ class TrainingRepository(
         }
     }
 
+    fun observeRecentSessionsWithExercises(limit: Int): Flow<List<RecentSessionWithExercises>> =
+        trainingDao.observeRecentSessionExerciseRows(limit).map { rows: List<RecentSessionExerciseRow> ->
+            if (rows.isEmpty()) return@map emptyList()
+
+            // rows są już posortowane: date DESC, order ASC.
+            // Grupujemy po sesji w kolejności pojawienia się (LinkedHashMap).
+            val grouped = LinkedHashMap<Long, MutableList<RecentSessionExerciseRow>>()
+            for (row in rows) {
+                grouped.getOrPut(row.sessionId) { mutableListOf() }.add(row)
+            }
+
+            grouped.values.map { sessionRows ->
+                val first = sessionRows.first()
+                val names = sessionRows
+                    .sortedBy { it.exerciseOrder ?: Int.MAX_VALUE }
+                    .mapNotNull { it.exerciseName }
+
+                RecentSessionWithExercises(
+                    sessionId = first.sessionId,
+                    sessionDate = first.sessionDate,
+                    sessionDescription = first.sessionDescription,
+                    exerciseNames = names
+                )
+            }
+        }
+
     suspend fun createSessionFromTemplate(
         templateId: Long,
         date: Long,
         description: String
     ): Long {
-        // 1. Utwórz sesję
-        val sessionId = trainingDao.createEmptySession(
-            TrainingSession(
-                date = date,
-                description = description
-            )
-        )
+        val sessionId = createEmptySession(date, description)
 
-        // 2. Pobierz ćwiczenia z szablonu
         val templateExercises = templateDao.getExercisesForTemplate(templateId)
-
-        // 3. Wstaw SessionExercise na podstawie TemplateExercise
         templateExercises.forEach { templateExercise ->
             trainingDao.insertSessionExercise(
                 SessionExercise(
@@ -121,6 +188,7 @@ class TrainingRepository(
             )
         }
 
+        TrainingSyncScheduler.enqueue(context)
         return sessionId
     }
 }

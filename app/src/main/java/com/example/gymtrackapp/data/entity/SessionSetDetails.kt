@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import java.util.UUID
 
 @Entity(
     tableName = "session_set_details",
@@ -22,5 +23,11 @@ data class SessionSetDetails(
     val sessionExerciseId: Long,
     val order: Int,
     val reps: Int,
-    val weight: Float
+    val weight: Float,
+    // Firestore sync
+    val remoteId: String = UUID.randomUUID().toString(),
+    val updatedAtMs: Long = System.currentTimeMillis(),
+    /** 0=SYNCED, 1=PENDING_UPSERT, 2=PENDING_DELETE */
+    val syncStatus: Int = SyncStatus.PENDING_UPSERT,
+    val deletedAtMs: Long? = null,
 )

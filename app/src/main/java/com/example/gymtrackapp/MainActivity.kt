@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.gymtrackapp.data.ExerciseDatabase
 import com.example.gymtrackapp.data.repository.ExerciseRepository
@@ -26,7 +28,10 @@ class MainActivity : ComponentActivity() {
             database.templateDao(),
             database.exerciseDao()
         )
-        val templateRepository = TemplateRepository(database.templateDao())
+        val templateRepository = TemplateRepository(
+            database.templateDao(),
+            this
+        )
 
         val statisticsRepository = com.example.gymtrackapp.data.repository.StatisticsRepository(
             database.trainingDao(),
@@ -35,7 +40,15 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             GymTrackAppTheme {
-                val authViewModel: AuthViewModel = viewModel()
+                val authViewModel: AuthViewModel = viewModel(
+                    factory = object : ViewModelProvider.Factory {
+                        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                            @Suppress("UNCHECKED_CAST")
+                            return AuthViewModel(this@MainActivity.applicationContext) as T
+                        }
+                    }
+                )
+
                 val currentUser by authViewModel.currentUser.collectAsState()
 
                 val exerciseViewModel: ExerciseViewModel = viewModel(
