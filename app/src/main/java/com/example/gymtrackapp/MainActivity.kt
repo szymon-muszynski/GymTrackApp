@@ -11,10 +11,23 @@ import com.example.gymtrackapp.data.ExerciseDatabase
 import com.example.gymtrackapp.data.repository.ExerciseRepository
 import com.example.gymtrackapp.data.repository.TemplateRepository
 import com.example.gymtrackapp.data.repository.TrainingRepository
+import com.example.gymtrackapp.data.social.repository.FirestoreSocialRepository
 import com.example.gymtrackapp.ui.screens.AuthScreen
 import com.example.gymtrackapp.ui.screens.MainScreen
 import com.example.gymtrackapp.ui.theme.GymTrackAppTheme
-import com.example.gymtrackapp.ui.viewmodel.*
+import com.example.gymtrackapp.ui.viewmodel.AuthViewModel
+import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
+import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModelFactory
+import com.example.gymtrackapp.ui.viewmodel.FriendsViewModel
+import com.example.gymtrackapp.ui.viewmodel.FriendsViewModelFactory
+import com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel
+import com.example.gymtrackapp.ui.viewmodel.StatisticsViewModelFactory
+import com.example.gymtrackapp.ui.viewmodel.TemplateViewModel
+import com.example.gymtrackapp.ui.viewmodel.TemplateViewModelFactory
+import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
+import com.example.gymtrackapp.ui.viewmodel.TrainingViewModelFactory
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,6 +49,14 @@ class MainActivity : ComponentActivity() {
         val statisticsRepository = com.example.gymtrackapp.data.repository.StatisticsRepository(
             database.trainingDao(),
             database.exerciseDao()
+        )
+
+        val socialRepository = FirestoreSocialRepository(
+            auth = FirebaseAuth.getInstance(),
+            firestore = FirebaseFirestore.getInstance(),
+            trainingDao = database.trainingDao(),
+            exerciseDao = database.exerciseDao(),
+            socialDao = database.socialDao(),
         )
 
         setContent {
@@ -76,12 +97,17 @@ class MainActivity : ComponentActivity() {
                         onAuthSuccess = {}
                     )
                 } else {
+                    val friendsViewModel: FriendsViewModel = viewModel(
+                        factory = FriendsViewModelFactory(socialRepository)
+                    )
+
                     MainScreen(
                         exerciseViewModel = exerciseViewModel,
                         trainingViewModel = trainingViewModel,
                         templateViewModel = templateViewModel,
                         authViewModel = authViewModel,
                         statisticsViewModel = statisticsViewModel,
+                        friendsViewModel = friendsViewModel,
                         onSignOut = { /* refresh nastąpi automatycznie przez collectAsState */ }
                     )
                 }

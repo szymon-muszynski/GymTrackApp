@@ -10,18 +10,22 @@ import com.example.gymtrackapp.data.sync.TemplatePullService
 import com.example.gymtrackapp.data.sync.TrainingPullService
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import java.util.Locale
 
 class AuthViewModel(
     appContext: Context
 ) : ViewModel() {
     private val appContext: Context = appContext.applicationContext
     private val auth = FirebaseAuth.getInstance()
+    private val firestore = FirebaseFirestore.getInstance()
     private val trainingPullService = TrainingPullService(appContext.applicationContext)
     private val templatePullService = TemplatePullService(appContext.applicationContext)
     private val exercisePullService = ExercisePullService(appContext.applicationContext)
@@ -36,11 +40,17 @@ class AuthViewModel(
         _currentUser.value = auth.currentUser
     }
 
-    fun signUp(email: String, password: String) {
+    fun signUp(email: String, password: String, displayName: String) {
         viewModelScope.launch {
             try {
                 _authState.value = AuthState.Loading
                 Log.d(TAG, "signUp: start")
+
+                val trimmedDisplayName = displayName.trim()
+                if (trimmedDisplayName.isBlank()) {
+                    _authState.value = AuthState.Error("Podaj nazwę użytkownika")
+                    return@launch
+                }
 
                 val result = auth.createUserWithEmailAndPassword(email, password).await()
                 _currentUser.value = result.user
@@ -49,6 +59,19 @@ class AuthViewModel(
                 Log.d(TAG, "signUp: firebase success uid=$uid")
 
                 if (uid != null) {
+                    // Utwórz profil usera w Firestore (wymagane dla Social)
+                    val avatarColor = pickRandomAvatarColorHex(uid)
+                    val profile = mapOf(
+                        "displayName" to trimmedDisplayName,
+                        "displayNameLower" to trimmedDisplayName.lowercase(Locale.ROOT),
+                        "avatarColor" to avatarColor,
+                        "createdAtMs" to System.currentTimeMillis(),
+                    )
+                    firestore.collection("users")
+                        .document(uid)
+                        .set(profile, SetOptions.merge())
+                        .await()
+
                     withContext(Dispatchers.IO) {
                         // 1) Custom exercises first (FK prerequisite for session_exercises.exerciseId)
                         Log.d(TAG, "signUp: pull customExercises START")
@@ -156,6 +179,22 @@ class AuthViewModel(
 
     fun resetAuthState() {
         _authState.value = AuthState.Idle
+    }
+
+    private fun pickRandomAvatarColorHex(seed: String): String {
+        // Mała paleta "material-ish". Deterministycznie po seed, żeby testowo nie skakało.
+        val palette = listOf(
+            "#4CAF50", // green
+            "#2196F3", // blue
+            "#9C27B0", // purple
+            "#FF9800", // orange
+            "#F44336", // red
+            "#009688", // teal
+            "#3F51B5", // indigo
+            "#795548", // brown
+        )
+        val idx = kotlin.math.abs(seed.hashCode()) % palette.size
+        return palette[idx]
     }
 
     private companion object {

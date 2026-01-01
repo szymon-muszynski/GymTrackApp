@@ -17,12 +17,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.gymtrackapp.ui.viewmodel.AuthViewModel
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
+import com.example.gymtrackapp.ui.viewmodel.FriendsViewModel
 import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
 import com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel
 import com.example.gymtrackapp.ui.viewmodel.TemplateViewModel
 import com.example.gymtrackapp.utils.NetworkStatus
 
-@RequiresApi(Build.VERSION_CODES.O)
+//@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
@@ -31,6 +32,7 @@ fun MainScreen(
     templateViewModel: TemplateViewModel,
     authViewModel: AuthViewModel,
     statisticsViewModel: StatisticsViewModel,
+    friendsViewModel: com.example.gymtrackapp.ui.viewmodel.FriendsViewModel,
     onSignOut: () -> Unit
 ) {
     val navController = rememberNavController()
@@ -183,7 +185,7 @@ fun MainScreen(
                 )
             }
             composable("friends") {
-                FriendsPage()
+                FriendsPage(friendsViewModel = friendsViewModel)
             }
             composable("profile") {
                 ProfilePage()
