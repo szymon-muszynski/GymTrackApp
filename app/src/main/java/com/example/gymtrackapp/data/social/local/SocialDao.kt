@@ -18,6 +18,9 @@ interface SocialDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertPost(post: PostEntity)
 
+    @Query("DELETE FROM social_posts WHERE postId = :postId")
+    suspend fun deletePostById(postId: String)
+
     /**
      * Explore feed (SSOT): pokazuj tylko posty autorów, których aktualnie obserwuję.
      * To zapobiega wyciekom cache między kontami i powoduje natychmiastowe zniknięcie postów po Unfollow.

@@ -44,4 +44,7 @@ interface SocialRepository {
 
     /** Manual refresh profilu do cache (Firestore -> Room). */
     suspend fun refreshUserProfile(userId: String)
+
+    /** Usuwa post (tylko dla właściciela) i czyści lokalne flagi/cache. */
+    suspend fun deletePost(post: Post)
 }

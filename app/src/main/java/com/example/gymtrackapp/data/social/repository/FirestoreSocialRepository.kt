@@ -234,4 +234,21 @@ class FirestoreSocialRepository(
 
     override fun observeUserProfile(userId: String): Flow<UserProfile?> =
         socialDao.observeUserById(userId).map { it?.toDomain() }
+
+    override suspend fun deletePost(post: com.example.gymtrackapp.data.social.model.Post) {
+        val uid = requireUid()
+        require(post.authorId == uid) { "Nie możesz usunąć posta innego użytkownika" }
+
+        // 1) Firestore
+        firestore.collection("posts").document(post.postId).delete().await()
+
+        // 2) Local cache: usuń post z Room
+        socialDao.deletePostById(post.postId)
+
+        // 3) Reset flagi isPosted dla sesji treningowej (aby można było udostępnić ponownie)
+        val sessionId = post.originalSessionId.toLongOrNull()
+        if (sessionId != null) {
+            trainingDao.setSessionPosted(sessionId = sessionId, isPosted = false, updatedAtMs = System.currentTimeMillis())
+        }
+    }
 }

@@ -30,6 +30,8 @@ import androidx.navigation.NavType
 import com.example.gymtrackapp.data.ExerciseDatabase
 import com.example.gymtrackapp.data.social.repository.FirestoreSocialRepository
 import com.example.gymtrackapp.ui.viewmodel.UserProfileViewModelFactory
+import com.example.gymtrackapp.ui.viewmodel.MyProfileViewModel
+import com.example.gymtrackapp.ui.viewmodel.MyProfileViewModelFactory
 
 //@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -234,7 +236,33 @@ fun MainScreen(
             }
 
             composable("profile") {
-                ProfilePage()
+                val currentUser by authViewModel.currentUser.collectAsState()
+                val uid = currentUser?.uid
+
+                if (uid == null) {
+                    // awaryjnie: jeśli UI zdążyło tu wejść bez usera
+                    Text("Brak zalogowanego użytkownika")
+                } else {
+                    val context = LocalContext.current
+                    val db = remember { ExerciseDatabase.getDatabase(context) }
+
+                    val socialRepository = remember {
+                        FirestoreSocialRepository(
+                            auth = com.google.firebase.auth.FirebaseAuth.getInstance(),
+                            firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance(),
+                            trainingDao = db.trainingDao(),
+                            exerciseDao = db.exerciseDao(),
+                            socialDao = db.socialDao(),
+                        )
+                    }
+
+                    val vm: MyProfileViewModel = viewModel(
+                        key = "my_profile_${uid}",
+                        factory = MyProfileViewModelFactory(socialRepository, uid)
+                    )
+
+                    ProfilePage(viewModel = vm)
+                }
             }
             composable("add_exercise/{sessionId}") { backStackEntry ->
                 val sessionId = backStackEntry.arguments?.getString("sessionId")?.toLongOrNull() ?: 0L

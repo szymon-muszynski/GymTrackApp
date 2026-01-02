@@ -18,6 +18,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,9 +37,19 @@ fun PostCard(
     post: Post,
     modifier: Modifier = Modifier,
     onAuthorClick: ((authorId: String) -> Unit)? = null,
+    onOpenDetails: ((post: Post) -> Unit)? = null,
+    headerActions: (@Composable (() -> Unit))? = null,
 ) {
+    val clickableCard = if (onOpenDetails != null) {
+        modifier
+            .fillMaxWidth()
+            .clickable { onOpenDetails(post) }
+    } else {
+        modifier.fillMaxWidth()
+    }
+
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = clickableCard,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -75,6 +87,10 @@ fun PostCard(
                         color = Color.Gray,
                         style = MaterialTheme.typography.bodySmall
                     )
+                }
+
+                if (headerActions != null) {
+                    headerActions()
                 }
             }
 
@@ -121,7 +137,13 @@ fun PostCard(
 
             if (post.exercises.size > 3) {
                 Text(
-                    text = "+${post.exercises.size - 3} więcej",
+                    text = "+${post.exercises.size - 3} więcej (kliknij, aby zobaczyć całość)",
+                    color = Color.Gray,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            } else {
+                Text(
+                    text = "Kliknij, aby zobaczyć szczegóły",
                     color = Color.Gray,
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -174,4 +196,3 @@ fun AvatarCircle(
         Text(text = initials, color = Color.White, fontWeight = FontWeight.Bold)
     }
 }
-

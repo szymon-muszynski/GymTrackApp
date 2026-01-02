@@ -23,14 +23,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.gymtrackapp.data.social.model.Post
 import com.example.gymtrackapp.ui.components.AvatarCircle
 import com.example.gymtrackapp.ui.components.PostCard
+import com.example.gymtrackapp.ui.components.PostDetailsDialog
 import com.example.gymtrackapp.ui.util.PullToRefreshCompat
 import com.example.gymtrackapp.ui.viewmodel.UserProfileViewModel
 
@@ -54,6 +59,11 @@ fun UserProfileScreen(
 
     val targetUserId = viewModel.targetUserId
     val actualIsFollowing = optimisticIsFollowing ?: followingIds.contains(targetUserId)
+
+    var detailsPost by remember { mutableStateOf<Post?>(null) }
+    if (detailsPost != null) {
+        PostDetailsDialog(post = detailsPost!!, onDismiss = { detailsPost = null })
+    }
 
     Column(
         modifier = modifier
@@ -149,7 +159,10 @@ fun UserProfileScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(posts, key = { it.postId }) { post ->
-                        PostCard(post = post)
+                        PostCard(
+                            post = post,
+                            onOpenDetails = { detailsPost = it },
+                        )
                     }
                 }
             }
