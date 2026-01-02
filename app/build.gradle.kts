@@ -96,4 +96,7 @@ dependencies {
 
     // WorkManager (sync offline-first)
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    // Pull-to-Refresh (material pullRefresh)
+    implementation("androidx.compose.material:material")
 }

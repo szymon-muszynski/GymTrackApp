@@ -27,6 +27,9 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -61,6 +64,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import com.example.gymtrackapp.data.entity.WorkoutTemplate
+import com.example.gymtrackapp.ui.viewmodel.SharePostViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -70,6 +74,7 @@ fun CalendarPage(
     exerciseViewModel: ExerciseViewModel,
     statisticsViewModel: com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel,
     templateViewModel: TemplateViewModel,
+    sharePostViewModel: SharePostViewModel,
     showAddSessionDialog: Boolean,
     onDismissDialog: () -> Unit,
     navController: NavHostController,
@@ -91,36 +96,52 @@ fun CalendarPage(
         trainingViewModel.loadSessionsForDate(selectedDate.toEpochDay())
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color(0xFF9FBAE8)),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        HorizontalInfiniteCalendar(
-            selected = selectedDate,
-            onDateSelected = { selectedDate = it }
-        )
+    val snackbarHostState = remember { SnackbarHostState() }
+    val shareMessage by sharePostViewModel.message.collectAsState()
+    LaunchedEffect(shareMessage) {
+        if (shareMessage != null) {
+            snackbarHostState.showSnackbar(shareMessage!!)
+            sharePostViewModel.clearMessage()
+        }
+    }
 
-        SessionsList(
-            trainingSessions = sessions,
-            trainingViewModel = trainingViewModel,
-            exerciseViewModel = exerciseViewModel,
-            onEdit = { session ->
-                sessionToEdit = session
-                showEditDialog = true
-            },
-            onDelete = { session ->
-                trainingViewModel.deleteSession(session)
-            },
-            onAddExercise = { session ->
-                navController.navigate("add_exercise/${session.id}")
-            },
-            onExerciseClick = { sessionExerciseId, exerciseId ->
-                navController.navigate("set_details/$sessionExerciseId/$exerciseId")
-            }
-        )
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        containerColor = Color(0xFF9FBAE8)
+    ) { padding ->
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(Color(0xFF9FBAE8)),
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            HorizontalInfiniteCalendar(
+                selected = selectedDate,
+                onDateSelected = { selectedDate = it }
+            )
+
+            SessionsList(
+                trainingSessions = sessions,
+                trainingViewModel = trainingViewModel,
+                exerciseViewModel = exerciseViewModel,
+                sharePostViewModel = sharePostViewModel,
+                onEdit = { session ->
+                    sessionToEdit = session
+                    showEditDialog = true
+                },
+                onDelete = { session ->
+                    trainingViewModel.deleteSession(session)
+                },
+                onAddExercise = { session ->
+                    navController.navigate("add_exercise/${session.id}")
+                },
+                onExerciseClick = { sessionExerciseId, exerciseId ->
+                    navController.navigate("set_details/$sessionExerciseId/$exerciseId")
+                }
+            )
+        }
     }
 
     if (showAddSessionDialog) {
@@ -248,6 +269,7 @@ fun SessionsList(
     trainingSessions: List<TrainingSession>,
     trainingViewModel: TrainingViewModel,
     exerciseViewModel: ExerciseViewModel,
+    sharePostViewModel: SharePostViewModel,
     onEdit: (TrainingSession) -> Unit,
     onDelete: (TrainingSession) -> Unit,
     onAddExercise: (TrainingSession) -> Unit,
@@ -263,6 +285,7 @@ fun SessionsList(
                 session = session,
                 trainingViewModel = trainingViewModel,
                 exerciseViewModel = exerciseViewModel,
+                sharePostViewModel = sharePostViewModel,
                 onEdit = onEdit,
                 onDelete = onDelete,
                 onAddExercise = onAddExercise,
@@ -278,6 +301,7 @@ fun TrainingSessionItem(
     session: TrainingSession,
     trainingViewModel: TrainingViewModel,
     exerciseViewModel: ExerciseViewModel,
+    sharePostViewModel: SharePostViewModel,
     onEdit: (TrainingSession) -> Unit = {},
     onDelete: (TrainingSession) -> Unit = {},
     onAddExercise: (TrainingSession) -> Unit = {},
@@ -354,6 +378,13 @@ fun TrainingSessionItem(
                                     onClick = {
                                         menuExpanded = false
                                         onDelete(session)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Udostępnij") },
+                                    onClick = {
+                                        menuExpanded = false
+                                        sharePostViewModel.publish(session.id)
                                     }
                                 )
                             }

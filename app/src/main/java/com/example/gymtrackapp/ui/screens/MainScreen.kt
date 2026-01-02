@@ -18,9 +18,11 @@ import androidx.navigation.compose.rememberNavController
 import com.example.gymtrackapp.ui.viewmodel.AuthViewModel
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
 import com.example.gymtrackapp.ui.viewmodel.FriendsViewModel
+import com.example.gymtrackapp.ui.viewmodel.ExploreFeedViewModel
 import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
 import com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel
 import com.example.gymtrackapp.ui.viewmodel.TemplateViewModel
+import com.example.gymtrackapp.ui.viewmodel.SharePostViewModel
 import com.example.gymtrackapp.utils.NetworkStatus
 
 //@RequiresApi(Build.VERSION_CODES.O)
@@ -33,6 +35,8 @@ fun MainScreen(
     authViewModel: AuthViewModel,
     statisticsViewModel: StatisticsViewModel,
     friendsViewModel: com.example.gymtrackapp.ui.viewmodel.FriendsViewModel,
+    exploreFeedViewModel: ExploreFeedViewModel,
+    sharePostViewModel: SharePostViewModel,
     onSignOut: () -> Unit
 ) {
     val navController = rememberNavController()
@@ -148,6 +152,7 @@ fun MainScreen(
                     exerciseViewModel = exerciseViewModel,
                     statisticsViewModel = statisticsViewModel,
                     templateViewModel = templateViewModel,
+                    sharePostViewModel = sharePostViewModel,
                     showAddSessionDialog = showAddSessionDialog,
                     onDismissDialog = { showAddSessionDialog = false },
                     navController = navController,
@@ -166,6 +171,7 @@ fun MainScreen(
                     exerciseViewModel = exerciseViewModel,
                     statisticsViewModel = statisticsViewModel,
                     templateViewModel = templateViewModel,
+                    sharePostViewModel = sharePostViewModel,
                     showAddSessionDialog = showAddSessionDialog,
                     onDismissDialog = { showAddSessionDialog = false },
                     navController = navController
@@ -185,7 +191,10 @@ fun MainScreen(
                 )
             }
             composable("friends") {
-                FriendsPage(friendsViewModel = friendsViewModel)
+                FriendsPage(
+                    friendsViewModel = friendsViewModel,
+                    exploreFeedViewModel = exploreFeedViewModel,
+                )
             }
             composable("profile") {
                 ProfilePage()

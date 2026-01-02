@@ -32,6 +32,10 @@ class FriendsViewModel(
     val followingIds = socialRepository.observeFollowingIds()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** userId -> czy trwa request follow/unfollow */
+    private val _followBusy = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val followBusy: StateFlow<Map<String, Boolean>> = _followBusy.asStateFlow()
+
     /**
      * Optimistic UI override: jeżeli user kliknie follow/unfollow,
      * to natychmiast zmieniamy stan przycisku, niezależnie od opóźnienia w Room/Firestore.
@@ -76,6 +80,9 @@ class FriendsViewModel(
 
     fun toggleFollow(userId: String, isFollowing: Boolean) {
         viewModelScope.launch {
+            if (_followBusy.value[userId] == true) return@launch
+
+            _followBusy.value = _followBusy.value + (userId to true)
             _error.value = null
 
             // optimistic switch
@@ -92,6 +99,8 @@ class FriendsViewModel(
 
                 // rollback optimistic
                 _optimisticFollowingOverrides.value = _optimisticFollowingOverrides.value - userId
+            } finally {
+                _followBusy.value = _followBusy.value - userId
             }
         }
     }

@@ -49,6 +49,7 @@ fun SearchUsersScreen(
     val optimisticOverrides by viewModel.optimisticFollowingOverrides.collectAsState()
     val loading by viewModel.loading.collectAsState()
     val error by viewModel.error.collectAsState()
+    val busyMap by viewModel.followBusy.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.onEnterScreen()
@@ -94,9 +95,11 @@ fun SearchUsersScreen(
         ) {
             items(results, key = { it.userId }) { user ->
                 val isFollowing = optimisticOverrides[user.userId] ?: followingIds.contains(user.userId)
+                val isBusy = busyMap[user.userId] == true
                 UserRow(
                     user = user,
                     isFollowing = isFollowing,
+                    isBusy = isBusy,
                     onToggleFollow = { viewModel.toggleFollow(user.userId, isFollowing) }
                 )
             }
@@ -108,6 +111,7 @@ fun SearchUsersScreen(
 private fun UserRow(
     user: UserProfile,
     isFollowing: Boolean,
+    isBusy: Boolean,
     onToggleFollow: () -> Unit,
 ) {
     Surface(
@@ -141,10 +145,17 @@ private fun UserRow(
             val buttonColor = if (isFollowing) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary
             Button(
                 onClick = onToggleFollow,
+                enabled = !isBusy,
                 colors = ButtonDefaults.buttonColors(containerColor = buttonColor),
                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
             ) {
-                Text(if (isFollowing) "Obserwujesz" else "Obserwuj")
+                Text(
+                    text = when {
+                        isBusy -> "..."
+                        isFollowing -> "Obserwujesz"
+                        else -> "Obserwuj"
+                    }
+                )
             }
         }
     }

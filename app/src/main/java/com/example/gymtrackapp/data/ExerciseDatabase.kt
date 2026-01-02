@@ -34,7 +34,7 @@ import com.example.gymtrackapp.data.entity.WorkoutTemplate
         UserCacheEntity::class,
         FollowingEntity::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

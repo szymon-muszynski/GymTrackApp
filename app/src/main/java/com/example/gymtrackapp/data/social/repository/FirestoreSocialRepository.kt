@@ -40,25 +40,21 @@ class FirestoreSocialRepository(
     override suspend fun syncFollowing() {
         val uid = requireUid()
 
-        // Pobieramy całą subkolekcję following. Na MVP zakładamy małą liczbę rekordów.
         val snap = firestore.collection("users").document(uid)
             .collection("following")
             .get()
             .await()
 
         val now = System.currentTimeMillis()
-        val remoteIds: Set<String> = snap.documents.map { it.id }.toSet()
-
-        // Prosty sync: dodaj brakujące; nie usuwamy lokalnych, jeśli remote nie ma (edge: offline zmiany).
-        // Jeśli chcesz "źródło prawdy = remote", zmienimy to na diff + delete.
-        remoteIds.forEach { otherId ->
-            val createdAt = snap.documents.firstOrNull { it.id == otherId }
-                ?.getLong("createdAtMs")
-                ?: now
-            socialDao.upsertFollowing(
-                FollowingEntity(myId = uid, otherUserId = otherId, createdAtMs = createdAt)
-            )
+        val entities: List<FollowingEntity> = snap.documents.map { doc ->
+            val createdAt = doc.getLong("createdAtMs") ?: now
+            FollowingEntity(myId = uid, otherUserId = doc.id, createdAtMs = createdAt)
         }
+
+        // Remote jest źródłem prawdy dla following (MVP). Po wipe cache na logout musimy
+        // odtworzyć pełny stan, a nie tylko "dopisać brakujące".
+        // Czyścimy WYŁĄCZNIE rekordy tego użytkownika (bez globalnego wipe).
+        socialDao.replaceFollowingForUser(myId = uid, newEntities = entities)
     }
 
     override suspend fun searchUsersByDisplayNamePrefix(prefix: String, limit: Long): List<UserProfile> {
@@ -164,28 +160,43 @@ class FirestoreSocialRepository(
 
         // 6) Update cache
         socialDao.upsertPost(postDoc.toEntity())
+
+        // 7) Local UX flag: oznacz sesję jako już udostępnioną
+        trainingDao.setSessionPosted(sessionId = sessionId, isPosted = true, updatedAtMs = System.currentTimeMillis())
     }
 
     override fun observeExploreFeed(): Flow<List<Post>> =
-        socialDao.observeAllPosts().map { list -> list.map { it.toDomain() } }
+        socialDao.observeExploreFeed(requireUid()).map { list -> list.map { it.toDomain() } }
 
     override suspend fun refreshExploreFeed(limit: Long) {
         val uid = requireUid()
         val followingIds = socialDao.getFollowingIds(uid)
         if (followingIds.isEmpty()) return
 
-        val query = firestore.collection("posts")
-            .whereIn("authorId", followingIds)
-            .orderBy("createdAtMs", com.google.firebase.firestore.Query.Direction.DESCENDING)
-            .limit(limit)
+        // Firestore whereIn ma limit 10 elementów -> batchujemy.
+        val chunks: List<List<String>> = followingIds.chunked(10)
+        val allDocs = mutableListOf<PostDoc>()
 
-        val snap = query.get().await()
+        for (chunk in chunks) {
+            val query = firestore.collection("posts")
+                .whereIn("authorId", chunk)
+                .orderBy("createdAtMs", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .limit(limit)
 
-        val docs: List<PostDoc> = snap.documents.mapNotNull { doc ->
-            doc.toObject(PostDoc::class.java)?.copy(postId = doc.id)
+            val snap = query.get().await()
+            val docs: List<PostDoc> = snap.documents.mapNotNull { doc ->
+                doc.toObject(PostDoc::class.java)?.copy(postId = doc.id)
+            }
+            allDocs += docs
         }
 
-        socialDao.upsertPosts(docs.map { it.toEntity() })
+        // Merge: bierzemy najnowsze limit postów po createdAtMs.
+        val merged = allDocs
+            .distinctBy { it.postId }
+            .sortedByDescending { it.createdAtMs }
+            .take(limit.toInt())
+
+        socialDao.upsertPosts(merged.map { it.toEntity() })
     }
 
     override fun observeUserPosts(userId: String): Flow<List<Post>> =

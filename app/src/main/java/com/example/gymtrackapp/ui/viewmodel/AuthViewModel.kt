@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.gymtrackapp.data.ExerciseDatabase
 import com.example.gymtrackapp.data.sync.ExercisePullService
 import com.example.gymtrackapp.data.sync.OrphanedPendingCleanup
 import com.example.gymtrackapp.data.sync.TemplatePullService
@@ -167,6 +168,17 @@ class AuthViewModel(
                     Log.d(TAG, "signOut: wipe customExercises OK")
                 } catch (t: Throwable) {
                     Log.e(TAG, "signOut: wipe customExercises FAILED", t)
+                }
+
+                // Social cache (privacy): usuń prywatne dane społecznościowe aktualnego użytkownika.
+                try {
+                    val db = ExerciseDatabase.getDatabase(appContext.applicationContext)
+                    db.socialDao().clearPosts()
+                    db.socialDao().clearUsers()
+                    db.socialDao().clearFollowing()
+                    Log.d(TAG, "signOut: wipe social OK")
+                } catch (t: Throwable) {
+                    Log.e(TAG, "signOut: wipe social FAILED", t)
                 }
             }
 

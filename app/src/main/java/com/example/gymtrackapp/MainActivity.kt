@@ -18,6 +18,8 @@ import com.example.gymtrackapp.ui.theme.GymTrackAppTheme
 import com.example.gymtrackapp.ui.viewmodel.AuthViewModel
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModelFactory
+import com.example.gymtrackapp.ui.viewmodel.ExploreFeedViewModel
+import com.example.gymtrackapp.ui.viewmodel.ExploreFeedViewModelFactory
 import com.example.gymtrackapp.ui.viewmodel.FriendsViewModel
 import com.example.gymtrackapp.ui.viewmodel.FriendsViewModelFactory
 import com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel
@@ -26,6 +28,8 @@ import com.example.gymtrackapp.ui.viewmodel.TemplateViewModel
 import com.example.gymtrackapp.ui.viewmodel.TemplateViewModelFactory
 import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
 import com.example.gymtrackapp.ui.viewmodel.TrainingViewModelFactory
+import com.example.gymtrackapp.ui.viewmodel.SharePostViewModel
+import com.example.gymtrackapp.ui.viewmodel.SharePostViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
@@ -71,6 +75,7 @@ class MainActivity : ComponentActivity() {
                 )
 
                 val currentUser by authViewModel.currentUser.collectAsState()
+                val currentUid = currentUser?.uid
 
                 val exerciseViewModel: ExerciseViewModel = viewModel(
                     factory = ExerciseViewModelFactory(exerciseRepository)
@@ -97,9 +102,28 @@ class MainActivity : ComponentActivity() {
                         onAuthSuccess = {}
                     )
                 } else {
+                    // WAŻNE: kluczujemy VM po uid, żeby po zmianie konta zawsze zbudować nowy VM
+                    // i nie trzymać starych StateFlow/stateIn z poprzedniego użytkownika.
                     val friendsViewModel: FriendsViewModel = viewModel(
+                        key = "friends_${currentUid}",
                         factory = FriendsViewModelFactory(socialRepository)
                     )
+
+                    val exploreFeedViewModel: ExploreFeedViewModel = viewModel(
+                        key = "explore_${currentUid}",
+                        factory = ExploreFeedViewModelFactory(socialRepository)
+                    )
+
+                    val sharePostViewModel: SharePostViewModel = viewModel(
+                        key = "share_${currentUid}",
+                        factory = SharePostViewModelFactory(socialRepository, database.trainingDao())
+                    )
+
+                    // Sync following ASAP po zalogowaniu, zanim user wejdzie w Friends.
+                    LaunchedEffect(currentUid) {
+                        // best-effort; błędy i tak pokażą się potem w Search/Feed
+                        runCatching { socialRepository.syncFollowing() }
+                    }
 
                     MainScreen(
                         exerciseViewModel = exerciseViewModel,
@@ -108,6 +132,8 @@ class MainActivity : ComponentActivity() {
                         authViewModel = authViewModel,
                         statisticsViewModel = statisticsViewModel,
                         friendsViewModel = friendsViewModel,
+                        exploreFeedViewModel = exploreFeedViewModel,
+                        sharePostViewModel = sharePostViewModel,
                         onSignOut = { /* refresh nastąpi automatycznie przez collectAsState */ }
                     )
                 }
