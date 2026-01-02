@@ -22,7 +22,8 @@ import com.example.gymtrackapp.ui.viewmodel.ExploreFeedViewModel
 fun FriendsPage(
     friendsViewModel: FriendsViewModel,
     exploreFeedViewModel: ExploreFeedViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onUserClick: ((userId: String) -> Unit)? = null,
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
 
@@ -51,9 +52,14 @@ fun FriendsPage(
             0 -> ExploreFeedScreen(
                 viewModel = exploreFeedViewModel,
                 modifier = Modifier.fillMaxSize(),
-                onGoToSearch = { selectedTab = 1 }
+                onGoToSearch = { selectedTab = 1 },
+                onUserClick = onUserClick,
             )
-            1 -> SearchUsersScreen(viewModel = friendsViewModel, modifier = Modifier.fillMaxSize())
+            1 -> SearchUsersScreen(
+                viewModel = friendsViewModel,
+                modifier = Modifier.fillMaxSize(),
+                onUserClick = onUserClick,
+            )
         }
     }
 }

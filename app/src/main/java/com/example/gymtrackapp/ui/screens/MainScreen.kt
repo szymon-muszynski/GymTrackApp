@@ -24,6 +24,12 @@ import com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel
 import com.example.gymtrackapp.ui.viewmodel.TemplateViewModel
 import com.example.gymtrackapp.ui.viewmodel.SharePostViewModel
 import com.example.gymtrackapp.utils.NetworkStatus
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.navArgument
+import androidx.navigation.NavType
+import com.example.gymtrackapp.data.ExerciseDatabase
+import com.example.gymtrackapp.data.social.repository.FirestoreSocialRepository
+import com.example.gymtrackapp.ui.viewmodel.UserProfileViewModelFactory
 
 //@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -194,8 +200,39 @@ fun MainScreen(
                 FriendsPage(
                     friendsViewModel = friendsViewModel,
                     exploreFeedViewModel = exploreFeedViewModel,
+                    onUserClick = { userId -> navController.navigate("user_profile/$userId") }
                 )
             }
+
+            composable(
+                route = "user_profile/{userId}",
+                arguments = listOf(navArgument("userId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
+
+                // Tworzymy SocialRepository lokalnie na potrzeby profilu.
+                // (Założenie: nie macie jeszcze DI. W przyszłości warto przepiąć na Hilt/Koin.)
+                val context = LocalContext.current
+                val db = remember { ExerciseDatabase.getDatabase(context) }
+
+                val socialRepository = remember {
+                    FirestoreSocialRepository(
+                        auth = com.google.firebase.auth.FirebaseAuth.getInstance(),
+                        firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance(),
+                        trainingDao = db.trainingDao(),
+                        exerciseDao = db.exerciseDao(),
+                        socialDao = db.socialDao(),
+                    )
+                }
+
+                val vm: com.example.gymtrackapp.ui.viewmodel.UserProfileViewModel = viewModel(
+                    key = "user_profile_${userId}",
+                    factory = UserProfileViewModelFactory(socialRepository, userId)
+                )
+
+                UserProfileScreen(viewModel = vm)
+            }
+
             composable("profile") {
                 ProfilePage()
             }

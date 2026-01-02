@@ -1,9 +1,11 @@
 package com.example.gymtrackapp.data.social.mapper
 
 import com.example.gymtrackapp.data.social.local.PostEntity
+import com.example.gymtrackapp.data.social.local.UserCacheEntity
 import com.example.gymtrackapp.data.social.model.ExerciseSummary
 import com.example.gymtrackapp.data.social.model.Post
 import com.example.gymtrackapp.data.social.model.SetSummary
+import com.example.gymtrackapp.data.social.model.UserProfile
 import com.example.gymtrackapp.data.social.remote.ExerciseDoc
 import com.example.gymtrackapp.data.social.remote.PostDoc
 import com.google.gson.Gson
@@ -51,3 +53,9 @@ fun PostEntity.toDomain(): Post {
         totalVolume = totalVolume,
     )
 }
+
+fun UserCacheEntity.toDomain(): UserProfile = UserProfile(
+    userId = userId,
+    displayName = displayName,
+    avatarColor = avatarColor,
+)

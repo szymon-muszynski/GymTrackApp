@@ -38,4 +38,10 @@ interface SocialRepository {
 
     /** Reaktywna lista followingIds z Room (SSOT). */
     fun observeFollowingIds(): Flow<List<String>>
+
+    /** SSOT: profil usera z lokalnego cache (Room social_users). */
+    fun observeUserProfile(userId: String): Flow<UserProfile?>
+
+    /** Manual refresh profilu do cache (Firestore -> Room). */
+    suspend fun refreshUserProfile(userId: String)
 }

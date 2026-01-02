@@ -81,6 +81,9 @@ interface SocialDao {
     @Query("SELECT * FROM social_users WHERE userId = :userId LIMIT 1")
     suspend fun getUserById(userId: String): UserCacheEntity?
 
+    @Query("SELECT * FROM social_users WHERE userId = :userId LIMIT 1")
+    fun observeUserById(userId: String): Flow<UserCacheEntity?>
+
     @Query("DELETE FROM social_users")
     suspend fun clearUsers()
 }

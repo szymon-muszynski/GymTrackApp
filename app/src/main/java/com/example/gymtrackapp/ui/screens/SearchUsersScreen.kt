@@ -1,6 +1,7 @@
 package com.example.gymtrackapp.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,6 +43,7 @@ import com.example.gymtrackapp.ui.viewmodel.FriendsViewModel
 fun SearchUsersScreen(
     viewModel: FriendsViewModel,
     modifier: Modifier = Modifier,
+    onUserClick: ((userId: String) -> Unit)? = null,
 ) {
     val query by viewModel.query.collectAsState()
     val results by viewModel.results.collectAsState()
@@ -100,7 +102,8 @@ fun SearchUsersScreen(
                     user = user,
                     isFollowing = isFollowing,
                     isBusy = isBusy,
-                    onToggleFollow = { viewModel.toggleFollow(user.userId, isFollowing) }
+                    onToggleFollow = { viewModel.toggleFollow(user.userId, isFollowing) },
+                    onUserClick = { onUserClick?.invoke(user.userId) }
                 )
             }
         }
@@ -113,6 +116,7 @@ private fun UserRow(
     isFollowing: Boolean,
     isBusy: Boolean,
     onToggleFollow: () -> Unit,
+    onUserClick: (() -> Unit)? = null,
 ) {
     Surface(
         tonalElevation = 2.dp,
@@ -126,14 +130,17 @@ private fun UserRow(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val clickMod = if (onUserClick != null) Modifier.clickable { onUserClick() } else Modifier
+
             AvatarCircle(
                 displayName = user.displayName,
                 avatarColor = user.avatarColor,
+                modifier = clickMod,
             )
 
             Spacer(Modifier.width(12.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.weight(1f).then(clickMod)) {
                 Text(
                     text = user.displayName,
                     style = MaterialTheme.typography.titleMedium,

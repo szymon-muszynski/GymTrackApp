@@ -217,7 +217,7 @@ class FirestoreSocialRepository(
     }
 
     /** Pobiera profil usera do cache (displayName/avatarColor). */
-    suspend fun refreshUserProfile(userId: String) {
+    override suspend fun refreshUserProfile(userId: String) {
         val doc = firestore.collection("users").document(userId).get().await()
         val user: UserDoc = doc.toObject(UserDoc::class.java) ?: return
         socialDao.upsertUsers(
@@ -231,4 +231,7 @@ class FirestoreSocialRepository(
             )
         )
     }
+
+    override fun observeUserProfile(userId: String): Flow<UserProfile?> =
+        socialDao.observeUserById(userId).map { it?.toDomain() }
 }
