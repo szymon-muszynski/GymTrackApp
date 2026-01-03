@@ -1,5 +1,6 @@
 package com.example.gymtrackapp.data.social.repository
 
+import android.util.Log
 import com.example.gymtrackapp.data.dao.ExerciseDao
 import com.example.gymtrackapp.data.dao.TrainingDao
 import com.example.gymtrackapp.data.social.local.FollowingEntity
@@ -27,6 +28,10 @@ class FirestoreSocialRepository(
     private val exerciseDao: ExerciseDao,
     private val socialDao: SocialDao,
 ) : SocialRepository {
+
+    private companion object {
+        const val PAGINATION_TAG = "SocialPagination"
+    }
 
     private fun requireUid(): String = requireNotNull(auth.currentUser?.uid) {
         "Brak zalogowanego użytkownika"
@@ -169,19 +174,48 @@ class FirestoreSocialRepository(
         socialDao.observeExploreFeed(requireUid()).map { list -> list.map { it.toDomain() } }
 
     override suspend fun refreshExploreFeed(limit: Long) {
+        // zachowanie kompatybilne: traktujemy jako first page
+        refreshExploreFeedFirstPage(pageSize = limit)
+    }
+
+    override suspend fun refreshExploreFeedFirstPage(pageSize: Long): Long? {
+        // first page == brak kursora
+        return refreshExploreInternal(pageSize = pageSize, startAfterCreatedAtMs = null)
+    }
+
+    override suspend fun refreshExploreFeedNextPage(pageSize: Long, startAfterCreatedAtMs: Long): Long? {
+        return refreshExploreInternal(pageSize = pageSize, startAfterCreatedAtMs = startAfterCreatedAtMs)
+    }
+
+    private suspend fun refreshExploreInternal(pageSize: Long, startAfterCreatedAtMs: Long?): Long? {
         val uid = requireUid()
         val followingIds = socialDao.getFollowingIds(uid)
-        if (followingIds.isEmpty()) return
+        if (followingIds.isEmpty()) return null
+
+        Log.d(
+            PAGINATION_TAG,
+            "Explore: loading page. pageSize=$pageSize startAfterCreatedAtMs=$startAfterCreatedAtMs followingIds=${followingIds.size}"
+        )
 
         // Firestore whereIn ma limit 10 elementów -> batchujemy.
         val chunks: List<List<String>> = followingIds.chunked(10)
         val allDocs = mutableListOf<PostDoc>()
 
+        // Heurystyka: żeby uzyskać sensowną kolejną stronę po merge sort,
+        // odpytyjemy każdy chunk o trochę więcej niż pageSize.
+        val perChunkLimit = kotlin.math.max(10, (pageSize / chunks.size.coerceAtLeast(1)).toInt() + 5).toLong()
+
         for (chunk in chunks) {
-            val query = firestore.collection("posts")
+            var query = firestore.collection("posts")
                 .whereIn("authorId", chunk)
                 .orderBy("createdAtMs", com.google.firebase.firestore.Query.Direction.DESCENDING)
-                .limit(limit)
+
+            if (startAfterCreatedAtMs != null) {
+                // startAfter na polu orderBy (createdAtMs)
+                query = query.startAfter(startAfterCreatedAtMs)
+            }
+
+            query = query.limit(perChunkLimit)
 
             val snap = query.get().await()
             val docs: List<PostDoc> = snap.documents.mapNotNull { doc ->
@@ -190,30 +224,79 @@ class FirestoreSocialRepository(
             allDocs += docs
         }
 
-        // Merge: bierzemy najnowsze limit postów po createdAtMs.
         val merged = allDocs
             .distinctBy { it.postId }
             .sortedByDescending { it.createdAtMs }
-            .take(limit.toInt())
+            .take(pageSize.toInt())
+
+        Log.d(
+            PAGINATION_TAG,
+            "Explore: fetched ${merged.size} posts from Firestore (after merge)."
+        )
+
+        if (merged.isEmpty()) return null
 
         socialDao.upsertPosts(merged.map { it.toEntity() })
+
+        // Jeżeli dostaliśmy mniej niż pageSize, to koniec historii.
+        if (merged.size < pageSize.toInt()) {
+            Log.d(PAGINATION_TAG, "Explore: end reached (fetched < pageSize).")
+            return null
+        }
+
+        // nowy kursor: createdAtMs ostatniego posta z tej strony
+        return merged.last().createdAtMs
     }
 
     override fun observeUserPosts(userId: String): Flow<List<Post>> =
         socialDao.observePostsByAuthor(userId).map { list -> list.map { it.toDomain() } }
 
     override suspend fun refreshUserPosts(userId: String, limit: Long) {
-        val query = firestore.collection("posts")
+        // kompatybilnie: traktujemy jako first page
+        refreshUserPostsFirstPage(userId = userId, pageSize = limit)
+    }
+
+    override suspend fun refreshUserPostsFirstPage(userId: String, pageSize: Long): Long? {
+        return refreshUserPostsInternal(userId = userId, pageSize = pageSize, startAfterCreatedAtMs = null)
+    }
+
+    override suspend fun refreshUserPostsNextPage(userId: String, pageSize: Long, startAfterCreatedAtMs: Long): Long? {
+        return refreshUserPostsInternal(userId = userId, pageSize = pageSize, startAfterCreatedAtMs = startAfterCreatedAtMs)
+    }
+
+    private suspend fun refreshUserPostsInternal(userId: String, pageSize: Long, startAfterCreatedAtMs: Long?): Long? {
+        Log.d(
+            PAGINATION_TAG,
+            "UserPosts: loading page. userId=$userId pageSize=$pageSize startAfterCreatedAtMs=$startAfterCreatedAtMs"
+        )
+
+        var query = firestore.collection("posts")
             .whereEqualTo("authorId", userId)
             .orderBy("createdAtMs", com.google.firebase.firestore.Query.Direction.DESCENDING)
-            .limit(limit)
+
+        if (startAfterCreatedAtMs != null) {
+            query = query.startAfter(startAfterCreatedAtMs)
+        }
+
+        query = query.limit(pageSize)
 
         val snap = query.get().await()
         val docs: List<PostDoc> = snap.documents.mapNotNull { doc ->
             doc.toObject(PostDoc::class.java)?.copy(postId = doc.id)
         }
 
+        Log.d(PAGINATION_TAG, "UserPosts: fetched ${docs.size} posts from Firestore")
+
+        if (docs.isEmpty()) return null
+
         socialDao.upsertPosts(docs.map { it.toEntity() })
+
+        if (docs.size < pageSize.toInt()) {
+            Log.d(PAGINATION_TAG, "UserPosts: end reached (fetched < pageSize).")
+            return null
+        }
+
+        return docs.last().createdAtMs
     }
 
     /** Pobiera profil usera do cache (displayName/avatarColor). */

@@ -47,4 +47,23 @@ interface SocialRepository {
 
     /** Usuwa post (tylko dla właściciela) i czyści lokalne flagi/cache. */
     suspend fun deletePost(post: Post)
+
+    /**
+     * Explore feed - pierwsza strona (reset paginacji).
+     * @return startAfterCreatedAtMs dla kolejnej strony lub null, jeśli nie ma więcej.
+     */
+    suspend fun refreshExploreFeedFirstPage(pageSize: Long = 20): Long?
+
+    /**
+     * Explore feed - kolejna strona.
+     * @param startAfterCreatedAtMs kursor (createdAtMs ostatniego posta z poprzedniej strony).
+     * @return nowy kursor lub null, jeśli nie ma więcej.
+     */
+    suspend fun refreshExploreFeedNextPage(pageSize: Long = 20, startAfterCreatedAtMs: Long): Long?
+
+    /** Posty usera - pierwsza strona (reset paginacji). */
+    suspend fun refreshUserPostsFirstPage(userId: String, pageSize: Long = 20): Long?
+
+    /** Posty usera - kolejna strona. */
+    suspend fun refreshUserPostsNextPage(userId: String, pageSize: Long = 20, startAfterCreatedAtMs: Long): Long?
 }

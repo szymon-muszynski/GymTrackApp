@@ -1,5 +1,6 @@
 package com.example.gymtrackapp.ui.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.gymtrackapp.data.social.model.Post
@@ -16,6 +17,10 @@ class UserProfileViewModel(
     private val socialRepository: SocialRepository,
     val targetUserId: String,
 ) : ViewModel() {
+
+    private companion object {
+        const val PAGINATION_TAG = "SocialPagination"
+    }
 
     val profile: StateFlow<UserProfile?> = socialRepository.observeUserProfile(targetUserId)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
@@ -37,29 +42,69 @@ class UserProfileViewModel(
     private val _refreshing = MutableStateFlow(false)
     val refreshing: StateFlow<Boolean> = _refreshing.asStateFlow()
 
+    private val _loadingMore = MutableStateFlow(false)
+    val loadingMore: StateFlow<Boolean> = _loadingMore.asStateFlow()
+
+    private val _hasMore = MutableStateFlow(true)
+    val hasMore: StateFlow<Boolean> = _hasMore.asStateFlow()
+
+    private var cursorCreatedAtMs: Long? = null
+
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
     fun onEnterScreen() {
         viewModelScope.launch {
-            // SSOT=Room, refresh best-effort
             runCatching { socialRepository.refreshUserProfile(targetUserId) }
-            runCatching { socialRepository.refreshUserPosts(targetUserId, limit = 20) }
         }
+        refresh()
     }
 
-    fun refresh() {
+    fun refresh(pageSize: Long = 20) {
         viewModelScope.launch {
             if (_refreshing.value) return@launch
             _refreshing.value = true
             _error.value = null
             try {
-                socialRepository.refreshUserProfile(targetUserId)
-                socialRepository.refreshUserPosts(targetUserId, limit = 20)
+                Log.d(PAGINATION_TAG, "UserProfileVM($targetUserId): refreshFirstPage(pageSize=$pageSize)")
+                cursorCreatedAtMs = socialRepository.refreshUserPostsFirstPage(targetUserId, pageSize = pageSize)
+                _hasMore.value = cursorCreatedAtMs != null
+                Log.d(PAGINATION_TAG, "UserProfileVM($targetUserId): first page loaded. nextCursor=$cursorCreatedAtMs hasMore=${_hasMore.value}")
             } catch (t: Throwable) {
                 _error.value = t.message ?: "Błąd odświeżania"
             } finally {
                 _refreshing.value = false
+            }
+        }
+    }
+
+    fun loadMorePosts(pageSize: Long = 20) {
+        viewModelScope.launch {
+            if (_loadingMore.value || _refreshing.value) return@launch
+            if (!_hasMore.value) return@launch
+
+            val cursor = cursorCreatedAtMs
+            if (cursor == null) {
+                _hasMore.value = false
+                Log.d(PAGINATION_TAG, "UserProfileVM($targetUserId): loadMore aborted - cursor is null (end reached)")
+                return@launch
+            }
+
+            _loadingMore.value = true
+            _error.value = null
+            try {
+                Log.d(PAGINATION_TAG, "UserProfileVM($targetUserId): loadMore(pageSize=$pageSize) startAfter=$cursor")
+                cursorCreatedAtMs = socialRepository.refreshUserPostsNextPage(
+                    userId = targetUserId,
+                    pageSize = pageSize,
+                    startAfterCreatedAtMs = cursor
+                )
+                _hasMore.value = cursorCreatedAtMs != null
+                Log.d(PAGINATION_TAG, "UserProfileVM($targetUserId): loadMore done. nextCursor=$cursorCreatedAtMs hasMore=${_hasMore.value}")
+            } catch (t: Throwable) {
+                _error.value = t.message ?: "Błąd ładowania"
+            } finally {
+                _loadingMore.value = false
             }
         }
     }
@@ -85,4 +130,3 @@ class UserProfileViewModel(
         }
     }
 }
-

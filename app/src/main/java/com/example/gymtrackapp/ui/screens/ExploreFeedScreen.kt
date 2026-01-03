@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,20 +43,34 @@ fun ExploreFeedScreen(
 ) {
     val feed by viewModel.feed.collectAsState()
     val refreshing by viewModel.refreshing.collectAsState()
+    val loadingMore by viewModel.loadingMore.collectAsState()
+    val hasMore by viewModel.hasMore.collectAsState()
     val error by viewModel.error.collectAsState()
 
-    var detailsPost by remember { mutableStateOf<Post?>(null) }
+    val listState = rememberLazyListState()
 
+    val shouldLoadMore by remember {
+        derivedStateOf {
+            val total = listState.layoutInfo.totalItemsCount
+            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            total > 0 && lastVisible >= total - 4
+        }
+    }
+
+    LaunchedEffect(shouldLoadMore, hasMore, loadingMore) {
+        if (shouldLoadMore && hasMore && !loadingMore && !refreshing) {
+            viewModel.loadMore()
+        }
+    }
+
+    var detailsPost by remember { mutableStateOf<Post?>(null) }
     if (detailsPost != null) {
-        PostDetailsDialog(
-            post = detailsPost!!,
-            onDismiss = { detailsPost = null },
-        )
+        PostDetailsDialog(post = detailsPost!!, onDismiss = { detailsPost = null })
     }
 
     // automatyczny pierwszy refresh (best-effort)
     LaunchedEffect(Unit) {
-        viewModel.refresh()
+        viewModel.refreshFirstPage()
     }
 
     Column(
@@ -77,7 +94,7 @@ fun ExploreFeedScreen(
 
         PullToRefreshCompat(
             isRefreshing = refreshing,
-            onRefresh = { viewModel.refresh() },
+            onRefresh = { viewModel.refreshFirstPage() },
             modifier = Modifier.fillMaxSize(),
         ) {
             if (feed.isEmpty()) {
@@ -87,6 +104,7 @@ fun ExploreFeedScreen(
                 )
             } else {
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -96,6 +114,19 @@ fun ExploreFeedScreen(
                             onAuthorClick = onUserClick,
                             onOpenDetails = { detailsPost = it },
                         )
+                    }
+
+                    if (loadingMore) {
+                        item(key = "loading_more") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(vertical = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(color = Color(0xFF4CAF50))
+                            }
+                        }
                     }
                 }
             }

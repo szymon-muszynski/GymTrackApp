@@ -13,7 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
@@ -42,6 +43,8 @@ import com.example.gymtrackapp.ui.components.PostCard
 import com.example.gymtrackapp.ui.components.PostDetailsDialog
 import com.example.gymtrackapp.ui.util.PullToRefreshCompat
 import com.example.gymtrackapp.ui.viewmodel.MyProfileViewModel
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.derivedStateOf
 
 @Composable
 fun ProfilePage(
@@ -51,6 +54,8 @@ fun ProfilePage(
     val profile by viewModel.profile.collectAsState()
     val posts by viewModel.posts.collectAsState()
     val refreshing by viewModel.refreshing.collectAsState()
+    val loadingMore by viewModel.loadingMore.collectAsState()
+    val hasMore by viewModel.hasMore.collectAsState()
     val error by viewModel.error.collectAsState()
     val deleteBusy by viewModel.deleteBusy.collectAsState()
 
@@ -61,6 +66,21 @@ fun ProfilePage(
 
     LaunchedEffect(Unit) {
         viewModel.onEnterScreen()
+    }
+
+    val listState = rememberLazyListState()
+    val shouldLoadMore by remember {
+        derivedStateOf {
+            val total = listState.layoutInfo.totalItemsCount
+            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            total > 0 && lastVisible >= total - 4
+        }
+    }
+
+    LaunchedEffect(shouldLoadMore, hasMore, loadingMore) {
+        if (shouldLoadMore && hasMore && !loadingMore && !refreshing) {
+            viewModel.loadMorePosts()
+        }
     }
 
     Column(
@@ -137,6 +157,7 @@ fun ProfilePage(
                 }
             } else {
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -147,6 +168,19 @@ fun ProfilePage(
                             onOpenDetails = { detailsPost = it },
                             onDelete = { viewModel.deletePost(post) },
                         )
+                    }
+
+                    if (loadingMore) {
+                        item(key = "loading_more") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(color = Color(0xFF4CAF50))
+                            }
+                        }
                     }
                 }
             }

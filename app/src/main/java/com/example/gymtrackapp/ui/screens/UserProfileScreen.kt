@@ -13,15 +13,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,22 +46,30 @@ import com.example.gymtrackapp.ui.viewmodel.UserProfileViewModel
 fun UserProfileScreen(
     viewModel: UserProfileViewModel,
     modifier: Modifier = Modifier,
-    onBack: (() -> Unit)? = null,
 ) {
     val profile by viewModel.profile.collectAsState()
     val posts by viewModel.posts.collectAsState()
-    val followingIds by viewModel.followingIds.collectAsState()
     val optimisticIsFollowing by viewModel.optimisticIsFollowing.collectAsState()
     val followBusy by viewModel.followBusy.collectAsState()
     val refreshing by viewModel.refreshing.collectAsState()
+    val loadingMore by viewModel.loadingMore.collectAsState()
+    val hasMore by viewModel.hasMore.collectAsState()
     val error by viewModel.error.collectAsState()
 
-    LaunchedEffect(Unit) {
-        viewModel.onEnterScreen()
+    val listState = rememberLazyListState()
+    val shouldLoadMore by remember {
+        derivedStateOf {
+            val total = listState.layoutInfo.totalItemsCount
+            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            total > 0 && lastVisible >= total - 4
+        }
     }
 
-    val targetUserId = viewModel.targetUserId
-    val actualIsFollowing = optimisticIsFollowing ?: followingIds.contains(targetUserId)
+    LaunchedEffect(shouldLoadMore, hasMore, loadingMore) {
+        if (shouldLoadMore && hasMore && !loadingMore && !refreshing) {
+            viewModel.loadMorePosts()
+        }
+    }
 
     var detailsPost by remember { mutableStateOf<Post?>(null) }
     if (detailsPost != null) {
@@ -113,16 +124,16 @@ fun UserProfileScreen(
                     }
                 }
 
-                val buttonColor = if (actualIsFollowing) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary
+                val buttonColor = if (optimisticIsFollowing == true) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary
                 Button(
-                    onClick = { viewModel.toggleFollow(actualIsFollowing) },
+                    onClick = { viewModel.toggleFollow(optimisticIsFollowing == true) },
                     enabled = !followBusy,
                     colors = ButtonDefaults.buttonColors(containerColor = buttonColor)
                 ) {
                     Text(
                         text = when {
                             followBusy -> "..."
-                            actualIsFollowing -> "Obserwujesz"
+                            optimisticIsFollowing == true -> "Obserwujesz"
                             else -> "Obserwuj"
                         }
                     )
@@ -155,6 +166,7 @@ fun UserProfileScreen(
                 }
             } else {
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -163,6 +175,19 @@ fun UserProfileScreen(
                             post = post,
                             onOpenDetails = { detailsPost = it },
                         )
+                    }
+
+                    if (loadingMore) {
+                        item(key = "loading_more") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(color = Color(0xFF4CAF50))
+                            }
+                        }
                     }
                 }
             }
