@@ -1,7 +1,5 @@
 package com.example.gymtrackapp.ui.screens
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -10,19 +8,29 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.example.gymtrackapp.di.LocalAppContainer
 import com.example.gymtrackapp.ui.viewmodel.AuthViewModel
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
-import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
+import com.example.gymtrackapp.ui.viewmodel.ExploreFeedViewModel
+import com.example.gymtrackapp.ui.viewmodel.FriendsViewModel
+import com.example.gymtrackapp.ui.viewmodel.MyProfileViewModel
+import com.example.gymtrackapp.ui.viewmodel.MyProfileViewModelFactory
+import com.example.gymtrackapp.ui.viewmodel.SharePostViewModel
 import com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel
 import com.example.gymtrackapp.ui.viewmodel.TemplateViewModel
+import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
+import com.example.gymtrackapp.ui.viewmodel.UserProfileViewModel
+import com.example.gymtrackapp.ui.viewmodel.UserProfileViewModelFactory
 import com.example.gymtrackapp.utils.NetworkStatus
 
-@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
@@ -31,6 +39,9 @@ fun MainScreen(
     templateViewModel: TemplateViewModel,
     authViewModel: AuthViewModel,
     statisticsViewModel: StatisticsViewModel,
+    friendsViewModel: FriendsViewModel,
+    exploreFeedViewModel: ExploreFeedViewModel,
+    sharePostViewModel: SharePostViewModel,
     onSignOut: () -> Unit
 ) {
     val navController = rememberNavController()
@@ -146,6 +157,7 @@ fun MainScreen(
                     exerciseViewModel = exerciseViewModel,
                     statisticsViewModel = statisticsViewModel,
                     templateViewModel = templateViewModel,
+                    sharePostViewModel = sharePostViewModel,
                     showAddSessionDialog = showAddSessionDialog,
                     onDismissDialog = { showAddSessionDialog = false },
                     navController = navController,
@@ -164,6 +176,7 @@ fun MainScreen(
                     exerciseViewModel = exerciseViewModel,
                     statisticsViewModel = statisticsViewModel,
                     templateViewModel = templateViewModel,
+                    sharePostViewModel = sharePostViewModel,
                     showAddSessionDialog = showAddSessionDialog,
                     onDismissDialog = { showAddSessionDialog = false },
                     navController = navController
@@ -183,10 +196,46 @@ fun MainScreen(
                 )
             }
             composable("friends") {
-                FriendsPage()
+                FriendsPage(
+                    friendsViewModel = friendsViewModel,
+                    exploreFeedViewModel = exploreFeedViewModel,
+                    onUserClick = { userId -> navController.navigate("user_profile/$userId") }
+                )
             }
+
+            composable(
+                route = "user_profile/{userId}",
+                arguments = listOf(navArgument("userId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
+
+                val socialRepository = LocalAppContainer.current.socialRepository
+
+                val vm: UserProfileViewModel = viewModel(
+                    key = "user_profile_${userId}",
+                    factory = UserProfileViewModelFactory(socialRepository, userId)
+                )
+
+                UserProfileScreen(viewModel = vm)
+            }
+
             composable("profile") {
-                ProfilePage()
+                val currentUser by authViewModel.currentUser.collectAsState()
+                val uid = currentUser?.uid
+
+                if (uid == null) {
+                    // awaryjnie: jeśli UI zdążyło tu wejść bez usera
+                    Text("Brak zalogowanego użytkownika")
+                } else {
+                    val socialRepository = LocalAppContainer.current.socialRepository
+
+                    val vm: MyProfileViewModel = viewModel(
+                        key = "my_profile_${uid}",
+                        factory = MyProfileViewModelFactory(socialRepository, uid)
+                    )
+
+                    ProfilePage(viewModel = vm)
+                }
             }
             composable("add_exercise/{sessionId}") { backStackEntry ->
                 val sessionId = backStackEntry.arguments?.getString("sessionId")?.toLongOrNull() ?: 0L

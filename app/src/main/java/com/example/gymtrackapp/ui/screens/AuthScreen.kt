@@ -17,6 +17,7 @@ fun AuthScreen(
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var displayName by remember { mutableStateOf("") }
     var isSignUp by remember { mutableStateOf(false) }
 
     val authState by authViewModel.authState.collectAsState()
@@ -41,6 +42,17 @@ fun AuthScreen(
         )
 
         Spacer(modifier = Modifier.height(32.dp))
+
+        if (isSignUp) {
+            OutlinedTextField(
+                value = displayName,
+                onValueChange = { displayName = it },
+                label = { Text("Nazwa użytkownika") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
         OutlinedTextField(
             value = email,
@@ -76,7 +88,7 @@ fun AuthScreen(
         Button(
             onClick = {
                 if (isSignUp) {
-                    authViewModel.signUp(email, password)
+                    authViewModel.signUp(email, password, displayName)
                 } else {
                     authViewModel.signIn(email, password)
                 }

@@ -9,6 +9,10 @@ import com.example.gymtrackapp.data.converters.Converters
 import com.example.gymtrackapp.data.dao.ExerciseDao
 import com.example.gymtrackapp.data.dao.TemplateDao
 import com.example.gymtrackapp.data.dao.TrainingDao
+import com.example.gymtrackapp.data.social.local.FollowingEntity
+import com.example.gymtrackapp.data.social.local.PostEntity
+import com.example.gymtrackapp.data.social.local.SocialDao
+import com.example.gymtrackapp.data.social.local.UserCacheEntity
 import com.example.gymtrackapp.data.entity.Exercise
 import com.example.gymtrackapp.data.entity.SessionExercise
 import com.example.gymtrackapp.data.entity.TrainingSession
@@ -23,9 +27,14 @@ import com.example.gymtrackapp.data.entity.WorkoutTemplate
         SessionSetDetails::class,
         SessionExercise::class,
         WorkoutTemplate::class,
-        TemplateExercise::class
+        TemplateExercise::class,
+
+        // Social cache
+        PostEntity::class,
+        UserCacheEntity::class,
+        FollowingEntity::class,
     ],
-    version = 11,
+    version = 13,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -33,6 +42,7 @@ abstract class ExerciseDatabase : RoomDatabase() {
     abstract fun exerciseDao(): ExerciseDao
     abstract fun trainingDao(): TrainingDao
     abstract fun templateDao(): TemplateDao
+    abstract fun socialDao(): SocialDao
 
     companion object {
         @Volatile

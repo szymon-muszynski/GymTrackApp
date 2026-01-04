@@ -14,19 +14,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,29 +40,25 @@ import com.example.gymtrackapp.ui.components.AvatarCircle
 import com.example.gymtrackapp.ui.components.PostCard
 import com.example.gymtrackapp.ui.components.PostDetailsDialog
 import com.example.gymtrackapp.ui.util.PullToRefreshCompat
-import com.example.gymtrackapp.ui.viewmodel.MyProfileViewModel
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.runtime.derivedStateOf
+import com.example.gymtrackapp.ui.viewmodel.UserProfileViewModel
 
 @Composable
-fun ProfilePage(
-    viewModel: MyProfileViewModel,
+fun UserProfileScreen(
+    viewModel: UserProfileViewModel,
     modifier: Modifier = Modifier,
 ) {
     val profile by viewModel.profile.collectAsState()
     val posts by viewModel.posts.collectAsState()
+    val optimisticIsFollowing by viewModel.optimisticIsFollowing.collectAsState()
+    val followBusy by viewModel.followBusy.collectAsState()
     val refreshing by viewModel.refreshing.collectAsState()
     val loadingMore by viewModel.loadingMore.collectAsState()
     val hasMore by viewModel.hasMore.collectAsState()
     val error by viewModel.error.collectAsState()
-    val deleteBusy by viewModel.deleteBusy.collectAsState()
 
-    var detailsPost by remember { mutableStateOf<Post?>(null) }
-    if (detailsPost != null) {
-        PostDetailsDialog(post = detailsPost!!, onDismiss = { detailsPost = null })
-    }
+    val followingIds by viewModel.followingIds.collectAsState()
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(viewModel.targetUserId) {
         viewModel.onEnterScreen()
     }
 
@@ -83,12 +77,18 @@ fun ProfilePage(
         }
     }
 
+    var detailsPost by remember { mutableStateOf<Post?>(null) }
+    if (detailsPost != null) {
+        PostDetailsDialog(post = detailsPost!!, onDismiss = { detailsPost = null })
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .padding(16.dp)
     ) {
+        // Header
         Surface(
             tonalElevation = 2.dp,
             shape = MaterialTheme.shapes.large,
@@ -100,7 +100,7 @@ fun ProfilePage(
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val displayName = profile?.displayName ?: "Ja"
+                val displayName = profile?.displayName ?: "Użytkownik"
                 val avatarColor = profile?.avatarColor ?: "#4CAF50"
 
                 Box(
@@ -129,6 +129,24 @@ fun ProfilePage(
                         Text(text = error ?: "", color = MaterialTheme.colorScheme.error)
                     }
                 }
+
+                val isFollowingFromRoom = followingIds.contains(viewModel.targetUserId)
+                val isFollowing = optimisticIsFollowing ?: isFollowingFromRoom
+
+                val buttonColor = if (isFollowing) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary
+                Button(
+                    onClick = { viewModel.toggleFollow(isFollowing) },
+                    enabled = !followBusy,
+                    colors = ButtonDefaults.buttonColors(containerColor = buttonColor)
+                ) {
+                    Text(
+                        text = when {
+                            followBusy -> "..."
+                            isFollowing -> "Obserwujesz"
+                            else -> "Obserwuj"
+                        }
+                    )
+                }
             }
         }
 
@@ -143,13 +161,13 @@ fun ProfilePage(
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = if (refreshing) "Odświeżanie…" else "Brak Twoich postów",
+                            text = if (refreshing) "Odświeżanie…" else "Brak udostępnionych treningów",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            text = "Udostępnij trening, aby pojawił się tutaj.",
+                            text = "Gdy użytkownik udostępni trening, pojawi się tutaj.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.Gray
                         )
@@ -162,11 +180,9 @@ fun ProfilePage(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(posts, key = { it.postId }) { post ->
-                        MyPostRow(
+                        PostCard(
                             post = post,
-                            busy = deleteBusy[post.postId] == true,
                             onOpenDetails = { detailsPost = it },
-                            onDelete = { viewModel.deletePost(post) },
                         )
                     }
 
@@ -185,47 +201,5 @@ fun ProfilePage(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun MyPostRow(
-    post: Post,
-    busy: Boolean,
-    onOpenDetails: (Post) -> Unit,
-    onDelete: () -> Unit,
-) {
-    var menuExpanded by remember { mutableStateOf(false) }
-
-    Column {
-        PostCard(
-            post = post,
-            onOpenDetails = onOpenDetails,
-            headerActions = {
-                // Wrapper, żeby menu było po prawej, w headerze karty
-                Box {
-                    IconButton(
-                        onClick = { menuExpanded = true },
-                        enabled = !busy,
-                    ) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "Menu")
-                    }
-
-                    DropdownMenu(
-                        expanded = menuExpanded,
-                        onDismissRequest = { menuExpanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(if (busy) "Usuwanie…" else "Usuń post") },
-                            onClick = {
-                                menuExpanded = false
-                                if (!busy) onDelete()
-                            },
-                            enabled = !busy
-                        )
-                    }
-                }
-            }
-        )
     }
 }

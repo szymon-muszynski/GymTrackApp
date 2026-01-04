@@ -377,6 +377,12 @@ interface TrainingDao {
         """
     )
     suspend fun deleteOrphanedPendingSessionSets(): Int
+
+    @Query("UPDATE training_sessions SET isPosted = :isPosted, updatedAtMs = :updatedAtMs WHERE id = :sessionId")
+    suspend fun setSessionPosted(sessionId: Long, isPosted: Boolean, updatedAtMs: Long)
+
+    @Query("SELECT isPosted FROM training_sessions WHERE id = :sessionId")
+    suspend fun isSessionPosted(sessionId: Long): Boolean?
 }
 
 
