@@ -201,9 +201,17 @@ class FirestoreSocialRepository(
         val chunks: List<List<String>> = followingIds.chunked(10)
         val allDocs = mutableListOf<PostDoc>()
 
-        // Heurystyka: żeby uzyskać sensowną kolejną stronę po merge sort,
-        // odpytyjemy każdy chunk o trochę więcej niż pageSize.
-        val perChunkLimit = kotlin.math.max(10, (pageSize / chunks.size.coerceAtLeast(1)).toInt() + 5).toLong()
+        // Heurystyka limitu per-chunk:
+        // - whereIn() limituje listę authorId do 10, więc przy większej liczbie followowanych robimy kilka query i merge-sort.
+        // - chcemy ograniczyć odczyty na Firestore (Spark), ale nie zaniżyć limitu do 1 (ryzyko "dziurawego" feedu).
+        // Kompromis: celujemy w ~pageSize łącznych odczytów, ale z bezpiecznym minimum na chunk.
+        val chunksCount = chunks.size.coerceAtLeast(1)
+        val basePerChunk = ((pageSize + chunksCount - 1) / chunksCount).toInt() // zaokrąglenie w górę
+        val minPerChunk = 5 // kompromis koszt/UX (unikamy 1–2 na chunk, które daje false-empty)
+        val perChunkLimit = basePerChunk
+            .coerceAtLeast(minPerChunk)
+            .coerceAtMost(pageSize.toInt())
+            .toLong()
 
         for (chunk in chunks) {
             var query = firestore.collection("posts")
