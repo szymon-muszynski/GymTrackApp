@@ -48,16 +48,20 @@ interface SocialDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertFollowing(entity: FollowingEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertFollowing(entities: List<FollowingEntity>)
+
     @Query("DELETE FROM social_following WHERE myId = :myId")
     suspend fun clearFollowingForUser(myId: String)
 
     @Transaction
     suspend fun replaceFollowingForUser(myId: String, newEntities: List<FollowingEntity>) {
+        // Remote jest źródłem prawdy dla following. Po czyszczeniu cache na logout
+        // odtwarzamy pełny stan dla bieżącego usera.
         clearFollowingForUser(myId)
         if (newEntities.isNotEmpty()) {
-            // Reuse upsertFollowing (REPLACE) in a loop, bo mamy tylko insert pojedynczy.
-            // Celowo nie dodaję nowego bulk insertu, żeby zmiany były minimalne.
-            newEntities.forEach { upsertFollowing(it) }
+            // Bulk insert jest szybszy i unika wielu round-tripów do bazy.
+            upsertFollowing(newEntities)
         }
     }
 

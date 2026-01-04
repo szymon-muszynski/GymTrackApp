@@ -56,6 +56,12 @@ fun UserProfileScreen(
     val hasMore by viewModel.hasMore.collectAsState()
     val error by viewModel.error.collectAsState()
 
+    val followingIds by viewModel.followingIds.collectAsState()
+
+    LaunchedEffect(viewModel.targetUserId) {
+        viewModel.onEnterScreen()
+    }
+
     val listState = rememberLazyListState()
     val shouldLoadMore by remember {
         derivedStateOf {
@@ -124,16 +130,19 @@ fun UserProfileScreen(
                     }
                 }
 
-                val buttonColor = if (optimisticIsFollowing == true) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary
+                val isFollowingFromRoom = followingIds.contains(viewModel.targetUserId)
+                val isFollowing = optimisticIsFollowing ?: isFollowingFromRoom
+
+                val buttonColor = if (isFollowing) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary
                 Button(
-                    onClick = { viewModel.toggleFollow(optimisticIsFollowing == true) },
+                    onClick = { viewModel.toggleFollow(isFollowing) },
                     enabled = !followBusy,
                     colors = ButtonDefaults.buttonColors(containerColor = buttonColor)
                 ) {
                     Text(
                         text = when {
                             followBusy -> "..."
-                            optimisticIsFollowing == true -> "Obserwujesz"
+                            isFollowing -> "Obserwujesz"
                             else -> "Obserwuj"
                         }
                     )

@@ -55,6 +55,10 @@ class UserProfileViewModel(
 
     fun onEnterScreen() {
         viewModelScope.launch {
+            // Najpierw odświeżamy following (SSOT w Room), żeby przycisk Follow był poprawny od razu.
+            runCatching { socialRepository.syncFollowing() }
+        }
+        viewModelScope.launch {
             runCatching { socialRepository.refreshUserProfile(targetUserId) }
         }
         refresh()
