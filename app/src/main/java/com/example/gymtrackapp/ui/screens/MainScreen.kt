@@ -1,7 +1,5 @@
 package com.example.gymtrackapp.ui.screens
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -10,30 +8,29 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.example.gymtrackapp.di.LocalAppContainer
 import com.example.gymtrackapp.ui.viewmodel.AuthViewModel
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
-import com.example.gymtrackapp.ui.viewmodel.FriendsViewModel
 import com.example.gymtrackapp.ui.viewmodel.ExploreFeedViewModel
-import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
-import com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel
-import com.example.gymtrackapp.ui.viewmodel.TemplateViewModel
-import com.example.gymtrackapp.ui.viewmodel.SharePostViewModel
-import com.example.gymtrackapp.utils.NetworkStatus
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.navArgument
-import androidx.navigation.NavType
-import com.example.gymtrackapp.data.ExerciseDatabase
-import com.example.gymtrackapp.data.social.repository.FirestoreSocialRepository
-import com.example.gymtrackapp.ui.viewmodel.UserProfileViewModelFactory
+import com.example.gymtrackapp.ui.viewmodel.FriendsViewModel
 import com.example.gymtrackapp.ui.viewmodel.MyProfileViewModel
 import com.example.gymtrackapp.ui.viewmodel.MyProfileViewModelFactory
+import com.example.gymtrackapp.ui.viewmodel.SharePostViewModel
+import com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel
+import com.example.gymtrackapp.ui.viewmodel.TemplateViewModel
+import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
+import com.example.gymtrackapp.ui.viewmodel.UserProfileViewModel
+import com.example.gymtrackapp.ui.viewmodel.UserProfileViewModelFactory
+import com.example.gymtrackapp.utils.NetworkStatus
 
-//@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
@@ -42,7 +39,7 @@ fun MainScreen(
     templateViewModel: TemplateViewModel,
     authViewModel: AuthViewModel,
     statisticsViewModel: StatisticsViewModel,
-    friendsViewModel: com.example.gymtrackapp.ui.viewmodel.FriendsViewModel,
+    friendsViewModel: FriendsViewModel,
     exploreFeedViewModel: ExploreFeedViewModel,
     sharePostViewModel: SharePostViewModel,
     onSignOut: () -> Unit
@@ -212,22 +209,9 @@ fun MainScreen(
             ) { backStackEntry ->
                 val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
 
-                // Tworzymy SocialRepository lokalnie na potrzeby profilu.
-                // (Założenie: nie macie jeszcze DI. W przyszłości warto przepiąć na Hilt/Koin.)
-                val context = LocalContext.current
-                val db = remember { ExerciseDatabase.getDatabase(context) }
+                val socialRepository = LocalAppContainer.current.socialRepository
 
-                val socialRepository = remember {
-                    FirestoreSocialRepository(
-                        auth = com.google.firebase.auth.FirebaseAuth.getInstance(),
-                        firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance(),
-                        trainingDao = db.trainingDao(),
-                        exerciseDao = db.exerciseDao(),
-                        socialDao = db.socialDao(),
-                    )
-                }
-
-                val vm: com.example.gymtrackapp.ui.viewmodel.UserProfileViewModel = viewModel(
+                val vm: UserProfileViewModel = viewModel(
                     key = "user_profile_${userId}",
                     factory = UserProfileViewModelFactory(socialRepository, userId)
                 )
@@ -243,18 +227,7 @@ fun MainScreen(
                     // awaryjnie: jeśli UI zdążyło tu wejść bez usera
                     Text("Brak zalogowanego użytkownika")
                 } else {
-                    val context = LocalContext.current
-                    val db = remember { ExerciseDatabase.getDatabase(context) }
-
-                    val socialRepository = remember {
-                        FirestoreSocialRepository(
-                            auth = com.google.firebase.auth.FirebaseAuth.getInstance(),
-                            firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance(),
-                            trainingDao = db.trainingDao(),
-                            exerciseDao = db.exerciseDao(),
-                            socialDao = db.socialDao(),
-                        )
-                    }
+                    val socialRepository = LocalAppContainer.current.socialRepository
 
                     val vm: MyProfileViewModel = viewModel(
                         key = "my_profile_${uid}",
