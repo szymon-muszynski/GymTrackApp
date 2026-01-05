@@ -3,13 +3,16 @@ package com.example.gymtrackapp.di
 import android.content.Context
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.example.gymtrackapp.data.ExerciseDatabase
+import com.example.gymtrackapp.data.repository.PlanningRepository
 import com.example.gymtrackapp.data.social.repository.FirestoreSocialRepository
+import com.example.gymtrackapp.notifications.NotificationScheduler
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
 abstract class AppContainer {
     abstract val database: ExerciseDatabase
     abstract val socialRepository: FirestoreSocialRepository
+    abstract val planningRepository: PlanningRepository
 }
 
 class GymTrackAppContainer(
@@ -24,6 +27,12 @@ class GymTrackAppContainer(
         trainingDao = database.trainingDao(),
         exerciseDao = database.exerciseDao(),
         socialDao = database.socialDao(),
+    )
+
+    override val planningRepository: PlanningRepository = PlanningRepository(
+        plannedWorkoutDao = database.plannedWorkoutDao(),
+        scheduler = NotificationScheduler(context.applicationContext),
+        firestore = FirebaseFirestore.getInstance(),
     )
 }
 

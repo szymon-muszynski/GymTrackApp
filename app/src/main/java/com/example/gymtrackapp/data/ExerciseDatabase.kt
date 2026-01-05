@@ -7,18 +7,20 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.example.gymtrackapp.data.converters.Converters
 import com.example.gymtrackapp.data.dao.ExerciseDao
+import com.example.gymtrackapp.data.dao.PlannedWorkoutDao
 import com.example.gymtrackapp.data.dao.TemplateDao
 import com.example.gymtrackapp.data.dao.TrainingDao
+import com.example.gymtrackapp.data.entity.Exercise
+import com.example.gymtrackapp.data.entity.PlannedWorkoutEntity
+import com.example.gymtrackapp.data.entity.SessionExercise
+import com.example.gymtrackapp.data.entity.SessionSetDetails
+import com.example.gymtrackapp.data.entity.TemplateExercise
+import com.example.gymtrackapp.data.entity.TrainingSession
+import com.example.gymtrackapp.data.entity.WorkoutTemplate
 import com.example.gymtrackapp.data.social.local.FollowingEntity
 import com.example.gymtrackapp.data.social.local.PostEntity
 import com.example.gymtrackapp.data.social.local.SocialDao
 import com.example.gymtrackapp.data.social.local.UserCacheEntity
-import com.example.gymtrackapp.data.entity.Exercise
-import com.example.gymtrackapp.data.entity.SessionExercise
-import com.example.gymtrackapp.data.entity.TrainingSession
-import com.example.gymtrackapp.data.entity.SessionSetDetails
-import com.example.gymtrackapp.data.entity.TemplateExercise
-import com.example.gymtrackapp.data.entity.WorkoutTemplate
 
 @Database(
     entities = [
@@ -28,13 +30,14 @@ import com.example.gymtrackapp.data.entity.WorkoutTemplate
         SessionExercise::class,
         WorkoutTemplate::class,
         TemplateExercise::class,
+        PlannedWorkoutEntity::class,
 
         // Social cache
         PostEntity::class,
         UserCacheEntity::class,
         FollowingEntity::class,
     ],
-    version = 13,
+    version = 14,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -43,6 +46,7 @@ abstract class ExerciseDatabase : RoomDatabase() {
     abstract fun trainingDao(): TrainingDao
     abstract fun templateDao(): TemplateDao
     abstract fun socialDao(): SocialDao
+    abstract fun plannedWorkoutDao(): PlannedWorkoutDao
 
     companion object {
         @Volatile
@@ -55,6 +59,7 @@ abstract class ExerciseDatabase : RoomDatabase() {
                     ExerciseDatabase::class.java,
                     "exercise_database"
                 )
+                    // DEV: w fazie developmentu czyścimy bazę przy zmianach schematu.
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

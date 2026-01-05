@@ -1,10 +1,17 @@
 package com.example.gymtrackapp
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -66,7 +73,10 @@ class MainActivity : ComponentActivity() {
                         factory = object : ViewModelProvider.Factory {
                             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                                 @Suppress("UNCHECKED_CAST")
-                                return AuthViewModel(this@MainActivity.applicationContext) as T
+                                return AuthViewModel(
+                                    appContext = this@MainActivity.applicationContext,
+                                    planningRepository = appContainer.planningRepository,
+                                ) as T
                             }
                         }
                     )
@@ -99,6 +109,31 @@ class MainActivity : ComponentActivity() {
                             onAuthSuccess = {}
                         )
                     } else {
+                        // Android 13+ (Tiramisu): runtime permission na powiadomienia.
+                        var hasPostNotificationsPermission by remember(currentUid) {
+                            mutableStateOf(
+                                Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                                    ContextCompat.checkSelfPermission(
+                                        this@MainActivity,
+                                        Manifest.permission.POST_NOTIFICATIONS
+                                    ) == PackageManager.PERMISSION_GRANTED
+                            )
+                        }
+
+                        val postNotificationsLauncher = rememberLauncherForActivityResult(
+                            contract = ActivityResultContracts.RequestPermission()
+                        ) { granted: Boolean ->
+                            hasPostNotificationsPermission = granted
+                            Log.d("NotificationsPermission", "POST_NOTIFICATIONS granted=$granted")
+                        }
+
+                        // Przy loginie upewniamy się, że mamy permission (Android 13+).
+                        LaunchedEffect(currentUid, hasPostNotificationsPermission) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasPostNotificationsPermission) {
+                                postNotificationsLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                        }
+
                         val socialRepository = appContainer.socialRepository
 
                         // WAŻNE: kluczujemy VM po uid, żeby po zmianie konta zawsze zbudować nowy VM
@@ -120,7 +155,7 @@ class MainActivity : ComponentActivity() {
 
                         // Sync following ASAP po zalogowaniu, zanim user wejdzie w Friends.
                         LaunchedEffect(currentUid) {
-                            // best-effort; błędy i tak pokażą się potem w Search/Feed
+                            // best-effort; błędy i tak pokażą się potem in Search/Feed
                             runCatching { socialRepository.syncFollowing() }
                         }
 

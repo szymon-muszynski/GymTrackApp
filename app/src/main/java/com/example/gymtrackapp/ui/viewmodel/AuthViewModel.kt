@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.gymtrackapp.data.ExerciseDatabase
+import com.example.gymtrackapp.data.repository.PlanningRepository
 import com.example.gymtrackapp.data.sync.ExercisePullService
 import com.example.gymtrackapp.data.sync.OrphanedPendingCleanup
 import com.example.gymtrackapp.data.sync.TemplatePullService
@@ -14,6 +15,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -22,7 +24,8 @@ import kotlinx.coroutines.withContext
 import java.util.Locale
 
 class AuthViewModel(
-    appContext: Context
+    appContext: Context,
+    private val planningRepository: PlanningRepository,
 ) : ViewModel() {
     private val appContext: Context = appContext.applicationContext
     private val auth = FirebaseAuth.getInstance()
@@ -117,22 +120,42 @@ class AuthViewModel(
 
                 if (uid != null) {
                     withContext(Dispatchers.IO) {
+                        // Pullujemy rzeczy tylko przy loginie (offline-first + nowy telefon):
                         // 1) Custom exercises first (FK prerequisite for session_exercises.exerciseId)
-                        Log.d(TAG, "signIn: pull customExercises START")
-                        exercisePullService.pullAllCustomForUser(uid)
-                        Log.d(TAG, "signIn: pull customExercises DONE")
+                        val customJob = async {
+                            Log.d(TAG, "signIn: pull customExercises START")
+                            exercisePullService.pullAllCustomForUser(uid)
+                            Log.d(TAG, "signIn: pull customExercises DONE")
+                        }
 
                         // 2) Trainings
-                        Log.d(TAG, "signIn: pull training START")
-                        trainingPullService.pullAllForUser(uid)
-                        Log.d(TAG, "signIn: pull training DONE")
+                        val trainingJob = async {
+                            Log.d(TAG, "signIn: pull training START")
+                            trainingPullService.pullAllForUser(uid)
+                            Log.d(TAG, "signIn: pull training DONE")
+                        }
 
                         // 3) Templates
-                        Log.d(TAG, "signIn: pull template START")
-                        templatePullService.pullAllForUser(uid)
-                        Log.d(TAG, "signIn: pull template DONE")
+                        val templateJob = async {
+                            Log.d(TAG, "signIn: pull template START")
+                            templatePullService.pullAllForUser(uid)
+                            Log.d(TAG, "signIn: pull template DONE")
+                        }
 
-                        // 4) Cleanup orphaned pending (best-effort)
+                        // 4) Planner (planned workouts + alarm refresh)
+                        val plannerJob = async {
+                            Log.d(TAG, "signIn: pull planner START")
+                            planningRepository.pull(uid)
+                            Log.d(TAG, "signIn: pull planner DONE")
+                        }
+
+                        // Czekamy na wszystko.
+                        customJob.await()
+                        trainingJob.await()
+                        templateJob.await()
+                        plannerJob.await()
+
+                        // 5) Cleanup orphaned pending (best-effort)
                         OrphanedPendingCleanup.cleanup(appContext.applicationContext)
                     }
                 }
@@ -151,6 +174,14 @@ class AuthViewModel(
             Log.d(TAG, "signOut: start")
 
             withContext(Dispatchers.IO) {
+                // KRYTYCZNE: najpierw planner (anulowanie alarmów + wipe Room), dopiero potem auth.signOut().
+                try {
+                    planningRepository.clearLocalData()
+                    Log.d(TAG, "signOut: wipe planner OK")
+                } catch (t: Throwable) {
+                    Log.e(TAG, "signOut: wipe planner FAILED", t)
+                }
+
                 try {
                     trainingPullService.wipeLocalTrainingData()
                     Log.d(TAG, "signOut: wipe training OK")
