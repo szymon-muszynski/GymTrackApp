@@ -2,6 +2,7 @@ package com.example.gymtrackapp.ui.screens
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -46,6 +47,9 @@ import com.example.gymtrackapp.ui.viewmodel.PlannerViewModel
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
+import androidx.compose.foundation.border
+
+private val PolishLocale = Locale("pl", "PL")
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -62,11 +66,17 @@ fun WeeklyPlannerCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(12.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp)
+        ) {
+            // Header (miesiąc + rok) + strzałki
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -77,7 +87,7 @@ fun WeeklyPlannerCard(
                 }
 
                 Text(
-                    text = plannerViewModel.formatWeekRange(weekStart),
+                    text = weekTitleFor(weekStart),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -87,11 +97,13 @@ fun WeeklyPlannerCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
+            // Pasek dni: styl jak "Kalendarz Treningowy" (mniejsza wersja)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 val today = LocalDate.now()
 
@@ -99,7 +111,7 @@ fun WeeklyPlannerCard(
                     val date = weekStart.plusDays(index.toLong())
                     val plan = plans[date]
 
-                    DayPill(
+                    DayItem(
                         date = date,
                         isToday = date == today,
                         hasPlan = plan != null,
@@ -134,49 +146,86 @@ fun WeeklyPlannerCard(
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-private fun DayPill(
+private fun DayItem(
     date: LocalDate,
     isToday: Boolean,
     hasPlan: Boolean,
     onClick: () -> Unit,
 ) {
-    val shape = RoundedCornerShape(14.dp)
-    val bg = if (isToday) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color(0xFFF6F6F6)
-    val border = if (isToday) MaterialTheme.colorScheme.primary else Color.Transparent
+    val dayLabel = date.dayOfWeek
+        .getDisplayName(TextStyle.SHORT, PolishLocale)
+        .replaceFirstChar { it.uppercase(PolishLocale) }
+        .trimEnd('.')
 
     Column(
         modifier = Modifier
-            .padding(horizontal = 2.dp)
-            .clip(shape)
-            .background(bg)
             .clickable(onClick = onClick)
-            .padding(vertical = 10.dp, horizontal = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(horizontal = 4.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        val dayLabel = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("pl", "PL"))
-            .replaceFirstChar { it.uppercase(Locale("pl", "PL")) }
-
-        Text(text = dayLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface)
-        Text(text = date.dayOfMonth.toString(), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        // Góra: nazwa dnia (szara)
+        Text(
+            text = dayLabel,
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.Gray
+        )
 
         Spacer(modifier = Modifier.height(6.dp))
 
+        // Środek: numer w kółku, z obrysem gdy "dzisiaj"
+        val borderColor = if (isToday) Color(0xFF1E88E5) else Color.Transparent
+        val bgColor = if (isToday) Color(0xFFEAF3FF) else Color.Transparent
+
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(bgColor)
+                .border(BorderStroke(2.dp, borderColor), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = date.dayOfMonth.toString(),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.Black
+            )
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Dół: dyskretna zielona kropka, jeśli jest plan
         if (hasPlan) {
             Box(
                 modifier = Modifier
                     .size(6.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
+                    .background(Color(0xFF2E7D32))
             )
         } else {
-            Box(modifier = Modifier.size(6.dp))
-        }
-
-        // pseudo-border (prosto i bez dodatkowych zależności)
-        if (border != Color.Transparent) {
-            Spacer(modifier = Modifier.height(0.dp))
+            // rezerwujemy miejsce żeby UI nie "skakało"
+            Spacer(modifier = Modifier.height(6.dp))
         }
     }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+private fun weekTitleFor(weekStart: LocalDate): String {
+    val weekDates = (0..6).map { weekStart.plusDays(it.toLong()) }
+
+    val monthCounts = weekDates.groupingBy { it.month }.eachCount()
+    val targetMonth = monthCounts.maxBy { it.value }.key
+
+    val yearCounts = weekDates.groupingBy { it.year }.eachCount()
+    val targetYear = yearCounts.maxBy { it.value }.key
+
+    // "Styczeń 2026" (PL)
+    val monthName = targetMonth
+        .getDisplayName(TextStyle.FULL, PolishLocale)
+        .replaceFirstChar { it.uppercase(PolishLocale) }
+
+    return "$monthName $targetYear"
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -195,9 +244,8 @@ private fun PlanDialog(
 ) {
     var text by remember(state.date) { mutableStateOf(state.existingPlan?.title.orEmpty()) }
 
-    // UX: jeśli wejdziemy w dzień bez planu, wstawiamy placeholder i focusujemy input (na przyszłość).
     LaunchedEffect(state.date) {
-        // no-op for now
+        // no-op
     }
 
     val title = "Plan: ${state.date.dayOfMonth}.${state.date.monthValue}"
