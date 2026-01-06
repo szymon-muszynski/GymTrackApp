@@ -16,6 +16,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -150,10 +151,7 @@ class AuthViewModel(
                         }
 
                         // Czekamy na wszystko.
-                        customJob.await()
-                        trainingJob.await()
-                        templateJob.await()
-                        plannerJob.await()
+                        awaitAll(customJob, trainingJob, templateJob, plannerJob)
 
                         // 5) Cleanup orphaned pending (best-effort)
                         OrphanedPendingCleanup.cleanup(appContext.applicationContext)

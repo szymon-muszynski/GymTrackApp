@@ -62,11 +62,6 @@ class PlannerViewModel(
         }
         .stateIn(viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyMap())
 
-    fun loadPlans() {
-        // UI korzysta z Flow (plans), więc nie musimy tu nic robić.
-        // Zostawiamy metodę jako "hak" pod przyszłą logikę.
-    }
-
     fun nextWeek() {
         _currentWeekOffset.value = _currentWeekOffset.value + 1
     }

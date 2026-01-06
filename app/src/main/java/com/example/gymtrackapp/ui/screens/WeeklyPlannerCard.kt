@@ -58,8 +58,8 @@ fun WeeklyPlannerCard(
     uid: String?,
     modifier: Modifier = Modifier,
 ) {
-    val weekStart by plannerViewModel.currentWeekStart.collectAsStateCompat()
-    val plans by plannerViewModel.plans.collectAsStateCompat()
+    val weekStart by plannerViewModel.currentWeekStart.collectAsState()
+    val plans by plannerViewModel.plans.collectAsState()
 
     var dialogState by remember { mutableStateOf<PlanDialogState?>(null) }
 
@@ -244,9 +244,6 @@ private fun PlanDialog(
 ) {
     var text by remember(state.date) { mutableStateOf(state.existingPlan?.title.orEmpty()) }
 
-    LaunchedEffect(state.date) {
-        // no-op
-    }
 
     val title = "Plan: ${state.date.dayOfMonth}.${state.date.monthValue}"
 
@@ -282,13 +279,4 @@ private fun PlanDialog(
             }
         }
     )
-}
-
-/**
- * Minimalny helper, żeby nie mieszać zależności Compose w ViewModelach.
- * Projekt już używa collectAsState(), ale w kilku plikach importy są różne.
- */
-@Composable
-private fun <T> kotlinx.coroutines.flow.StateFlow<T>.collectAsStateCompat(): State<T> {
-    return this.collectAsState()
 }

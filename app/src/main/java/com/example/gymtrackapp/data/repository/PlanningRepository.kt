@@ -116,8 +116,7 @@ class PlanningRepository(
     suspend fun deletePlan(planId: String, uid: String? = null) = withContext(Dispatchers.IO) {
         val now = System.currentTimeMillis()
 
-        val all = plannedWorkoutDao.getAllWorkouts()
-        val existing = all.firstOrNull { it.id == planId }
+        val existing = plannedWorkoutDao.getWorkoutById(planId) //
 
         if (existing == null) {
             Log.w(TAG, "deletePlan: planId=$planId not found locally")
@@ -131,7 +130,7 @@ class PlanningRepository(
         )
 
         plannedWorkoutDao.upsert(deleted)
-        scheduler.cancel(deleted)
+        scheduler.cancel(deleted) //
 
         if (uid != null) {
             runCatching { upsertRemote(uid, deleted) }
