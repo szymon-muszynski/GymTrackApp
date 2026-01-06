@@ -1,5 +1,7 @@
 package com.example.gymtrackapp.ui.screens
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -23,7 +25,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.gymtrackapp.ui.viewmodel.PlannerViewModel
+import com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel
+import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HomePage(
     onNavigateToStatistics: () -> Unit = {},
@@ -32,8 +38,10 @@ fun HomePage(
     onAddWorkoutSession: () -> Unit = {},
     onNavigateToSession: (Long, Long) -> Unit = { _, _ -> },
     userName: String? = null,
-    statisticsViewModel: com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel? = null,
-    trainingViewModel: com.example.gymtrackapp.ui.viewmodel.TrainingViewModel? = null,
+    statisticsViewModel: StatisticsViewModel? = null,
+    trainingViewModel: TrainingViewModel? = null,
+    plannerViewModel: PlannerViewModel,
+    uid: String?,
     modifier: Modifier = Modifier
 ) {
     // Pobierz dane o ostatnim tygodniu
@@ -51,9 +59,25 @@ fun HomePage(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F5F5))
+            .background(Color(0xFFEFF3F8))
+            .padding(vertical = 8.dp)
             .verticalScroll(rememberScrollState())
     ) {
+        Text(
+            text = userName ?: "",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier
+                .align(Alignment.Start)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+
+        WeeklyPlannerCard(
+            plannerViewModel = plannerViewModel,
+            uid = uid,
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         HomePageHeader(userName = userName)
 
         QuickActionsSection(

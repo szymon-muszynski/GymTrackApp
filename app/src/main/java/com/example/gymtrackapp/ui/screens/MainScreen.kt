@@ -1,5 +1,7 @@
 package com.example.gymtrackapp.ui.screens
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -23,6 +25,8 @@ import com.example.gymtrackapp.ui.viewmodel.ExploreFeedViewModel
 import com.example.gymtrackapp.ui.viewmodel.FriendsViewModel
 import com.example.gymtrackapp.ui.viewmodel.MyProfileViewModel
 import com.example.gymtrackapp.ui.viewmodel.MyProfileViewModelFactory
+import com.example.gymtrackapp.ui.viewmodel.PlannerViewModel
+import com.example.gymtrackapp.ui.viewmodel.PlannerViewModelFactory
 import com.example.gymtrackapp.ui.viewmodel.SharePostViewModel
 import com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel
 import com.example.gymtrackapp.ui.viewmodel.TemplateViewModel
@@ -32,6 +36,7 @@ import com.example.gymtrackapp.ui.viewmodel.UserProfileViewModelFactory
 import com.example.gymtrackapp.utils.NetworkStatus
 
 @OptIn(ExperimentalMaterial3Api::class)
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun MainScreen(
     exerciseViewModel: ExerciseViewModel,
@@ -112,6 +117,13 @@ fun MainScreen(
         ) {
             composable("home") {
                 val currentUser by authViewModel.currentUser.collectAsState()
+                val uid = currentUser?.uid
+
+                val planningRepository = LocalAppContainer.current.planningRepository
+                val plannerViewModel: PlannerViewModel = viewModel(
+                    key = "planner_${uid}",
+                    factory = PlannerViewModelFactory(planningRepository)
+                )
 
                 // Wyświetl email użytkownika
                 val userName = currentUser?.email
@@ -131,7 +143,9 @@ fun MainScreen(
                     },
                     userName = userName,
                     statisticsViewModel = statisticsViewModel,
-                    trainingViewModel = trainingViewModel
+                    trainingViewModel = trainingViewModel,
+                    plannerViewModel = plannerViewModel,
+                    uid = uid,
                 )
             }
             composable("calendar/{date}") { backStackEntry ->
