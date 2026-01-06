@@ -158,4 +158,35 @@ class TrainingViewModel(private val repository: TrainingRepository) : ViewModel(
             }
         }
     }
+
+    // Stan UI: który sessionId ma aktualnie otwarty edytor notatki
+    private val _noteEditorSessionId = MutableStateFlow<Long?>(null)
+    val noteEditorSessionId = _noteEditorSessionId.asStateFlow()
+
+    fun openNoteEditor(sessionId: Long) {
+        _noteEditorSessionId.value = sessionId
+    }
+
+    fun closeNoteEditor() {
+        _noteEditorSessionId.value = null
+    }
+
+    /**
+     * Zapis notatki do Room. Jeśli tekst jest pusty po trim(), traktujemy to jako usunięcie.
+     */
+    fun saveSessionNote(sessionId: Long, text: String) {
+        val trimmed = text.trim().ifEmpty { null }
+        viewModelScope.launch {
+            val session = repository.getSessionById(sessionId) ?: return@launch
+            repository.updateSession(session.copy(note = trimmed))
+            closeNoteEditor()
+        }
+    }
+
+    fun deleteSessionNote(sessionId: Long) {
+        viewModelScope.launch {
+            val session = repository.getSessionById(sessionId) ?: return@launch
+            repository.updateSession(session.copy(note = null))
+        }
+    }
 }

@@ -191,4 +191,7 @@ class TrainingRepository(
         TrainingSyncScheduler.enqueue(context)
         return sessionId
     }
+
+    suspend fun getSessionById(sessionId: Long): TrainingSession? =
+        trainingDao.getSessionById(sessionId)
 }

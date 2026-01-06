@@ -9,6 +9,7 @@ data class TrainingSession(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val date: Long,
     val description: String,
+    val note: String? = null,
     // Firestore sync
     val remoteId: String = UUID.randomUUID().toString(),
     val updatedAtMs: Long = System.currentTimeMillis(),

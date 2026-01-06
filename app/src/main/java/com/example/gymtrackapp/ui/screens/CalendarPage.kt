@@ -65,6 +65,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import com.example.gymtrackapp.data.entity.WorkoutTemplate
 import com.example.gymtrackapp.ui.viewmodel.SharePostViewModel
+import com.example.gymtrackapp.ui.components.SessionNoteCard
+import com.example.gymtrackapp.ui.components.SessionNoteDialog
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -321,6 +323,12 @@ fun TrainingSessionItem(
         }
     }
 
+    val noteEditorSessionId by trainingViewModel.noteEditorSessionId.collectAsState()
+    // Źródło prawdy: pole w encji z Room
+    val currentNote: String? = session.note
+
+    var confirmDeleteNote by remember { mutableStateOf(false) }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -411,9 +419,12 @@ fun TrainingSessionItem(
                     } else {
                         Column {
                             sessionExercises.forEach { sessionExercise ->
-                                val exercise = allExercises.find { it.id == sessionExercise.exerciseId }
+                                val exercise =
+                                    allExercises.find { it.id == sessionExercise.exerciseId }
                                 if (exercise != null) {
-                                    val sets by trainingViewModel.getSetsForSessionExercise(sessionExercise.id).collectAsState(initial = emptyList())
+                                    val sets by trainingViewModel.getSetsForSessionExercise(
+                                        sessionExercise.id
+                                    ).collectAsState(initial = emptyList())
 
                                     LaunchedEffect(sessionExercise.id) {
                                         trainingViewModel.loadSetsForSessionExercise(sessionExercise.id)
@@ -446,7 +457,10 @@ fun TrainingSessionItem(
                                         IconButton(onClick = {
                                             trainingViewModel.deleteSessionExercise(sessionExercise)
                                         }) {
-                                            Icon(Icons.Default.Delete, contentDescription = "Delete")
+                                            Icon(
+                                                Icons.Default.Delete,
+                                                contentDescription = "Delete"
+                                            )
                                         }
                                     }
                                 }
@@ -454,8 +468,66 @@ fun TrainingSessionItem(
                         }
                     }
                 }
+
+                // --- NOTATKA (osobne pole pod ćwiczeniami) ---
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (!currentNote.isNullOrBlank()) {
+                    SessionNoteCard(
+                        note = currentNote,
+                        onClick = { trainingViewModel.openNoteEditor(session.id) },
+                        onDeleteClick = { confirmDeleteNote = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                } else {
+                    TextButton(
+                        onClick = { trainingViewModel.openNoteEditor(session.id) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp)
+                    ) {
+                        Text("+ Dodaj notatkę")
+                    }
+                }
             }
         }
+    }
+
+    // Dialog edycji notatki (z przyciemnionym tłem jak w Social)
+    if (noteEditorSessionId == session.id) {
+        SessionNoteDialog(
+            initialText = currentNote.orEmpty(),
+            onDismiss = { trainingViewModel.closeNoteEditor() },
+            onSave = { trainingViewModel.saveSessionNote(session.id, it) },
+        )
+    }
+
+    // Potwierdzenie usunięcia
+    if (confirmDeleteNote) {
+        AlertDialog(
+            onDismissRequest = { confirmDeleteNote = false },
+            title = { Text("Usunąć notatkę?") },
+            text = { Text("Ta operacja jest nieodwracalna.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        trainingViewModel.deleteSessionNote(session.id)
+                        confirmDeleteNote = false
+                    }
+                ) {
+                    Text("Usuń")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDeleteNote = false }) {
+                    Text("Anuluj")
+                }
+            }
+        )
     }
 }
 

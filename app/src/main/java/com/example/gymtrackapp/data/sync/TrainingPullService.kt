@@ -85,6 +85,7 @@ class TrainingPullService(
                         id = 0,
                         date = session.date,
                         description = session.description,
+                        note = session.note,
                         remoteId = sessionRemoteId,
                         updatedAtMs = session.updatedAtMs,
                         syncStatus = SyncStatus.SYNCED,
