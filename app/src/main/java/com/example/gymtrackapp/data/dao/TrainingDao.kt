@@ -383,6 +383,21 @@ interface TrainingDao {
 
     @Query("SELECT isPosted FROM training_sessions WHERE id = :sessionId")
     suspend fun isSessionPosted(sessionId: Long): Boolean?
+
+    /**
+     * Lista dni, w których istnieją sesje (nieusunięte), wraz z liczbą sesji w danym dniu.
+     * Używane przez UI 'Kopiuj z innej daty'.
+     */
+    @Query(
+        """
+        SELECT date AS date, COUNT(*) AS sessionCount
+        FROM training_sessions
+        WHERE deletedAtMs IS NULL
+        GROUP BY date
+        ORDER BY date DESC
+        """
+    )
+    suspend fun getAvailableSessionDatesWithCount(): List<SessionDateCount>
 }
 
 
@@ -452,4 +467,9 @@ data class RecentSessionExerciseRow(
     val sessionDescription: String,
     val exerciseOrder: Int?,
     val exerciseName: String?
+)
+
+data class SessionDateCount(
+    val date: Long,
+    val sessionCount: Int,
 )

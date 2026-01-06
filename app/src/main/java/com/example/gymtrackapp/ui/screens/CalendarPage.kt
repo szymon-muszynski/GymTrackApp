@@ -1,5 +1,6 @@
 package com.example.gymtrackapp.ui.screens
 
+import android.app.DatePickerDialog
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -67,6 +69,8 @@ import com.example.gymtrackapp.data.entity.WorkoutTemplate
 import com.example.gymtrackapp.ui.viewmodel.SharePostViewModel
 import com.example.gymtrackapp.ui.components.SessionNoteCard
 import com.example.gymtrackapp.ui.components.SessionNoteDialog
+import com.example.gymtrackapp.utils.EpochDayFormatter
+import androidx.compose.material3.RadioButton
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -85,10 +89,23 @@ fun CalendarPage(
     var selectedDate by remember { mutableStateOf(initialDate ?: LocalDate.now()) }
     val sessions by trainingViewModel.sessions.collectAsState()
 
+    // --- EDIT state (było przed zmianami) ---
     var showEditDialog by remember { mutableStateOf(false) }
     var sessionToEdit by remember { mutableStateOf<TrainingSession?>(null) }
 
     val templates by templateViewModel.templates.collectAsState()
+
+    // --- COPY UI state ---
+    var showCopyFromDialog by remember { mutableStateOf(false) }
+    var copyFromSelectedDateEpochDay by remember { mutableStateOf<Long?>(null) }
+    var copyFromSelectedSessionId by remember { mutableStateOf<Long?>(null) }
+
+    val availableCopyDates by trainingViewModel.availableCopySourceDates.collectAsState()
+    val copyFromDateSessions by trainingViewModel.copyFromDateSessions.collectAsState()
+
+    val copyMessage by trainingViewModel.copyMessage.collectAsState()
+
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
         templateViewModel.loadTemplates()
@@ -98,7 +115,13 @@ fun CalendarPage(
         trainingViewModel.loadSessionsForDate(selectedDate.toEpochDay())
     }
 
-    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(copyMessage) {
+        if (copyMessage != null) {
+            snackbarHostState.showSnackbar(copyMessage!!)
+            trainingViewModel.clearCopyMessage()
+        }
+    }
+
     val shareMessage by sharePostViewModel.message.collectAsState()
     LaunchedEffect(shareMessage) {
         if (shareMessage != null) {
@@ -124,6 +147,21 @@ fun CalendarPage(
                 onDateSelected = { selectedDate = it }
             )
 
+            // Tymczasowy przycisk: kopiuj z innej daty
+            TextButton(
+                onClick = {
+                    trainingViewModel.loadAvailableCopySourceDates()
+                    copyFromSelectedDateEpochDay = null
+                    copyFromSelectedSessionId = null
+                    showCopyFromDialog = true
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp)
+            ) {
+                Text("Kopiuj z innej daty")
+            }
+
             SessionsList(
                 trainingSessions = sessions,
                 trainingViewModel = trainingViewModel,
@@ -144,6 +182,130 @@ fun CalendarPage(
                 }
             )
         }
+    }
+
+    // Dialog "Kopiuj z" (2 kroki: data -> sesja)
+    if (showCopyFromDialog) {
+        val stepPickSession = copyFromSelectedDateEpochDay != null
+
+        AlertDialog(
+            onDismissRequest = { showCopyFromDialog = false },
+            title = { Text(if (!stepPickSession) "Skopiuj z: wybierz dzień" else "Skopiuj z: wybierz sesję") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (!stepPickSession) {
+                        if (availableCopyDates.isEmpty()) {
+                            Text("Brak dni z sesjami treningowymi")
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentPadding = PaddingValues(vertical = 4.dp)
+                            ) {
+                                itemsIndexed(availableCopyDates) { _, item ->
+                                    val sessionsLabel = if (item.sessionCount == 1) "1 sesja" else "${item.sessionCount} sesje"
+                                    val label = "${EpochDayFormatter.formatEpochDay(item.date)} ($sessionsLabel)"
+
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                copyFromSelectedDateEpochDay = item.date
+                                                copyFromSelectedSessionId = null
+                                                trainingViewModel.loadCopyFromDateSessions(item.date)
+                                            },
+                                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+                                    ) {
+                                        Text(
+                                            text = label,
+                                            modifier = Modifier.padding(12.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                }
+                            }
+                        }
+                    } else {
+                        val dateLabel = EpochDayFormatter.formatEpochDay(copyFromSelectedDateEpochDay!!)
+                        Text("Dzień: $dateLabel")
+
+                        if (copyFromDateSessions.isEmpty()) {
+                            Text("Brak sesji w tym dniu")
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                copyFromDateSessions.forEach { s ->
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { copyFromSelectedSessionId = s.id },
+                                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            RadioButton(
+                                                selected = copyFromSelectedSessionId == s.id,
+                                                onClick = { copyFromSelectedSessionId = s.id }
+                                            )
+                                            Text(
+                                                text = if (s.description.isBlank()) "(bez nazwy)" else s.description,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                if (stepPickSession) {
+                    TextButton(
+                        enabled = copyFromSelectedSessionId != null,
+                        onClick = {
+                            val targetEpochDay = selectedDate.toEpochDay()
+                            val targetLabel = EpochDayFormatter.formatEpochDay(targetEpochDay)
+                            trainingViewModel.copySessionToSelectedDateFrom(
+                                sessionId = copyFromSelectedSessionId!!,
+                                selectedDateLabel = targetLabel,
+                                selectedDateEpochDay = targetEpochDay,
+                            )
+                            showCopyFromDialog = false
+                        }
+                    ) {
+                        Text("Kopiuj")
+                    }
+                }
+            },
+            dismissButton = {
+                Row {
+                    if (stepPickSession) {
+                        TextButton(
+                            onClick = {
+                                // powrót do kroku wyboru dnia
+                                copyFromSelectedDateEpochDay = null
+                                copyFromSelectedSessionId = null
+                                trainingViewModel.resetCopyFromDateSessions()
+                            }
+                        ) {
+                            Text("Wstecz")
+                        }
+                    }
+                    TextButton(onClick = {
+                        showCopyFromDialog = false
+                        copyFromSelectedDateEpochDay = null
+                        copyFromSelectedSessionId = null
+                        trainingViewModel.resetCopyFromDateSessions()
+                    }) {
+                        Text("Anuluj")
+                    }
+                }
+            }
+        )
     }
 
     if (showAddSessionDialog) {
@@ -329,6 +491,9 @@ fun TrainingSessionItem(
 
     var confirmDeleteNote by remember { mutableStateOf(false) }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var showCopyToDatePicker by remember { mutableStateOf(false) }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -393,6 +558,13 @@ fun TrainingSessionItem(
                                     onClick = {
                                         menuExpanded = false
                                         sharePostViewModel.publish(session.id)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Kopiuj do") },
+                                    onClick = {
+                                        menuExpanded = false
+                                        showCopyToDatePicker = true
                                     }
                                 )
                             }
@@ -528,6 +700,25 @@ fun TrainingSessionItem(
                 }
             }
         )
+    }
+
+    if (showCopyToDatePicker) {
+        val today = LocalDate.now()
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                val target = LocalDate.of(year, month + 1, dayOfMonth)
+                val targetEpochDay = target.toEpochDay()
+                val label = EpochDayFormatter.formatEpochDay(targetEpochDay)
+                trainingViewModel.copySessionToDate(session.id, targetEpochDay, label)
+                showCopyToDatePicker = false
+            },
+            today.year,
+            today.monthValue - 1,
+            today.dayOfMonth
+        ).apply {
+            setOnCancelListener { showCopyToDatePicker = false }
+        }.show()
     }
 }
 
