@@ -13,6 +13,7 @@ data class TrainingSessionDoc(
     val remoteId: String = "",
     val date: Long = 0L,
     val description: String = "",
+    val note: String? = null,
     val updatedAtMs: Long = 0L,
     val deletedAtMs: Long? = null,
 )
@@ -40,6 +41,7 @@ internal fun TrainingSession.toDoc(): TrainingSessionDoc = TrainingSessionDoc(
     remoteId = remoteId,
     date = date,
     description = description,
+    note = note,
     updatedAtMs = updatedAtMs,
     deletedAtMs = deletedAtMs,
 )

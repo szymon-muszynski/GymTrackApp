@@ -37,7 +37,7 @@ import com.example.gymtrackapp.data.social.local.UserCacheEntity
         UserCacheEntity::class,
         FollowingEntity::class,
     ],
-    version = 14,
+    version = 15,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -59,7 +59,6 @@ abstract class ExerciseDatabase : RoomDatabase() {
                     ExerciseDatabase::class.java,
                     "exercise_database"
                 )
-                    // DEV: w fazie developmentu czyścimy bazę przy zmianach schematu.
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

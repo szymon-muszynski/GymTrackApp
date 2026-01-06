@@ -7,6 +7,7 @@ import com.example.gymtrackapp.data.entity.SessionExercise
 import com.example.gymtrackapp.data.entity.SessionSetDetails
 import com.example.gymtrackapp.data.entity.TrainingSession
 import com.example.gymtrackapp.data.repository.TrainingRepository
+import com.example.gymtrackapp.data.dao.SessionDateCount
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -157,5 +158,86 @@ class TrainingViewModel(private val repository: TrainingRepository) : ViewModel(
                     t.message ?: "Nie udało się utworzyć treningu z szablonu."
             }
         }
+    }
+
+    // Stan UI: który sessionId ma aktualnie otwarty edytor notatki
+    private val _noteEditorSessionId = MutableStateFlow<Long?>(null)
+    val noteEditorSessionId = _noteEditorSessionId.asStateFlow()
+
+    fun openNoteEditor(sessionId: Long) {
+        _noteEditorSessionId.value = sessionId
+    }
+
+    fun closeNoteEditor() {
+        _noteEditorSessionId.value = null
+    }
+
+    /**
+     * Zapis notatki do Room. Jeśli tekst jest pusty po trim(), traktujemy to jako usunięcie.
+     */
+    fun saveSessionNote(sessionId: Long, text: String) {
+        val trimmed = text.trim().ifEmpty { null }
+        viewModelScope.launch {
+            val session = repository.getSessionById(sessionId) ?: return@launch
+            repository.updateSession(session.copy(note = trimmed))
+            closeNoteEditor()
+        }
+    }
+
+    fun deleteSessionNote(sessionId: Long) {
+        viewModelScope.launch {
+            val session = repository.getSessionById(sessionId) ?: return@launch
+            repository.updateSession(session.copy(note = null))
+        }
+    }
+
+    // ===== COPY SESSION (UI state) =====
+
+    private val _copyMessage = MutableStateFlow<String?>(null)
+    val copyMessage = _copyMessage.asStateFlow()
+
+    private val _availableCopySourceDates = MutableStateFlow<List<SessionDateCount>>(emptyList())
+    val availableCopySourceDates = _availableCopySourceDates.asStateFlow()
+
+    private val _copyFromDateSessions = MutableStateFlow<List<TrainingSession>>(emptyList())
+    val copyFromDateSessions = _copyFromDateSessions.asStateFlow()
+
+    fun clearCopyMessage() {
+        _copyMessage.value = null
+    }
+
+    fun loadAvailableCopySourceDates() {
+        viewModelScope.launch {
+            _availableCopySourceDates.value = repository.getAvailableSessionDatesWithCount()
+        }
+    }
+
+    fun loadCopyFromDateSessions(date: Long) {
+        viewModelScope.launch {
+            _copyFromDateSessions.value = repository.loadSessionsForDate(date)
+        }
+    }
+
+    fun resetCopyFromDateSessions() {
+        _copyFromDateSessions.value = emptyList()
+    }
+
+    fun copySessionToDate(sessionId: Long, targetDate: Long, targetDateLabel: String) {
+        viewModelScope.launch {
+            try {
+                val result = repository.copySessionToDate(sessionId, targetDate)
+                _copyMessage.value = if (result.skippedMissingExercises) {
+                    "Skopiowano sesję do dnia $targetDateLabel (pominięto brakujące ćwiczenia)"
+                } else {
+                    "Pomyślnie skopiowano sesję do dnia $targetDateLabel"
+                }
+            } catch (t: Throwable) {
+                _copyMessage.value = t.message ?: "Nie udało się skopiować sesji"
+            }
+        }
+    }
+
+    fun copySessionToSelectedDateFrom(sessionId: Long, selectedDateLabel: String, selectedDateEpochDay: Long) {
+        copySessionToDate(sessionId, selectedDateEpochDay, selectedDateLabel)
     }
 }

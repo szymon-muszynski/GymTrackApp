@@ -1,6 +1,8 @@
 package com.example.gymtrackapp.data.repository
 
 import android.content.Context
+import androidx.room.withTransaction
+import com.example.gymtrackapp.data.ExerciseDatabase
 import com.example.gymtrackapp.data.dao.ExerciseDao
 import com.example.gymtrackapp.data.dao.TemplateDao
 import com.example.gymtrackapp.data.dao.TrainingDao
@@ -11,8 +13,16 @@ import com.example.gymtrackapp.data.entity.SessionSetDetails
 import com.example.gymtrackapp.data.entity.SyncStatus
 import com.example.gymtrackapp.data.entity.TrainingSession
 import com.example.gymtrackapp.data.sync.TrainingSyncScheduler
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
+
+/** Wynik kopiowania sesji. */
+data class CopyResult(
+    val newSessionId: Long,
+    val skippedMissingExercises: Boolean,
+)
 
 class TrainingRepository(
     private val trainingDao: TrainingDao,
@@ -190,5 +200,72 @@ class TrainingRepository(
 
         TrainingSyncScheduler.enqueue(context)
         return sessionId
+    }
+
+    suspend fun getSessionById(sessionId: Long): TrainingSession? =
+        trainingDao.getSessionById(sessionId)
+
+    suspend fun getAvailableSessionDatesWithCount() =
+        trainingDao.getAvailableSessionDatesWithCount()
+
+    /**
+     * Kopiuje sesję (wraz z ćwiczeniami i seriami) do innego dnia jako NOWĄ sesję.
+     * - isPosted zawsze false
+     * - brakujące ćwiczenia (brak definicji w tabeli exercises) są pomijane
+     */
+    suspend fun copySessionToDate(sessionId: Long, targetDate: Long): CopyResult = withContext(Dispatchers.IO) {
+        val db = ExerciseDatabase.getDatabase(context)
+
+        db.withTransaction {
+            val sourceSession = trainingDao.getSessionById(sessionId)
+                ?: throw IllegalStateException("Nie znaleziono sesji do skopiowania")
+
+            val newSessionId = trainingDao.createEmptySession(
+                TrainingSession(
+                    id = 0,
+                    date = targetDate,
+                    description = sourceSession.description,
+                    note = sourceSession.note,
+                    // nowa instancja treningu nigdy nie jest udostępniona
+                    isPosted = false,
+                )
+            )
+
+            var skippedMissing = false
+
+            val sourceExercises = trainingDao.getExercisesForSession(sourceSession.id)
+            for (sourceExercise in sourceExercises) {
+                val exists = trainingDao.countExercisesById(sourceExercise.exerciseId) > 0
+                if (!exists) {
+                    skippedMissing = true
+                    continue
+                }
+
+                val newSessionExerciseId = trainingDao.insertSessionExercise(
+                    SessionExercise(
+                        id = 0,
+                        trainingSessionId = newSessionId,
+                        exerciseId = sourceExercise.exerciseId,
+                        order = sourceExercise.order,
+                    )
+                )
+
+                val sets = trainingDao.getSetsForSessionExercise(sourceExercise.id)
+                for (set in sets) {
+                    trainingDao.insertSet(
+                        SessionSetDetails(
+                            id = 0,
+                            sessionExerciseId = newSessionExerciseId,
+                            order = set.order,
+                            reps = set.reps,
+                            weight = set.weight,
+                        )
+                    )
+                }
+            }
+
+            TrainingSyncScheduler.enqueue(context)
+            return@withTransaction CopyResult(newSessionId, skippedMissing)
+        }
     }
 }
