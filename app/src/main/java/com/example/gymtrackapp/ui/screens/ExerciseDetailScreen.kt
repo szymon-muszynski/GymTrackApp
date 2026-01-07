@@ -89,8 +89,9 @@ fun ExerciseDetailScreen(
                                 }
                             }
                         }
-                        // Cofnij się 2 razy - do listy ćwiczeń i dalej
-                        onNavigateBack()
+                        // Cofnij się 2 razy - z ExerciseDetailScreen -> AddExerciseScreen -> CalendarPage/PlannerPage
+                        onNavigateBack() // pierwszy popBackStack
+                        onNavigateBack() // drugi popBackStack
                     },
                     modifier = Modifier
                         .fillMaxWidth()

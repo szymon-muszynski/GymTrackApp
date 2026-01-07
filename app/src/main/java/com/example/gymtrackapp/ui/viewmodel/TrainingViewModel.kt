@@ -263,8 +263,4 @@ class TrainingViewModel(private val repository: TrainingRepository) : ViewModel(
             _trainingDatesCache.value = dates.toSet()
         }
     }
-
-    fun clearTrainingDatesCache() {
-        _trainingDatesCache.value = emptySet()
-    }
 }

@@ -287,7 +287,26 @@ fun MainScreen(
                 )
             }
 
-            composable("exercise_detail/{exerciseId}?from={from}&sessionId={sessionId}&templateId={templateId}") { backStackEntry ->
+            composable(
+                route = "exercise_detail/{exerciseId}?from={from}&sessionId={sessionId}&templateId={templateId}",
+                arguments = listOf(
+                    navArgument("exerciseId") {
+                        type = NavType.StringType
+                    },
+                    navArgument("from") {
+                        type = NavType.StringType
+                        defaultValue = "session"
+                    },
+                    navArgument("sessionId") {
+                        type = NavType.StringType
+                        nullable = true
+                    },
+                    navArgument("templateId") {
+                        type = NavType.StringType
+                        nullable = true
+                    }
+                )
+            ) { backStackEntry ->
                 val exerciseId = backStackEntry.arguments?.getString("exerciseId") ?: ""
                 val from = backStackEntry.arguments?.getString("from") ?: "session"
                 val sessionId = backStackEntry.arguments?.getString("sessionId")?.toLongOrNull()

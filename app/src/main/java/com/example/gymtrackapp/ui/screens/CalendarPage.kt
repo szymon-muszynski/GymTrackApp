@@ -349,8 +349,8 @@ fun CalendarPage(
     if (showMonthlyCalendar) {
         val trainingDates by trainingViewModel.trainingDatesCache.collectAsState()
 
-        // Załaduj dni z treningami dla aktualnie wybranego miesiąca
-        LaunchedEffect(selectedDate) {
+        // Załaduj dni z treningami tylko gdy zmienia się miesiąc (nie przy każdym dniu)
+        LaunchedEffect(selectedDate.year, selectedDate.monthValue) {
             trainingViewModel.loadTrainingDatesForMonth(
                 year = selectedDate.year,
                 month = selectedDate.monthValue
