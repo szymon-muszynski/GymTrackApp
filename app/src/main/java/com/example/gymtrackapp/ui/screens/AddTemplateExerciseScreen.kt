@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
 import com.example.gymtrackapp.ui.viewmodel.TemplateViewModel
 
@@ -23,6 +24,7 @@ import com.example.gymtrackapp.ui.viewmodel.TemplateViewModel
 fun AddTemplateExerciseScreen(
     templateId: Long,
     onNavigateBack: () -> Unit,
+    navController: NavHostController,
     exerciseViewModel: ExerciseViewModel,
     templateViewModel: TemplateViewModel
 ) {
@@ -106,9 +108,8 @@ fun AddTemplateExerciseScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
-                            // Dodajemy ćwiczenie do szablonu
-                            templateViewModel.addExerciseToTemplate(templateId, exercise.id)
-                            onNavigateBack()
+                            // Nawigacja do szczegółów ćwiczenia
+                            navController.navigate("exercise_detail/${exercise.id}?from=template&templateId=$templateId")
                         }
                     ) {
                         Column(

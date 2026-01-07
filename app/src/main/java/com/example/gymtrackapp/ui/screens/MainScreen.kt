@@ -269,6 +269,7 @@ fun MainScreen(
                 AddExerciseScreen(
                     sessionId = sessionId,
                     onNavigateBack = { navController.popBackStack() },
+                    navController = navController,
                     exerciseViewModel = exerciseViewModel,
                     trainingViewModel = trainingViewModel,
                     statisticsViewModel = statisticsViewModel
@@ -280,7 +281,26 @@ fun MainScreen(
                 AddTemplateExerciseScreen(
                     templateId = templateId,
                     onNavigateBack = { navController.popBackStack() },
+                    navController = navController,
                     exerciseViewModel = exerciseViewModel,
+                    templateViewModel = templateViewModel
+                )
+            }
+
+            composable("exercise_detail/{exerciseId}?from={from}&sessionId={sessionId}&templateId={templateId}") { backStackEntry ->
+                val exerciseId = backStackEntry.arguments?.getString("exerciseId") ?: ""
+                val from = backStackEntry.arguments?.getString("from") ?: "session"
+                val sessionId = backStackEntry.arguments?.getString("sessionId")?.toLongOrNull()
+                val templateId = backStackEntry.arguments?.getString("templateId")?.toLongOrNull()
+
+                ExerciseDetailScreen(
+                    exerciseId = exerciseId,
+                    from = from,
+                    sessionId = sessionId,
+                    templateId = templateId,
+                    onNavigateBack = { navController.popBackStack() },
+                    exerciseViewModel = exerciseViewModel,
+                    trainingViewModel = trainingViewModel,
                     templateViewModel = templateViewModel
                 )
             }

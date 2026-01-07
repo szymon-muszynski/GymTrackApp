@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import com.example.gymtrackapp.data.entity.Exercise
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
 import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
@@ -25,6 +26,7 @@ import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
 fun AddExerciseScreen(
     sessionId: Long,
     onNavigateBack: () -> Unit,
+    navController: NavHostController,
     exerciseViewModel: ExerciseViewModel,
     trainingViewModel: TrainingViewModel,
     statisticsViewModel: com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel
@@ -108,8 +110,8 @@ fun AddExerciseScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
-                            trainingViewModel.addExerciseToSession(sessionId, exercise.id)
-                            onNavigateBack()
+                            // Nawigacja do szczegółów ćwiczenia
+                            navController.navigate("exercise_detail/${exercise.id}?from=session&sessionId=$sessionId")
                         }
                     ) {
                         Column(
