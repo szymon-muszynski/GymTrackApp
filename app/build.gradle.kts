@@ -99,4 +99,7 @@ dependencies {
 
     // Pull-to-Refresh (material pullRefresh)
     implementation("androidx.compose.material:material")
+
+    // Coil - Image loading library for Compose
+    implementation("io.coil-kt:coil-compose:2.5.0")
 }

@@ -240,4 +240,27 @@ class TrainingViewModel(private val repository: TrainingRepository) : ViewModel(
     fun copySessionToSelectedDateFrom(sessionId: Long, selectedDateLabel: String, selectedDateEpochDay: Long) {
         copySessionToDate(sessionId, selectedDateEpochDay, selectedDateLabel)
     }
+
+    // ===== CALENDAR MONTH VIEW =====
+
+    private val _trainingDatesCache = MutableStateFlow<Set<Long>>(emptySet())
+    val trainingDatesCache = _trainingDatesCache.asStateFlow()
+
+    /**
+     * Pobiera dni z treningami dla danego miesiąca (year/month).
+     * Używane przez kalendarz miesięczny do oznaczania dni z sesjami.
+     */
+    fun loadTrainingDatesForMonth(year: Int, month: Int) {
+        viewModelScope.launch {
+            // Oblicz pierwszy i ostatni dzień miesiąca jako epoch day
+            val firstDay = java.time.LocalDate.of(year, month, 1)
+            val lastDay = firstDay.withDayOfMonth(firstDay.lengthOfMonth())
+
+            val startEpochDay = firstDay.toEpochDay()
+            val endEpochDay = lastDay.toEpochDay()
+
+            val dates = repository.getTrainingDatesInRange(startEpochDay, endEpochDay)
+            _trainingDatesCache.value = dates.toSet()
+        }
+    }
 }

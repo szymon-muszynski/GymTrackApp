@@ -51,6 +51,7 @@ fun MainScreen(
 ) {
     val navController = rememberNavController()
     var showAddSessionDialog by remember { mutableStateOf(false) }
+    var showMonthlyCalendar by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     var showOfflineLogoutDialog by remember { mutableStateOf(false) }
@@ -82,9 +83,17 @@ fun MainScreen(
 
     Scaffold(
         topBar = {
+            val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
             TopAppBar(
                 title = { Text("Gym Track App") },
                 actions = {
+                    // Ikona kalendarza miesięcznego (tylko w zakładce Calendar)
+                    if (currentRoute == "calendar" || currentRoute?.startsWith("calendar/") == true) {
+                        IconButton(onClick = { showMonthlyCalendar = true }) {
+                            Icon(Icons.Default.DateRange, contentDescription = "Kalendarz miesięczny")
+                        }
+                    }
+
                     IconButton(onClick = {
                         if (NetworkStatus.isOnline(context)) {
                             authViewModel.signOut()
@@ -175,7 +184,9 @@ fun MainScreen(
                     showAddSessionDialog = showAddSessionDialog,
                     onDismissDialog = { showAddSessionDialog = false },
                     navController = navController,
-                    initialDate = initialDate
+                    initialDate = initialDate,
+                    showMonthlyCalendar = showMonthlyCalendar,
+                    onDismissMonthlyCalendar = { showMonthlyCalendar = false }
                 )
             }
             composable("calendar") {
@@ -193,7 +204,9 @@ fun MainScreen(
                     sharePostViewModel = sharePostViewModel,
                     showAddSessionDialog = showAddSessionDialog,
                     onDismissDialog = { showAddSessionDialog = false },
-                    navController = navController
+                    navController = navController,
+                    showMonthlyCalendar = showMonthlyCalendar,
+                    onDismissMonthlyCalendar = { showMonthlyCalendar = false }
                 )
             }
             composable("planner") {
@@ -256,6 +269,7 @@ fun MainScreen(
                 AddExerciseScreen(
                     sessionId = sessionId,
                     onNavigateBack = { navController.popBackStack() },
+                    navController = navController,
                     exerciseViewModel = exerciseViewModel,
                     trainingViewModel = trainingViewModel,
                     statisticsViewModel = statisticsViewModel
@@ -267,7 +281,45 @@ fun MainScreen(
                 AddTemplateExerciseScreen(
                     templateId = templateId,
                     onNavigateBack = { navController.popBackStack() },
+                    navController = navController,
                     exerciseViewModel = exerciseViewModel,
+                    templateViewModel = templateViewModel
+                )
+            }
+
+            composable(
+                route = "exercise_detail/{exerciseId}?from={from}&sessionId={sessionId}&templateId={templateId}",
+                arguments = listOf(
+                    navArgument("exerciseId") {
+                        type = NavType.StringType
+                    },
+                    navArgument("from") {
+                        type = NavType.StringType
+                        defaultValue = "session"
+                    },
+                    navArgument("sessionId") {
+                        type = NavType.StringType
+                        nullable = true
+                    },
+                    navArgument("templateId") {
+                        type = NavType.StringType
+                        nullable = true
+                    }
+                )
+            ) { backStackEntry ->
+                val exerciseId = backStackEntry.arguments?.getString("exerciseId") ?: ""
+                val from = backStackEntry.arguments?.getString("from") ?: "session"
+                val sessionId = backStackEntry.arguments?.getString("sessionId")?.toLongOrNull()
+                val templateId = backStackEntry.arguments?.getString("templateId")?.toLongOrNull()
+
+                ExerciseDetailScreen(
+                    exerciseId = exerciseId,
+                    from = from,
+                    sessionId = sessionId,
+                    templateId = templateId,
+                    onNavigateBack = { navController.popBackStack() },
+                    exerciseViewModel = exerciseViewModel,
+                    trainingViewModel = trainingViewModel,
                     templateViewModel = templateViewModel
                 )
             }
