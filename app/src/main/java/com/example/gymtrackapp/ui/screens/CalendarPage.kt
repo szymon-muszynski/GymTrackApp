@@ -84,7 +84,9 @@ fun CalendarPage(
     showAddSessionDialog: Boolean,
     onDismissDialog: () -> Unit,
     navController: NavHostController,
-    initialDate: LocalDate? = null
+    initialDate: LocalDate? = null,
+    showMonthlyCalendar: Boolean = false,
+    onDismissMonthlyCalendar: () -> Unit = {}
 ) {
     var selectedDate by remember { mutableStateOf(initialDate ?: LocalDate.now()) }
     val sessions by trainingViewModel.sessions.collectAsState()
@@ -339,6 +341,32 @@ fun CalendarPage(
                 )
                 statisticsViewModel.refresh() // Odświeżamy statystyki
                 showEditDialog = false
+            }
+        )
+    }
+
+    // Dialog kalendarza miesięcznego
+    if (showMonthlyCalendar) {
+        val trainingDates by trainingViewModel.trainingDatesCache.collectAsState()
+
+        // Załaduj dni z treningami dla aktualnie wybranego miesiąca
+        LaunchedEffect(selectedDate) {
+            trainingViewModel.loadTrainingDatesForMonth(
+                year = selectedDate.year,
+                month = selectedDate.monthValue
+            )
+        }
+
+        com.example.gymtrackapp.ui.components.MonthlyCalendarDialog(
+            selectedDate = selectedDate,
+            trainingDates = trainingDates,
+            onDateSelected = { date ->
+                selectedDate = date
+                trainingViewModel.loadSessionsForDate(date.toEpochDay())
+            },
+            onDismiss = onDismissMonthlyCalendar,
+            onMonthChanged = { year, month ->
+                trainingViewModel.loadTrainingDatesForMonth(year, month)
             }
         )
     }

@@ -101,6 +101,22 @@ interface TrainingDao {
     @Query("UPDATE session_exercises SET syncStatus = 0 WHERE id = :sessionExerciseId")
     suspend fun markSessionExerciseSynced(sessionExerciseId: Long)
 
+    // ============= CALENDAR QUERIES =============
+
+    /**
+     * Zwraca unikalne daty (jako Long - epoch day), które mają przynajmniej jedną sesję treningową.
+     * Używane do oznaczania dni z treningiem w kalendarzu miesięcznym.
+     */
+    @Query("""
+        SELECT DISTINCT date 
+        FROM training_sessions 
+        WHERE deletedAtMs IS NULL 
+        AND date >= :startEpochDay 
+        AND date <= :endEpochDay
+        ORDER BY date
+    """)
+    suspend fun getTrainingDatesInRange(startEpochDay: Long, endEpochDay: Long): List<Long>
+
     @Query("UPDATE session_set_details SET syncStatus = 0 WHERE id = :setId")
     suspend fun markSessionSetSynced(setId: Long)
 

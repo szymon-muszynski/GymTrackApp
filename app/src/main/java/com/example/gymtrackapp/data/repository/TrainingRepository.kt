@@ -36,6 +36,13 @@ class TrainingRepository(
     fun observeSessionsForDate(timestamp: Long): Flow<List<TrainingSession>> =
         trainingDao.observeSessionsForDate(timestamp)
 
+    /**
+     * Zwraca listę dni (jako Long - epoch day), które mają przynajmniej jedną sesję treningową
+     * w podanym zakresie. Używane do oznaczania dni w kalendarzu miesięcznym.
+     */
+    suspend fun getTrainingDatesInRange(startEpochDay: Long, endEpochDay: Long): List<Long> =
+        trainingDao.getTrainingDatesInRange(startEpochDay, endEpochDay)
+
     suspend fun createEmptySession(date: Long, description: String): Long {
         val sessionId = trainingDao.createEmptySession(
             TrainingSession(

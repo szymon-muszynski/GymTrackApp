@@ -51,6 +51,7 @@ fun MainScreen(
 ) {
     val navController = rememberNavController()
     var showAddSessionDialog by remember { mutableStateOf(false) }
+    var showMonthlyCalendar by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     var showOfflineLogoutDialog by remember { mutableStateOf(false) }
@@ -82,9 +83,17 @@ fun MainScreen(
 
     Scaffold(
         topBar = {
+            val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
             TopAppBar(
                 title = { Text("Gym Track App") },
                 actions = {
+                    // Ikona kalendarza miesięcznego (tylko w zakładce Calendar)
+                    if (currentRoute == "calendar" || currentRoute?.startsWith("calendar/") == true) {
+                        IconButton(onClick = { showMonthlyCalendar = true }) {
+                            Icon(Icons.Default.DateRange, contentDescription = "Kalendarz miesięczny")
+                        }
+                    }
+
                     IconButton(onClick = {
                         if (NetworkStatus.isOnline(context)) {
                             authViewModel.signOut()
@@ -175,7 +184,9 @@ fun MainScreen(
                     showAddSessionDialog = showAddSessionDialog,
                     onDismissDialog = { showAddSessionDialog = false },
                     navController = navController,
-                    initialDate = initialDate
+                    initialDate = initialDate,
+                    showMonthlyCalendar = showMonthlyCalendar,
+                    onDismissMonthlyCalendar = { showMonthlyCalendar = false }
                 )
             }
             composable("calendar") {
@@ -193,7 +204,9 @@ fun MainScreen(
                     sharePostViewModel = sharePostViewModel,
                     showAddSessionDialog = showAddSessionDialog,
                     onDismissDialog = { showAddSessionDialog = false },
-                    navController = navController
+                    navController = navController,
+                    showMonthlyCalendar = showMonthlyCalendar,
+                    onDismissMonthlyCalendar = { showMonthlyCalendar = false }
                 )
             }
             composable("planner") {
