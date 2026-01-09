@@ -89,4 +89,28 @@ interface TemplateDao {
         """
     )
     suspend fun deleteOrphanedPendingTemplateExercises(): Int
+
+    // ===== HARD DELETE (retencja) =====
+
+    /** Hard-delete (retencja): usuwa stare soft-deleted ćwiczenia w templatekach, tylko jeśli SYNCED. */
+    @Query(
+        """
+        DELETE FROM template_exercises
+        WHERE deletedAtMs IS NOT NULL
+          AND deletedAtMs < :cutoffMs
+          AND syncStatus = ${com.example.gymtrackapp.data.entity.SyncStatus.SYNCED}
+        """
+    )
+    suspend fun purgeDeletedTemplateExercises(cutoffMs: Long): Int
+
+    /** Hard-delete (retencja): usuwa stare soft-deleted templateki, tylko jeśli SYNCED. */
+    @Query(
+        """
+        DELETE FROM workout_templates
+        WHERE deletedAtMs IS NOT NULL
+          AND deletedAtMs < :cutoffMs
+          AND syncStatus = ${com.example.gymtrackapp.data.entity.SyncStatus.SYNCED}
+        """
+    )
+    suspend fun purgeDeletedWorkoutTemplates(cutoffMs: Long): Int
 }

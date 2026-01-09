@@ -9,6 +9,7 @@ import com.example.gymtrackapp.data.entity.SyncStatus
  */
 data class CustomExerciseDoc(
     val id: String = "",
+    val userId: String = "",
     val name: String = "",
     val force: String? = null,
     val level: String = "beginner",
@@ -26,8 +27,9 @@ data class CustomExerciseDoc(
     val deletedAtMs: Long? = null,
 )
 
-internal fun Exercise.toCustomDoc(): CustomExerciseDoc = CustomExerciseDoc(
+internal fun Exercise.toCustomDoc(userId: String): CustomExerciseDoc = CustomExerciseDoc(
     id = id,
+    userId = userId,
     name = name,
     force = force,
     level = level,

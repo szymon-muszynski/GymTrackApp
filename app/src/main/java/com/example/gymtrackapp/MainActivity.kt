@@ -19,6 +19,7 @@ import com.example.gymtrackapp.data.ExerciseDatabase
 import com.example.gymtrackapp.data.repository.ExerciseRepository
 import com.example.gymtrackapp.data.repository.TemplateRepository
 import com.example.gymtrackapp.data.repository.TrainingRepository
+import com.example.gymtrackapp.data.sync.CleanupScheduler
 import com.example.gymtrackapp.di.GymTrackAppContainer
 import com.example.gymtrackapp.di.LocalAppContainer
 import com.example.gymtrackapp.ui.screens.AuthScreen
@@ -62,6 +63,9 @@ class MainActivity : ComponentActivity() {
             database.trainingDao(),
             database.exerciseDao()
         )
+
+        // Okresowy cleanup tombstone'ów (Firestore + Room)
+        CleanupScheduler.enqueuePeriodic(applicationContext)
 
         setContent {
             // Jeden kontener zależności na całą kompozycję.

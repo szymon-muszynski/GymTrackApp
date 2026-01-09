@@ -39,7 +39,7 @@ class ExerciseSyncWorker(
                 val ref = ExerciseFirestorePaths.customExercisesCol(db, uid)
                     .document(exercise.id)
 
-                ref.set(exercise.toCustomDoc(), SetOptions.merge()).await()
+                ref.set(exercise.toCustomDoc(uid), SetOptions.merge()).await()
                 exerciseDao.markExerciseSynced(exercise.id)
             }
 
@@ -49,4 +49,3 @@ class ExerciseSyncWorker(
         }
     }
 }
-

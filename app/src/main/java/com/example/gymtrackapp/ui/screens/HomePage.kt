@@ -19,12 +19,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.gymtrackapp.data.sync.FirestoreCleanupWorker
 import com.example.gymtrackapp.ui.viewmodel.PlannerViewModel
 import com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel
 import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
@@ -44,6 +46,9 @@ fun HomePage(
     uid: String?,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    var showCleanupToast by remember { mutableStateOf(false) }
+
     // Pobierz dane o ostatnim tygodniu
     val weeklyData = statisticsViewModel?.heatmapData?.collectAsState()?.value ?: emptyList()
 
@@ -97,6 +102,42 @@ fun HomePage(
         )
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        // === DEBUG / TEMP: manualny cleanup trigger ===
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    text = "Debug",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = {
+                        FirestoreCleanupWorker.enqueueOneTime(context.applicationContext)
+                        showCleanupToast = true
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1C7D5A))
+                ) {
+                    Text("Odpal cleanup (Firestore + Room)", color = Color.White)
+                }
+                if (showCleanupToast) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Cleanup zlecony. Sprawdź Logcat (tag: FirestoreCleanupWorker).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF1C7D5A)
+                    )
+                }
+            }
+        }
     }
 }
 

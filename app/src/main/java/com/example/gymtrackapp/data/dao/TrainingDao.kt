@@ -7,6 +7,7 @@ import androidx.room.Update
 import com.example.gymtrackapp.data.entity.SessionExercise
 import com.example.gymtrackapp.data.entity.SessionSetDetails
 import com.example.gymtrackapp.data.entity.TrainingSession
+import com.example.gymtrackapp.data.entity.SyncStatus
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -414,6 +415,44 @@ interface TrainingDao {
         """
     )
     suspend fun getAvailableSessionDatesWithCount(): List<SessionDateCount>
+
+    // ===== HARD DELETE (retencja) =====
+
+    /**
+     * Hard-delete (retencja): usuwa stare soft-deleted serie, ale tylko jeśli są już SYNCED.
+     * Zawsze kasujemy leaf -> root.
+     */
+    @Query(
+        """
+        DELETE FROM session_set_details
+        WHERE deletedAtMs IS NOT NULL
+          AND deletedAtMs < :cutoffMs
+          AND syncStatus = ${SyncStatus.SYNCED}
+        """
+    )
+    suspend fun purgeDeletedSessionSets(cutoffMs: Long): Int
+
+    /** Hard-delete (retencja): usuwa stare soft-deleted ćwiczenia sesji, tylko jeśli SYNCED. */
+    @Query(
+        """
+        DELETE FROM session_exercises
+        WHERE deletedAtMs IS NOT NULL
+          AND deletedAtMs < :cutoffMs
+          AND syncStatus = ${SyncStatus.SYNCED}
+        """
+    )
+    suspend fun purgeDeletedSessionExercises(cutoffMs: Long): Int
+
+    /** Hard-delete (retencja): usuwa stare soft-deleted sesje, tylko jeśli SYNCED. */
+    @Query(
+        """
+        DELETE FROM training_sessions
+        WHERE deletedAtMs IS NOT NULL
+          AND deletedAtMs < :cutoffMs
+          AND syncStatus = ${SyncStatus.SYNCED}
+        """
+    )
+    suspend fun purgeDeletedTrainingSessions(cutoffMs: Long): Int
 }
 
 
