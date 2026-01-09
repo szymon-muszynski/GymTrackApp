@@ -25,6 +25,8 @@ import com.example.gymtrackapp.di.LocalAppContainer
 import com.example.gymtrackapp.ui.screens.AuthScreen
 import com.example.gymtrackapp.ui.screens.MainScreen
 import com.example.gymtrackapp.ui.theme.GymTrackAppTheme
+import com.example.gymtrackapp.ui.util.LocalNetworkState
+import com.example.gymtrackapp.utils.NetworkMonitor
 import com.example.gymtrackapp.ui.viewmodel.AuthViewModel
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModelFactory
@@ -40,6 +42,7 @@ import com.example.gymtrackapp.ui.viewmodel.TemplateViewModel
 import com.example.gymtrackapp.ui.viewmodel.TemplateViewModelFactory
 import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
 import com.example.gymtrackapp.ui.viewmodel.TrainingViewModelFactory
+import kotlinx.coroutines.flow.collectLatest
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,7 +74,17 @@ class MainActivity : ComponentActivity() {
             // Jeden kontener zależności na całą kompozycję.
             val appContainer = remember { GymTrackAppContainer(applicationContext) }
 
-            CompositionLocalProvider(LocalAppContainer provides appContainer) {
+            // Monitor sieci – jeden na całą aplikację
+            val networkMonitor = appContainer.networkMonitor
+            var networkState by remember { mutableStateOf(networkMonitor.getCurrent()) }
+            LaunchedEffect(networkMonitor) {
+                networkMonitor.observe().collectLatest { networkState = it }
+            }
+
+            CompositionLocalProvider(
+                LocalAppContainer provides appContainer,
+                LocalNetworkState provides networkState,
+            ) {
                 GymTrackAppTheme {
                     val authViewModel: AuthViewModel = viewModel(
                         factory = object : ViewModelProvider.Factory {
@@ -154,7 +167,11 @@ class MainActivity : ComponentActivity() {
 
                         val sharePostViewModel: SharePostViewModel = viewModel(
                             key = "share_${currentUid}",
-                            factory = SharePostViewModelFactory(socialRepository, database.trainingDao())
+                            factory = SharePostViewModelFactory(
+                                socialRepository,
+                                database.trainingDao(),
+                                networkMonitor,
+                            )
                         )
 
                         // Sync following ASAP po zalogowaniu, zanim user wejdzie w Friends.

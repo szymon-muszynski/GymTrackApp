@@ -14,6 +14,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -21,6 +23,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.ui.Alignment
@@ -29,10 +32,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.gymtrackapp.data.social.model.Post
+import com.example.gymtrackapp.ui.components.OfflineBanner
 import com.example.gymtrackapp.ui.components.PostCard
 import com.example.gymtrackapp.ui.components.PostDetailsDialog
 import com.example.gymtrackapp.ui.viewmodel.ExploreFeedViewModel
+import com.example.gymtrackapp.ui.util.LocalNetworkState
 import com.example.gymtrackapp.ui.util.PullToRefreshCompat
+import com.example.gymtrackapp.utils.NetworkMonitor
+import kotlinx.coroutines.launch
 
 @Composable
 fun ExploreFeedScreen(
@@ -46,6 +53,12 @@ fun ExploreFeedScreen(
     val loadingMore by viewModel.loadingMore.collectAsState()
     val hasMore by viewModel.hasMore.collectAsState()
     val error by viewModel.error.collectAsState()
+
+    val networkState = LocalNetworkState.current
+    val isOnline = networkState == NetworkMonitor.NetworkState.OnlineValidated
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     val listState = rememberLazyListState()
 
@@ -85,6 +98,12 @@ fun ExploreFeedScreen(
             fontWeight = FontWeight.SemiBold,
         )
 
+        Spacer(Modifier.height(8.dp))
+        OfflineBanner(networkState = networkState)
+
+        Spacer(Modifier.height(8.dp))
+        SnackbarHost(hostState = snackbarHostState)
+
         if (error != null) {
             Spacer(Modifier.height(8.dp))
             Text(text = error ?: "", color = MaterialTheme.colorScheme.error)
@@ -94,7 +113,13 @@ fun ExploreFeedScreen(
 
         PullToRefreshCompat(
             isRefreshing = refreshing,
-            onRefresh = { viewModel.refreshFirstPage() },
+            onRefresh = {
+                if (!isOnline) {
+                    scope.launch { snackbarHostState.showSnackbar("Brak połączenia z internetem") }
+                } else {
+                    viewModel.refreshFirstPage()
+                }
+            },
             modifier = Modifier.fillMaxSize(),
         ) {
             if (feed.isEmpty()) {

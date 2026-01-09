@@ -251,14 +251,15 @@ fun MainScreen(
                 val uid = currentUser?.uid
 
                 if (uid == null) {
-                    // awaryjnie: jeśli UI zdążyło tu wejść bez usera
                     Text("Brak zalogowanego użytkownika")
                 } else {
-                    val socialRepository = LocalAppContainer.current.socialRepository
+                    val appContainer = LocalAppContainer.current
+                    val socialRepository = appContainer.socialRepository
+                    val networkMonitor = appContainer.networkMonitor
 
                     val vm: MyProfileViewModel = viewModel(
                         key = "my_profile_${uid}",
-                        factory = MyProfileViewModelFactory(socialRepository, uid)
+                        factory = MyProfileViewModelFactory(socialRepository, uid, networkMonitor)
                     )
 
                     ProfilePage(viewModel = vm)

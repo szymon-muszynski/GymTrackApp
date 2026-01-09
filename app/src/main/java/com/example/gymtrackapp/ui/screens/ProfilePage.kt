@@ -41,10 +41,18 @@ import com.example.gymtrackapp.data.social.model.Post
 import com.example.gymtrackapp.ui.components.AvatarCircle
 import com.example.gymtrackapp.ui.components.PostCard
 import com.example.gymtrackapp.ui.components.PostDetailsDialog
+import com.example.gymtrackapp.ui.components.OfflineBanner
+import com.example.gymtrackapp.ui.util.LocalNetworkState
 import com.example.gymtrackapp.ui.util.PullToRefreshCompat
 import com.example.gymtrackapp.ui.viewmodel.MyProfileViewModel
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import com.example.gymtrackapp.utils.NetworkMonitor
 
 @Composable
 fun ProfilePage(
@@ -80,6 +88,22 @@ fun ProfilePage(
     LaunchedEffect(shouldLoadMore, hasMore, loadingMore) {
         if (shouldLoadMore && hasMore && !loadingMore && !refreshing) {
             viewModel.loadMorePosts()
+        }
+    }
+
+    val networkState = LocalNetworkState.current
+    val isOnline = networkState == NetworkMonitor.NetworkState.OnlineValidated
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(viewModel) {
+        viewModel.events.collectLatest { event ->
+            when (event) {
+                is MyProfileViewModel.UiEvent.ShowSnackbar -> {
+                    snackbarHostState.showSnackbar(event.message)
+                }
+            }
         }
     }
 
@@ -132,11 +156,22 @@ fun ProfilePage(
             }
         }
 
+        Spacer(Modifier.height(8.dp))
+        OfflineBanner(networkState = networkState)
+        Spacer(Modifier.height(8.dp))
+        SnackbarHost(hostState = snackbarHostState)
+
         Spacer(Modifier.height(12.dp))
 
         PullToRefreshCompat(
             isRefreshing = refreshing,
-            onRefresh = { viewModel.refresh() },
+            onRefresh = {
+                if (!isOnline) {
+                    scope.launch { snackbarHostState.showSnackbar("Brak połączenia z internetem") }
+                } else {
+                    viewModel.refresh()
+                }
+            },
             modifier = Modifier.fillMaxSize(),
         ) {
             if (posts.isEmpty()) {
@@ -166,7 +201,13 @@ fun ProfilePage(
                             post = post,
                             busy = deleteBusy[post.postId] == true,
                             onOpenDetails = { detailsPost = it },
-                            onDelete = { viewModel.deletePost(post) },
+                            onDelete = {
+                                if (!isOnline) {
+                                    scope.launch { snackbarHostState.showSnackbar("Brak połączenia z internetem") }
+                                } else {
+                                    viewModel.deletePost(post)
+                                }
+                            },
                         )
                     }
 
