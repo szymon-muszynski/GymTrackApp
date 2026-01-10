@@ -14,7 +14,11 @@ import kotlinx.coroutines.flow.onStart
 /**
  * Monitor stanu sieci dla Compose/VM.
  *
- * Uwaga: używamy NET_CAPABILITY_VALIDATED żeby odróżnić "jest Wi‑Fi" od "jest internet".
+ * Źródło prawdy dla "online validated": [NetworkStatus.isOnline].
+ *
+ * Dodatkowo rozróżniamy:
+ * - Offline: brak aktywnej sieci / brak NET_CAPABILITY_INTERNET
+ * - ConnectedNoInternet: jest aktywna sieć i NET_CAPABILITY_INTERNET, ale bez VALIDATED
  */
 class NetworkMonitor(private val appContext: Context) {
 
@@ -28,14 +32,15 @@ class NetworkMonitor(private val appContext: Context) {
         val cm = appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
         fun currentState(): NetworkState {
+            // 1) Jedno źródło prawdy: validated internet
+            if (NetworkStatus.isOnline(appContext)) return NetworkState.OnlineValidated
+
+            // 2) Skoro nie online-validated, doprecyzuj: Offline vs ConnectedNoInternet
             val network = cm.activeNetwork ?: return NetworkState.Offline
             val caps = cm.getNetworkCapabilities(network) ?: return NetworkState.Offline
 
-            val hasInternet = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            if (!hasInternet) return NetworkState.Offline
-
-            val validated = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-            return if (validated) NetworkState.OnlineValidated else NetworkState.ConnectedNoInternet
+            val hasInternetCap = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            return if (hasInternetCap) NetworkState.ConnectedNoInternet else NetworkState.Offline
         }
 
         val callback = object : ConnectivityManager.NetworkCallback() {
@@ -64,14 +69,15 @@ class NetworkMonitor(private val appContext: Context) {
         .distinctUntilChanged()
 
     fun getCurrent(): NetworkState {
+        // 1) Jedno źródło prawdy: validated internet
+        if (NetworkStatus.isOnline(appContext)) return NetworkState.OnlineValidated
+
+        // 2) Skoro nie online-validated, doprecyzuj: Offline vs ConnectedNoInternet
         val cm = appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val network = cm.activeNetwork ?: return NetworkState.Offline
         val caps = cm.getNetworkCapabilities(network) ?: return NetworkState.Offline
 
-        val hasInternet = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-        if (!hasInternet) return NetworkState.Offline
-
-        val validated = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-        return if (validated) NetworkState.OnlineValidated else NetworkState.ConnectedNoInternet
+        val hasInternetCap = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        return if (hasInternetCap) NetworkState.ConnectedNoInternet else NetworkState.Offline
     }
 }
