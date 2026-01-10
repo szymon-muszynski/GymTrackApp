@@ -25,10 +25,12 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -54,23 +56,24 @@ import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import com.example.gymtrackapp.data.entity.TrainingSession
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
-import kotlin.collections.forEach
-import androidx.compose.material3.CardDefaults
+import com.example.gymtrackapp.ui.viewmodel.SharePostViewModel
 import com.example.gymtrackapp.ui.viewmodel.TemplateViewModel
+import com.example.gymtrackapp.utils.EpochDayFormatter
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import com.example.gymtrackapp.data.entity.WorkoutTemplate
-import com.example.gymtrackapp.ui.viewmodel.SharePostViewModel
 import com.example.gymtrackapp.ui.components.SessionNoteCard
 import com.example.gymtrackapp.ui.components.SessionNoteDialog
-import com.example.gymtrackapp.utils.EpochDayFormatter
-import androidx.compose.material3.RadioButton
+import com.example.gymtrackapp.ui.util.LocalNetworkState
+import com.example.gymtrackapp.utils.NetworkMonitor
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -129,6 +132,17 @@ fun CalendarPage(
         if (shareMessage != null) {
             snackbarHostState.showSnackbar(shareMessage!!)
             sharePostViewModel.clearMessage()
+        }
+    }
+
+    // Collector eventów z SharePostViewModel zostaje, ale bez redundancji
+    LaunchedEffect(sharePostViewModel) {
+        sharePostViewModel.events.collectLatest { event ->
+            when (event) {
+                is SharePostViewModel.UiEvent.ShowSnackbar -> {
+                    snackbarHostState.showSnackbar(event.message)
+                }
+            }
         }
     }
 
@@ -775,7 +789,7 @@ fun AddSessionDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Divider()
+                HorizontalDivider()
 
                 Text(
                     text = "Utwórz pustą sesję",

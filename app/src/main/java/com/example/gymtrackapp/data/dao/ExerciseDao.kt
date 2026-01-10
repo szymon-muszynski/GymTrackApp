@@ -39,6 +39,23 @@ interface ExerciseDao {
         syncStatus: Int
     )
 
+    // ===== HARD DELETE (retencja) =====
+
+    /**
+     * Hard-delete (retencja): usuwa stare soft-deleted customowe ćwiczenia, tylko jeśli SYNCED.
+     * Seedowane ćwiczenia (isCustom=0) zostają w bazie.
+     */
+    @Query(
+        """
+        DELETE FROM exercises
+        WHERE isCustom = 1
+          AND deletedAtMs IS NOT NULL
+          AND deletedAtMs < :cutoffMs
+          AND syncStatus = ${com.example.gymtrackapp.data.entity.SyncStatus.SYNCED}
+        """
+    )
+    suspend fun purgeDeletedCustomExercises(cutoffMs: Long): Int
+
     // ---- Sync queue helpers ----
 
     @Query(

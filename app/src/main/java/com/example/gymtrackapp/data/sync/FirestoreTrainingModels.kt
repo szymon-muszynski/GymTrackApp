@@ -11,6 +11,7 @@ import com.example.gymtrackapp.data.entity.TrainingSession
 
 data class TrainingSessionDoc(
     val remoteId: String = "",
+    val userId: String = "",
     val date: Long = 0L,
     val description: String = "",
     val note: String? = null,
@@ -20,6 +21,7 @@ data class TrainingSessionDoc(
 
 data class SessionExerciseDoc(
     val remoteId: String = "",
+    val userId: String = "",
     val trainingSessionRemoteId: String = "",
     val exerciseId: String = "",
     val order: Int = 0,
@@ -29,6 +31,7 @@ data class SessionExerciseDoc(
 
 data class SessionSetDetailsDoc(
     val remoteId: String = "",
+    val userId: String = "",
     val sessionExerciseRemoteId: String = "",
     val order: Int = 0,
     val reps: Int = 0,
@@ -37,8 +40,9 @@ data class SessionSetDetailsDoc(
     val deletedAtMs: Long? = null,
 )
 
-internal fun TrainingSession.toDoc(): TrainingSessionDoc = TrainingSessionDoc(
+internal fun TrainingSession.toDoc(userId: String): TrainingSessionDoc = TrainingSessionDoc(
     remoteId = remoteId,
+    userId = userId,
     date = date,
     description = description,
     note = note,
@@ -46,8 +50,9 @@ internal fun TrainingSession.toDoc(): TrainingSessionDoc = TrainingSessionDoc(
     deletedAtMs = deletedAtMs,
 )
 
-internal fun SessionExercise.toDoc(sessionRemoteId: String): SessionExerciseDoc = SessionExerciseDoc(
+internal fun SessionExercise.toDoc(userId: String, sessionRemoteId: String): SessionExerciseDoc = SessionExerciseDoc(
     remoteId = remoteId,
+    userId = userId,
     trainingSessionRemoteId = sessionRemoteId,
     exerciseId = exerciseId,
     order = order,
@@ -55,9 +60,10 @@ internal fun SessionExercise.toDoc(sessionRemoteId: String): SessionExerciseDoc 
     deletedAtMs = deletedAtMs,
 )
 
-internal fun SessionSetDetails.toDoc(sessionExerciseRemoteId: String): SessionSetDetailsDoc =
+internal fun SessionSetDetails.toDoc(userId: String, sessionExerciseRemoteId: String): SessionSetDetailsDoc =
     SessionSetDetailsDoc(
         remoteId = remoteId,
+        userId = userId,
         sessionExerciseRemoteId = sessionExerciseRemoteId,
         order = order,
         reps = reps,

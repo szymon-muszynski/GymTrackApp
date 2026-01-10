@@ -50,6 +50,8 @@ class PlanningRepository(
             val title = map[Fields.TITLE] as? String
             val updatedAtMs = (map[Fields.UPDATED_AT_MS] as? Number)?.toLong()
             val deletedAtMs = (map[Fields.DELETED_AT_MS] as? Number)?.toLong()
+            // userId jest opcjonalny w starszych danych
+            // val userId = map[Fields.USER_ID] as? String
 
             // Minimalna walidacja
             if (dateEpochDay == null || title == null || updatedAtMs == null) {
@@ -162,6 +164,7 @@ class PlanningRepository(
             .document(entity.id)
 
         val payload = hashMapOf<String, Any?>(
+            Fields.USER_ID to uid,
             Fields.DATE_EPOCH_DAY to entity.dateEpochDay,
             Fields.TITLE to entity.title,
             Fields.UPDATED_AT_MS to entity.updatedAtMs,
@@ -176,6 +179,7 @@ class PlanningRepository(
         private const val COLLECTION_PLANNED_WORKOUTS = "planned_workouts"
 
         private object Fields {
+            const val USER_ID = "userId"
             const val DATE_EPOCH_DAY = "dateEpochDay"
             const val TITLE = "title"
             const val UPDATED_AT_MS = "updatedAtMs"

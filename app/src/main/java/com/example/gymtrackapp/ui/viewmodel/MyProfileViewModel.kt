@@ -6,16 +6,20 @@ import androidx.lifecycle.viewModelScope
 import com.example.gymtrackapp.data.social.model.Post
 import com.example.gymtrackapp.data.social.model.UserProfile
 import com.example.gymtrackapp.data.social.repository.SocialRepository
+import com.example.gymtrackapp.utils.NetworkMonitor
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class MyProfileViewModel(
     private val socialRepository: SocialRepository,
     private val myUserId: String,
+    private val networkMonitor: NetworkMonitor,
 ) : ViewModel() {
 
     private companion object {
@@ -44,6 +48,13 @@ class MyProfileViewModel(
 
     private val _deleteBusy = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val deleteBusy: StateFlow<Map<String, Boolean>> = _deleteBusy.asStateFlow()
+
+    sealed class UiEvent {
+        data class ShowSnackbar(val message: String) : UiEvent()
+    }
+
+    private val _events = Channel<UiEvent>(capacity = Channel.BUFFERED)
+    val events = _events.receiveAsFlow()
 
     fun onEnterScreen() {
         refresh()
@@ -102,12 +113,21 @@ class MyProfileViewModel(
     fun deletePost(post: Post) {
         viewModelScope.launch {
             if (_deleteBusy.value[post.postId] == true) return@launch
+
+            if (networkMonitor.getCurrent() != NetworkMonitor.NetworkState.OnlineValidated) {
+                _events.trySend(UiEvent.ShowSnackbar("Brak połączenia z internetem"))
+                return@launch
+            }
+
             _deleteBusy.value = _deleteBusy.value + (post.postId to true)
             _error.value = null
             try {
                 socialRepository.deletePost(post)
+                _events.trySend(UiEvent.ShowSnackbar("Usunięto post"))
             } catch (t: Throwable) {
-                _error.value = t.message ?: "Błąd usuwania posta"
+                val msg = t.message ?: "Błąd usuwania posta"
+                _error.value = msg
+                _events.trySend(UiEvent.ShowSnackbar(msg))
             } finally {
                 _deleteBusy.value = _deleteBusy.value - post.postId
             }

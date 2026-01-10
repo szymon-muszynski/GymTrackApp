@@ -37,7 +37,7 @@ class TrainingSyncWorker(
                 val sessionRef = TrainingFirestorePaths.sessionsCol(db, uid)
                     .document(session.remoteId)
 
-                sessionRef.set(session.toDoc(), SetOptions.merge()).await()
+                sessionRef.set(session.toDoc(uid), SetOptions.merge()).await()
                 trainingDao.markSessionSynced(session.id)
             }
 
@@ -56,7 +56,7 @@ class TrainingSyncWorker(
                 val exerciseRef = TrainingFirestorePaths.exercisesCol(db, uid, sessionRemoteId)
                     .document(se.remoteId)
 
-                exerciseRef.set(se.toDoc(sessionRemoteId), SetOptions.merge()).await()
+                exerciseRef.set(se.toDoc(uid, sessionRemoteId), SetOptions.merge()).await()
                 trainingDao.markSessionExerciseSynced(se.id)
             }
 
@@ -88,7 +88,7 @@ class TrainingSyncWorker(
                     parentExercise.remoteId
                 ).document(set.remoteId)
 
-                setRef.set(set.toDoc(parentExercise.remoteId), SetOptions.merge()).await()
+                setRef.set(set.toDoc(uid, parentExercise.remoteId), SetOptions.merge()).await()
                 trainingDao.markSessionSetSynced(set.id)
             }
 

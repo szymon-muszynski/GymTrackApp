@@ -6,6 +6,7 @@ import com.example.gymtrackapp.data.ExerciseDatabase
 import com.example.gymtrackapp.data.repository.PlanningRepository
 import com.example.gymtrackapp.data.social.repository.FirestoreSocialRepository
 import com.example.gymtrackapp.notifications.NotificationScheduler
+import com.example.gymtrackapp.utils.NetworkMonitor
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
@@ -13,13 +14,18 @@ abstract class AppContainer {
     abstract val database: ExerciseDatabase
     abstract val socialRepository: FirestoreSocialRepository
     abstract val planningRepository: PlanningRepository
+    abstract val networkMonitor: NetworkMonitor
 }
 
 class GymTrackAppContainer(
     context: Context,
 ) : AppContainer() {
+    private val appContext = context.applicationContext
+
+    override val networkMonitor: NetworkMonitor = NetworkMonitor(appContext)
+
     // Zawsze trzymaj DB na applicationContext, żeby nie wyciekać Activity.
-    override val database: ExerciseDatabase = ExerciseDatabase.getDatabase(context.applicationContext)
+    override val database: ExerciseDatabase = ExerciseDatabase.getDatabase(appContext)
 
     override val socialRepository: FirestoreSocialRepository = FirestoreSocialRepository(
         auth = FirebaseAuth.getInstance(),
@@ -31,7 +37,7 @@ class GymTrackAppContainer(
 
     override val planningRepository: PlanningRepository = PlanningRepository(
         plannedWorkoutDao = database.plannedWorkoutDao(),
-        scheduler = NotificationScheduler(context.applicationContext),
+        scheduler = NotificationScheduler(appContext),
         firestore = FirebaseFirestore.getInstance(),
     )
 }

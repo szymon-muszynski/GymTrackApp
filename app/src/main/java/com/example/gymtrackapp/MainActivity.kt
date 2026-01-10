@@ -19,11 +19,14 @@ import com.example.gymtrackapp.data.ExerciseDatabase
 import com.example.gymtrackapp.data.repository.ExerciseRepository
 import com.example.gymtrackapp.data.repository.TemplateRepository
 import com.example.gymtrackapp.data.repository.TrainingRepository
+import com.example.gymtrackapp.data.sync.CleanupScheduler
+import com.example.gymtrackapp.data.sync.StartupCleanupTrigger
 import com.example.gymtrackapp.di.GymTrackAppContainer
 import com.example.gymtrackapp.di.LocalAppContainer
 import com.example.gymtrackapp.ui.screens.AuthScreen
 import com.example.gymtrackapp.ui.screens.MainScreen
 import com.example.gymtrackapp.ui.theme.GymTrackAppTheme
+import com.example.gymtrackapp.ui.util.LocalNetworkState
 import com.example.gymtrackapp.ui.viewmodel.AuthViewModel
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModelFactory
@@ -39,6 +42,7 @@ import com.example.gymtrackapp.ui.viewmodel.TemplateViewModel
 import com.example.gymtrackapp.ui.viewmodel.TemplateViewModelFactory
 import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
 import com.example.gymtrackapp.ui.viewmodel.TrainingViewModelFactory
+import kotlinx.coroutines.flow.collectLatest
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,11 +67,24 @@ class MainActivity : ComponentActivity() {
             database.exerciseDao()
         )
 
+        // Okresowy cleanup tombstone'ów (Firestore + Room)
+        CleanupScheduler.enqueuePeriodic(applicationContext)
+
         setContent {
             // Jeden kontener zależności na całą kompozycję.
             val appContainer = remember { GymTrackAppContainer(applicationContext) }
 
-            CompositionLocalProvider(LocalAppContainer provides appContainer) {
+            // Monitor sieci – jeden na całą aplikację
+            val networkMonitor = appContainer.networkMonitor
+            var networkState by remember { mutableStateOf(networkMonitor.getCurrent()) }
+            LaunchedEffect(networkMonitor) {
+                networkMonitor.observe().collectLatest { networkState = it }
+            }
+
+            CompositionLocalProvider(
+                LocalAppContainer provides appContainer,
+                LocalNetworkState provides networkState,
+            ) {
                 GymTrackAppTheme {
                     val authViewModel: AuthViewModel = viewModel(
                         factory = object : ViewModelProvider.Factory {
@@ -83,6 +100,14 @@ class MainActivity : ComponentActivity() {
 
                     val currentUser by authViewModel.currentUser.collectAsState()
                     val currentUid = currentUser?.uid
+
+                    // Jeśli user jest już zalogowany i po prostu wchodzi do aplikacji,
+                    // odpalamy best-effort cleanup (max 1x / 24h).
+                    LaunchedEffect(currentUid) {
+                        if (currentUid != null) {
+                            StartupCleanupTrigger.enqueueIfDue(this@MainActivity.applicationContext)
+                        }
+                    }
 
                     val exerciseViewModel: ExerciseViewModel = viewModel(
                         factory = ExerciseViewModelFactory(exerciseRepository)
@@ -150,7 +175,11 @@ class MainActivity : ComponentActivity() {
 
                         val sharePostViewModel: SharePostViewModel = viewModel(
                             key = "share_${currentUid}",
-                            factory = SharePostViewModelFactory(socialRepository, database.trainingDao())
+                            factory = SharePostViewModelFactory(
+                                socialRepository,
+                                database.trainingDao(),
+                                networkMonitor,
+                            )
                         )
 
                         // Sync following ASAP po zalogowaniu, zanim user wejdzie w Friends.

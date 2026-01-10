@@ -35,7 +35,7 @@ class TemplateSyncWorker(
             val pendingTemplates = templateDao.getPendingTemplates()
             for (template in pendingTemplates) {
                 val ref = TemplateFirestorePaths.templatesCol(db, uid).document(template.remoteId)
-                ref.set(template.toDoc(), SetOptions.merge()).await()
+                ref.set(template.toDoc(uid), SetOptions.merge()).await()
                 templateDao.markTemplateSynced(template.id)
             }
 
@@ -54,7 +54,7 @@ class TemplateSyncWorker(
                 val ref = TemplateFirestorePaths.exercisesCol(db, uid, templateRemoteId)
                     .document(te.remoteId)
 
-                ref.set(te.toDoc(templateRemoteId), SetOptions.merge()).await()
+                ref.set(te.toDoc(uid, templateRemoteId), SetOptions.merge()).await()
                 templateDao.markTemplateExerciseSynced(te.id)
             }
 
