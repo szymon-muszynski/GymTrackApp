@@ -102,42 +102,6 @@ fun HomePage(
         )
 
         Spacer(modifier = Modifier.height(16.dp))
-
-        // === DEBUG / TEMP: manualny cleanup trigger ===
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                Text(
-                    text = "Debug",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(
-                    onClick = {
-                        FirestoreCleanupWorker.enqueueOneTime(context.applicationContext)
-                        showCleanupToast = true
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1C7D5A))
-                ) {
-                    Text("Odpal cleanup (Firestore + Room)", color = Color.White)
-                }
-                if (showCleanupToast) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Cleanup zlecony. Sprawdź Logcat (tag: FirestoreCleanupWorker).",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF1C7D5A)
-                    )
-                }
-            }
-        }
     }
 }
 

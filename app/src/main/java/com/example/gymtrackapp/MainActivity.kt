@@ -20,13 +20,13 @@ import com.example.gymtrackapp.data.repository.ExerciseRepository
 import com.example.gymtrackapp.data.repository.TemplateRepository
 import com.example.gymtrackapp.data.repository.TrainingRepository
 import com.example.gymtrackapp.data.sync.CleanupScheduler
+import com.example.gymtrackapp.data.sync.StartupCleanupTrigger
 import com.example.gymtrackapp.di.GymTrackAppContainer
 import com.example.gymtrackapp.di.LocalAppContainer
 import com.example.gymtrackapp.ui.screens.AuthScreen
 import com.example.gymtrackapp.ui.screens.MainScreen
 import com.example.gymtrackapp.ui.theme.GymTrackAppTheme
 import com.example.gymtrackapp.ui.util.LocalNetworkState
-import com.example.gymtrackapp.utils.NetworkMonitor
 import com.example.gymtrackapp.ui.viewmodel.AuthViewModel
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModelFactory
@@ -100,6 +100,14 @@ class MainActivity : ComponentActivity() {
 
                     val currentUser by authViewModel.currentUser.collectAsState()
                     val currentUid = currentUser?.uid
+
+                    // Jeśli user jest już zalogowany i po prostu wchodzi do aplikacji,
+                    // odpalamy best-effort cleanup (max 1x / 24h).
+                    LaunchedEffect(currentUid) {
+                        if (currentUid != null) {
+                            StartupCleanupTrigger.enqueueIfDue(this@MainActivity.applicationContext)
+                        }
+                    }
 
                     val exerciseViewModel: ExerciseViewModel = viewModel(
                         factory = ExerciseViewModelFactory(exerciseRepository)

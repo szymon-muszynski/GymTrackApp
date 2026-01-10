@@ -21,7 +21,7 @@ object CleanupScheduler {
      */
     fun enqueuePeriodic(context: Context) {
         val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.UNMETERED)
+            .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
 
         val request = PeriodicWorkRequestBuilder<FirestoreCleanupWorker>(1, TimeUnit.DAYS)
@@ -36,4 +36,3 @@ object CleanupScheduler {
             )
     }
 }
-

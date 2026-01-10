@@ -5,7 +5,6 @@ import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.gymtrackapp.data.ExerciseDatabase
-import com.example.gymtrackapp.data.entity.SyncStatus
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
@@ -105,7 +104,7 @@ class FirestoreCleanupWorker(
 
         while (true) {
             var q = query.limit(PAGE_SIZE.toLong())
-            if (lastDoc != null) q = q.startAfter(lastDoc!!)
+            if (lastDoc != null) q = q.startAfter(lastDoc)
 
             val snap = q.get().await()
             if (snap.isEmpty) break
@@ -179,7 +178,7 @@ class FirestoreCleanupWorker(
          */
         fun enqueueOneTime(context: Context) {
             val constraints = androidx.work.Constraints.Builder()
-                .setRequiredNetworkType(androidx.work.NetworkType.UNMETERED)
+                .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
                 .build()
 
             val request = androidx.work.OneTimeWorkRequestBuilder<FirestoreCleanupWorker>()
