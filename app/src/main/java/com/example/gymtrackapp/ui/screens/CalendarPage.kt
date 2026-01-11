@@ -31,7 +31,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -64,16 +63,22 @@ import com.example.gymtrackapp.ui.viewmodel.SharePostViewModel
 import com.example.gymtrackapp.ui.viewmodel.TemplateViewModel
 import com.example.gymtrackapp.utils.EpochDayFormatter
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Divider
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import com.example.gymtrackapp.data.entity.WorkoutTemplate
 import com.example.gymtrackapp.ui.components.SessionNoteCard
 import com.example.gymtrackapp.ui.components.SessionNoteDialog
-import com.example.gymtrackapp.ui.util.LocalNetworkState
-import com.example.gymtrackapp.utils.NetworkMonitor
+import com.example.gymtrackapp.ui.theme.AppBackground
+import com.example.gymtrackapp.ui.theme.AppChipBackground
+import com.example.gymtrackapp.ui.theme.AppGreen
+import com.example.gymtrackapp.ui.theme.AppMutedText
+import com.example.gymtrackapp.ui.theme.AppSurface
+import com.example.gymtrackapp.ui.theme.AppDivider
+import com.example.gymtrackapp.ui.theme.AppShapes
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -146,59 +151,56 @@ fun CalendarPage(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        containerColor = Color(0xFF9FBAE8)
-    ) { padding ->
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(padding)
-                .background(Color(0xFF9FBAE8)),
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.CenterHorizontally
+    // Root wypełnia CAŁY obszar pomiędzy TopAppBar i BottomBar (padding jest już na NavHost w MainScreen).
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(AppBackground),
+        verticalArrangement = Arrangement.Top,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        HorizontalInfiniteCalendar(
+            selected = selectedDate,
+            onDateSelected = { selectedDate = it }
+        )
+
+        TextButton(
+            onClick = {
+                trainingViewModel.loadAvailableCopySourceDates()
+                copyFromSelectedDateEpochDay = null
+                copyFromSelectedSessionId = null
+                showCopyFromDialog = true
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp)
         ) {
-            HorizontalInfiniteCalendar(
-                selected = selectedDate,
-                onDateSelected = { selectedDate = it }
-            )
-
-            // Tymczasowy przycisk: kopiuj z innej daty
-            TextButton(
-                onClick = {
-                    trainingViewModel.loadAvailableCopySourceDates()
-                    copyFromSelectedDateEpochDay = null
-                    copyFromSelectedSessionId = null
-                    showCopyFromDialog = true
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp)
-            ) {
-                Text("Kopiuj z innej daty")
-            }
-
-            SessionsList(
-                trainingSessions = sessions,
-                trainingViewModel = trainingViewModel,
-                exerciseViewModel = exerciseViewModel,
-                sharePostViewModel = sharePostViewModel,
-                onEdit = { session ->
-                    sessionToEdit = session
-                    showEditDialog = true
-                },
-                onDelete = { session ->
-                    trainingViewModel.deleteSession(session)
-                },
-                onAddExercise = { session ->
-                    navController.navigate("add_exercise/${session.id}")
-                },
-                onExerciseClick = { sessionExerciseId, exerciseId ->
-                    navController.navigate("set_details/$sessionExerciseId/$exerciseId")
-                }
-            )
+            Text("Kopiuj z innej daty")
         }
+
+        SessionsList(
+            trainingSessions = sessions,
+            trainingViewModel = trainingViewModel,
+            exerciseViewModel = exerciseViewModel,
+            sharePostViewModel = sharePostViewModel,
+            onEdit = { session ->
+                sessionToEdit = session
+                showEditDialog = true
+            },
+            onDelete = { session ->
+                trainingViewModel.deleteSession(session)
+            },
+            onAddExercise = { session ->
+                navController.navigate("add_exercise/${session.id}")
+            },
+            onExerciseClick = { sessionExerciseId, exerciseId ->
+                navController.navigate("set_details/$sessionExerciseId/$exerciseId")
+            }
+        )
     }
+
+    // Snackbar: pokazuj jako standardowy toast/snackbar w dialogach lub przenieś do MainScreen.
+    // Zostawiamy logikę showSnackbar(), ale host nie jest tu potrzebny do layoutu.
 
     // Dialog "Kopiuj z" (2 kroki: data -> sesja)
     if (showCopyFromDialog) {
@@ -410,7 +412,9 @@ fun HorizontalInfiniteCalendar(
         state = listState,
         modifier = Modifier
             .fillMaxWidth()
-            .height(96.dp),
+            // mniejsza wysokość + brak dodatkowego odstępu u góry
+            .height(92.dp)
+            .padding(top = 0.dp),
         contentPadding = PaddingValues(horizontal = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -435,17 +439,20 @@ fun DayCard(
     selected: Boolean,
     onClick: () -> Unit
 ) {
-    val bg = if (selected) Color(0xFF2B6CB0) else Color.White
+    val bg = if (selected) AppGreen else AppSurface
     val textColor = if (selected) Color.White else Color.Black
+
     Card(
         modifier = Modifier
             .height(88.dp)
-            .padding(vertical = 4.dp)
-            .clickable(onClick = onClick)
+            // usuń padding pionowy - robił wizualnie dodatkową przerwę od góry
+            .clickable(onClick = onClick),
+        shape = AppShapes.card,
+        colors = CardDefaults.cardColors(containerColor = bg),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
-                .background(bg)
                 .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -540,9 +547,9 @@ fun TrainingSessionItem(
         modifier = modifier
             .fillMaxWidth()
             .clickable { isExpanded = !isExpanded },
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF6B9BD1) // ← Zmieniony kolor na ciemniejszy niebieski
-        )
+        shape = AppShapes.card,
+        colors = CardDefaults.cardColors(containerColor = AppSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
             Row(
@@ -558,8 +565,9 @@ fun TrainingSessionItem(
                 ) {
                     Text(
                         text = session.description,
-                        fontWeight = FontWeight.Bold, // ← Pogrubienie
-                        fontSize = 18.sp // ← Można opcjonalnie zwiększyć
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = Color(0xFF212121)
                     )
                 }
                 Column(modifier = Modifier.weight(1f)) {
@@ -570,8 +578,12 @@ fun TrainingSessionItem(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.End,
                     ) {
-                        Button(onClick = { onAddExercise(session) }) {
-                            Text("Add exercise")
+                        Button(
+                            onClick = { onAddExercise(session) },
+                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = AppGreen),
+                            shape = AppShapes.button
+                        ) {
+                            Text("Dodaj ćwiczenie", color = Color.White)
                         }
                         Box {
                             IconButton(onClick = { menuExpanded = true }) {
@@ -620,9 +632,8 @@ fun TrainingSessionItem(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFF5F5F5)
-                    )
+                    shape = AppShapes.smallCard,
+                    colors = CardDefaults.cardColors(containerColor = AppChipBackground)
                 ) {
                     if (sessionExercises.isEmpty()) {
                         Text(
@@ -776,9 +787,18 @@ fun AddSessionDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Dodaj sesję treningową") },
+        shape = AppShapes.dialog,
+        title = {
+            Text(
+                "Dodaj sesję treningową",
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
+            )
+        },
         text = {
             Column(
+                modifier = Modifier
+                    .fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 OutlinedTextField(
@@ -786,30 +806,39 @@ fun AddSessionDialog(
                     onValueChange = { description = it },
                     label = { Text("Opis sesji (opcjonalnie)") },
                     singleLine = false,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = AppShapes.button,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AppGreen,
+                        focusedLabelColor = AppGreen
+                    )
                 )
 
-                HorizontalDivider()
+                HorizontalDivider(color = AppDivider)
 
                 Text(
                     text = "Utwórz pustą sesję",
-                    style = MaterialTheme.typography.titleMedium
+                    fontSize = 14.sp,
+                    color = AppMutedText
                 )
                 Button(
                     onClick = {
                         onCreateEmptySession(description)
                         onDismiss()
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = AppGreen),
+                    shape = AppShapes.button
                 ) {
-                    Text("Pusta sesja")
+                    Text("Pusta sesja", fontWeight = FontWeight.Medium)
                 }
 
                 if (templates.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Lub wybierz szablon",
-                        style = MaterialTheme.typography.titleMedium
+                        fontSize = 14.sp,
+                        color = AppMutedText
                     )
                     Column(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -820,7 +849,8 @@ fun AddSessionDialog(
                                     onCreateSessionFromTemplate(template.id, description)
                                     onDismiss()
                                 },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = AppShapes.button
                             ) {
                                 Text(template.name)
                             }
@@ -840,8 +870,12 @@ fun AddSessionDialog(
             // zostaw puste, korzystamy z przycisków w `text`
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Anuluj")
+            OutlinedButton(
+                onClick = onDismiss,
+                shape = AppShapes.button,
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
+            ) {
+                Text("Anuluj", color = AppMutedText)
             }
         }
     )
@@ -855,23 +889,46 @@ fun EditSessionDialog(
 ) {
     var description by remember { mutableStateOf(session.description) }
 
-    androidx.compose.material3.AlertDialog(
+    AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edytuj nazwę sesji") },
+        shape = AppShapes.dialog,
+        title = {
+            Text(
+                "Edytuj nazwę sesji",
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
+            )
+        },
         text = {
-            androidx.compose.material3.OutlinedTextField(
+            OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Nowa nazwa") }
+                label = { Text("Nowa nazwa") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = AppShapes.button,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = AppGreen,
+                    focusedLabelColor = AppGreen
+                )
             )
         },
         confirmButton = {
-            TextButton(
-                onClick = { onConfirm(description) }
-            ) { Text("Potwierdź") }
+            Button(
+                onClick = { onConfirm(description) },
+                colors = ButtonDefaults.buttonColors(containerColor = AppGreen),
+                shape = AppShapes.button
+            ) {
+                Text("Zapisz", fontWeight = FontWeight.Medium)
+            }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Anuluj") }
+            OutlinedButton(
+                onClick = onDismiss,
+                shape = AppShapes.button,
+                border = androidx.compose.foundation.BorderStroke(1.dp, AppDivider)
+            ) {
+                Text("Anuluj", color = AppMutedText)
+            }
         }
     )
 }
