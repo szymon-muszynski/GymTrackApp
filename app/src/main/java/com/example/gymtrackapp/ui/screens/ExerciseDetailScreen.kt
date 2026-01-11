@@ -52,23 +52,11 @@ fun ExerciseDetailScreen(
     val exercise = allExercises.find { it.id == exerciseId }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = exercise?.name ?: "Szczegóły ćwiczenia",
-                        fontWeight = FontWeight.SemiBold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Wróć")
-                    }
-                }
-            )
-        },
+        // KLUCZOWA POPRAWKA: Wyłączamy domyślne insetsy (odstępy systemowe),
+        // ponieważ ten ekran jest już wewnątrz innego Scaffolda w MainScreen.
+        // To usuwa niechcianą lukę na górze.
+        contentWindowInsets = WindowInsets(0.dp),
         bottomBar = {
-            // Sticky button na dole (w stylu aplikacji)
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shadowElevation = 8.dp,
@@ -109,23 +97,47 @@ fun ExerciseDetailScreen(
         },
         containerColor = AppBackground
     ) { paddingValues ->
-        if (exercise == null) {
-            Box(
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(AppBackground)
+        ) {
+            // --- NAGŁÓWEK ---
+            // Ustawiony idealnie tak jak w AddExerciseScreen.
+            // Tam jest padding(16.dp) na rodzicu, tutaj dajemy go bezpośrednio na Row.
+            Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Ćwiczenie nie znalezione", color = AppMutedText)
+                IconButton(onClick = onNavigateBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Wróć")
+                }
+                Text(
+                    text = exercise?.name ?: "Szczegóły ćwiczenia",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
             }
-        } else {
-            ExerciseDetailContent(
-                exercise = exercise,
-                modifier = Modifier
-                    .padding(paddingValues)
-                    .fillMaxSize()
-                    .background(AppBackground)
-            )
+
+            // --- ZAWARTOŚĆ ---
+            if (exercise == null) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Ćwiczenie nie znalezione", color = AppMutedText)
+                }
+            } else {
+                ExerciseDetailContent(
+                    exercise = exercise,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }
@@ -141,10 +153,10 @@ fun ExerciseDetailContent(
 
     Column(
         modifier = modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .verticalScroll(scrollState)
     ) {
-        // Galeria zdjęć - w karcie
+        // Galeria zdjęć
         Card(
             modifier = Modifier
                 .fillMaxWidth()
