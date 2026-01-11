@@ -1,6 +1,5 @@
 package com.example.gymtrackapp.ui.screens
 
-
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -27,18 +26,23 @@ import com.example.gymtrackapp.ui.theme.AppMutedText
 import com.example.gymtrackapp.ui.theme.AppSurface
 import com.example.gymtrackapp.ui.theme.AppShapes
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
-import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
 
+/**
+ * Wspólny ekran wyboru/wyszukiwania ćwiczeń dla:
+ * - dodawania do sesji (from=session + sessionId)
+ * - dodawania do templatu (from=template + templateId)
+ *
+ * Analogicznie do ExerciseDetailScreen używamy parametru `from` + opcjonalnych ID.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-@Suppress("UNUSED_PARAMETER")
-fun AddExerciseScreen(
-    sessionId: Long,
+fun ExercisePickerScreen(
+    from: String, // "session" | "template"
+    sessionId: Long? = null,
+    templateId: Long? = null,
     onNavigateBack: () -> Unit,
     navController: NavHostController,
-    exerciseViewModel: ExerciseViewModel,
-    trainingViewModel: TrainingViewModel,
-    statisticsViewModel: com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel
+    exerciseViewModel: ExerciseViewModel
 ) {
     val allExercises by exerciseViewModel.exercises.observeAsState(emptyList())
     var searchQuery by remember { mutableStateOf("") }
@@ -52,25 +56,18 @@ fun AddExerciseScreen(
     val primaryMuscles by exerciseViewModel.primaryMuscles.observeAsState(emptyList())
     val secondaryMuscles by exerciseViewModel.secondaryMuscles.observeAsState(emptyList())
 
-    // Filtrowanie ćwiczeń na podstawie wyszukiwarki
     val filteredExercises = remember(allExercises, searchQuery) {
-        if (searchQuery.isEmpty()) {
-            allExercises
-        } else {
-            allExercises.filter { exercise ->
-                exercise.name.contains(searchQuery, ignoreCase = true)
-            }
-        }
+        if (searchQuery.isBlank()) allExercises
+        else allExercises.filter { it.name.contains(searchQuery, ignoreCase = true) }
     }
 
-    // Root wypełnia obszar contentu (między topbarem i bottombarem w MainScreen)
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(AppBackground)
             .padding(16.dp)
     ) {
-        // Local header (jak w innych ekranach z wewnętrznym tytułem)
+        // Header identyczny jak w AddExerciseScreen (spójność wizualna)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -100,9 +97,7 @@ fun AddExerciseScreen(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 label = { Text("Szukaj ćwiczenia") },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = "Szukaj")
-                },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Szukaj") },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 shape = AppShapes.button,
@@ -138,7 +133,11 @@ fun AddExerciseScreen(
                     colors = CardDefaults.cardColors(containerColor = AppSurface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                     onClick = {
-                        navController.navigate("exercise_detail/${exercise.id}?from=session&sessionId=$sessionId")
+                        val route = when (from) {
+                            "template" -> "exercise_detail/${exercise.id}?from=template&templateId=$templateId"
+                            else -> "exercise_detail/${exercise.id}?from=session&sessionId=$sessionId"
+                        }
+                        navController.navigate(route)
                     }
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -168,17 +167,11 @@ fun AddExerciseScreen(
         }
     }
 
-    // Dialog filtrowania (skopiowany z PlannerPage)
     if (showFilterDialog) {
         AlertDialog(
             onDismissRequest = { showFilterDialog = false },
             shape = AppShapes.dialog,
-            title = {
-                Text(
-                    "Filtruj ćwiczenia",
-                    fontWeight = FontWeight.Bold
-                )
-            },
+            title = { Text("Filtruj ćwiczenia", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     MultiSelectDropdown("Główne mięśnie", primaryMuscles, exerciseViewModel.tempPrimaryMuscles) { exerciseViewModel.tempPrimaryMuscles = it }
@@ -214,3 +207,4 @@ fun AddExerciseScreen(
         )
     }
 }
+

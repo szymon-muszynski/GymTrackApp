@@ -285,28 +285,6 @@ fun MainScreen(
                     )
                 }
             }
-            composable("add_exercise/{sessionId}") { backStackEntry ->
-                val sessionId = backStackEntry.arguments?.getString("sessionId")?.toLongOrNull() ?: 0L
-                AddExerciseScreen(
-                    sessionId = sessionId,
-                    onNavigateBack = { navController.popBackStack() },
-                    navController = navController,
-                    exerciseViewModel = exerciseViewModel,
-                    trainingViewModel = trainingViewModel,
-                    statisticsViewModel = statisticsViewModel
-                )
-            }
-
-            composable("add_template_exercise/{templateId}") { backStackEntry ->
-                val templateId = backStackEntry.arguments?.getString("templateId")?.toLongOrNull() ?: 0L
-                AddTemplateExerciseScreen(
-                    templateId = templateId,
-                    onNavigateBack = { navController.popBackStack() },
-                    navController = navController,
-                    exerciseViewModel = exerciseViewModel,
-                    templateViewModel = templateViewModel
-                )
-            }
 
             composable(
                 route = "exercise_detail/{exerciseId}?from={from}&sessionId={sessionId}&templateId={templateId}",
@@ -363,6 +341,37 @@ fun MainScreen(
                 CustomExerciseDetailsScreen(
                     exerciseId = exerciseId,
                     onNavigateBack = { navController.popBackStack() },
+                    exerciseViewModel = exerciseViewModel
+                )
+            }
+
+            composable(
+                route = "exercise_picker?from={from}&sessionId={sessionId}&templateId={templateId}",
+                arguments = listOf(
+                    navArgument("from") {
+                        type = NavType.StringType
+                        defaultValue = "session"
+                    },
+                    navArgument("sessionId") {
+                        type = NavType.StringType
+                        nullable = true
+                    },
+                    navArgument("templateId") {
+                        type = NavType.StringType
+                        nullable = true
+                    }
+                )
+            ) { backStackEntry ->
+                val from = backStackEntry.arguments?.getString("from") ?: "session"
+                val sessionId = backStackEntry.arguments?.getString("sessionId")?.toLongOrNull()
+                val templateId = backStackEntry.arguments?.getString("templateId")?.toLongOrNull()
+
+                ExercisePickerScreen(
+                    from = from,
+                    sessionId = sessionId,
+                    templateId = templateId,
+                    onNavigateBack = { navController.popBackStack() },
+                    navController = navController,
                     exerciseViewModel = exerciseViewModel
                 )
             }

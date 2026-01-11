@@ -138,7 +138,7 @@ fun PlannerPage(
                                     templateViewModel = templateViewModel,
                                     exerciseViewModel = exerciseViewModel,
                                     onAddExercise = {
-                                        navController.navigate("add_template_exercise/${template.id}")
+                                        navController.navigate("exercise_picker?from=template&templateId=${template.id}")
                                     },
                                     onDeleteTemplate = {
                                         templateViewModel.deleteTemplate(template)

@@ -191,7 +191,7 @@ fun CalendarPage(
                 trainingViewModel.deleteSession(session)
             },
             onAddExercise = { session ->
-                navController.navigate("add_exercise/${session.id}")
+                navController.navigate("exercise_picker?from=session&sessionId=${session.id}")
             },
             onExerciseClick = { sessionExerciseId, exerciseId ->
                 navController.navigate("set_details/$sessionExerciseId/$exerciseId")
