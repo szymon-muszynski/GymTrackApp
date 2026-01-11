@@ -265,11 +265,14 @@ class StatisticsRepository(
         val exercise = exerciseDao.getExerciseById(exerciseId)
         val rawRecords = trainingDao.getRepMaxRecords(exerciseId)
 
+        val MILLIS_IN_DAY = 24L * 60 * 60 * 1000
+
         val recordsMap = rawRecords.associate { raw ->
             raw.reps to RepMaxRecord(
                 reps = raw.reps,
                 weight = raw.weight,
-                date = raw.date,
+                // raw.date to epochDay -> konwersja na millis dla spójności wyświetlania
+                date = raw.date * MILLIS_IN_DAY,
                 exerciseId = raw.exerciseId
             )
         }
@@ -302,4 +305,3 @@ class StatisticsRepository(
         sets.map { it.weight }.distinct().sorted()
     }
 }
-

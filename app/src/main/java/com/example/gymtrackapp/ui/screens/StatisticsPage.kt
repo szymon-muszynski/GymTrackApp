@@ -1,7 +1,6 @@
 package com.example.gymtrackapp.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,6 +14,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.gymtrackapp.ui.theme.AppBackground
+import com.example.gymtrackapp.ui.theme.AppGreen
 
 @Composable
 fun ProgressPage(
@@ -29,40 +30,50 @@ fun ProgressPage(
         viewModel.refresh()
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color(0xFFF5F5F5))
-            .padding(16.dp)
-    ) {
-        // Tab Row z przyciskami
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+    Scaffold(
+        // KLUCZOWE: Usuwa lukę na górze i zrównuje nagłówek z innymi ekranami
+        contentWindowInsets = WindowInsets(0.dp),
+        containerColor = AppBackground
+    ) { paddingValues ->
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .background(AppBackground)
+                .padding(paddingValues)
         ) {
-            TabButton(
-                text = "Podsumowanie",
-                isSelected = selectedTab == 0,
-                onClick = { selectedTab = 0 },
-                modifier = Modifier.weight(1f)
-            )
-            TabButton(
-                text = "Wykresy",
-                isSelected = selectedTab == 1,
-                onClick = { selectedTab = 1 },
-                modifier = Modifier.weight(1f)
-            )
-        }
+            // Tab Row z przyciskami - Styl identyczny jak w FriendsPage/PlannerPage
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // Padding taki sam jak w innych zakładkach
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TabButton(
+                    text = "Podsumowanie",
+                    isSelected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    modifier = Modifier.weight(1f)
+                )
+                TabButton(
+                    text = "Wykresy",
+                    isSelected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    modifier = Modifier.weight(1f)
+                )
+            }
 
-        // Zawartość w zależności od wybranej zakładki
-        Box(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            when (selectedTab) {
-                0 -> SummaryContent(viewModel = viewModel)
-                1 -> ChartsContent(viewModel = viewModel, exerciseViewModel = exerciseViewModel)
+            // Zawartość w zależności od wybranej zakładki
+            // Dodajemy padding poziomy tutaj, bo usunęliśmy go z głównego kontenera
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+            ) {
+                when (selectedTab) {
+                    0 -> SummaryContent(viewModel = viewModel)
+                    1 -> ChartsContent(viewModel = viewModel, exerciseViewModel = exerciseViewModel)
+                }
             }
         }
     }
@@ -75,21 +86,21 @@ fun TabButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Styl przycisku zunifikowany z FriendsPage (bez sztywnej wysokości, padding vertical 12)
     Button(
         onClick = onClick,
-        modifier = modifier.height(48.dp),
-        shape = RoundedCornerShape(24.dp),
+        modifier = modifier,
+        shape = RoundedCornerShape(50), // Pełna pastylka
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (isSelected) Color(0xFF4CAF50) else Color.White,
-            contentColor = if (isSelected) Color.White else Color.Gray
+            containerColor = if (isSelected) AppGreen else Color.White,
+            contentColor = if (isSelected) Color.White else Color(0xFF757575)
         ),
-        elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = if (isSelected) 4.dp else 0.dp
-        )
+        elevation = if (isSelected) ButtonDefaults.buttonElevation(2.dp) else ButtonDefaults.buttonElevation(0.dp),
+        contentPadding = PaddingValues(vertical = 12.dp) // To kontroluje "tłustość" przycisku
     ) {
         Text(
             text = text,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
             fontSize = 14.sp
         )
     }
@@ -114,7 +125,7 @@ fun SummaryContent(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator()
+            CircularProgressIndicator(color = AppGreen)
         }
     } else {
         Column(
@@ -150,6 +161,9 @@ fun SummaryContent(
                 selectedDays = muscleDistributionDays,
                 onDaysChange = { viewModel.setMuscleDistributionDays(it) }
             )
+
+            // Dodatkowy spacer na dole, żeby treść nie chowała się pod nawigacją/dołem ekranu
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -194,7 +208,7 @@ fun ChartsContent(
                         .height(200.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(color = AppGreen)
                 }
             } else {
                 // Wykres 1: Estimated 1RM
@@ -242,6 +256,7 @@ fun ChartsContent(
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
-

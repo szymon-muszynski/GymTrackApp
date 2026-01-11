@@ -15,7 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,6 +33,10 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import kotlin.math.roundToInt
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -281,7 +288,9 @@ fun Estimated1RMChart(
                 LineChart(
                     data = data,
                     yAxisLabel = "1RM (kg)",
-                    color = Color(0xFF2196F3)
+                    color = Color(0xFF2196F3),
+                    xAxisType = XAxisType.EPOCH_MILLIS,
+                    xAxisLabel = "Data"
                 )
             }
         }
@@ -318,7 +327,9 @@ fun VolumeLoadChart(
                 LineChart(
                     data = data.map { it.date to it.volume },
                     yAxisLabel = "Volume (kg)",
-                    color = Color(0xFF4CAF50)
+                    color = Color(0xFF4CAF50),
+                    xAxisType = XAxisType.EPOCH_DAY,
+                    xAxisLabel = "Data"
                 )
             }
         }
@@ -355,7 +366,9 @@ fun TopSetTrackingChart(
                 LineChart(
                     data = data,
                     yAxisLabel = "Ciężar (kg)",
-                    color = Color(0xFFF44336)
+                    color = Color(0xFFF44336),
+                    xAxisType = XAxisType.EPOCH_DAY,
+                    xAxisLabel = "Data"
                 )
             }
         }
@@ -406,7 +419,9 @@ fun RepsAtWeightChart(
                 LineChart(
                     data = data.map { it.first to it.second.toFloat() },
                     yAxisLabel = "Powtórzenia",
-                    color = Color(0xFFFF9800)
+                    color = Color(0xFFFF9800),
+                    xAxisType = XAxisType.EPOCH_DAY,
+                    xAxisLabel = "Data"
                 )
             }
         }
@@ -456,56 +471,228 @@ fun RepMaxMatrixCard(
 
 // ============= KOMPONENTY POMOCNICZE =============
 
+private enum class XAxisType {
+    /** X to liczba dni od 1970-01-01 (TrainingSession.date / sessionDate). */
+    EPOCH_DAY,
+    /** X to timestamp w milisekundach (epoch millis). */
+    EPOCH_MILLIS
+}
+
 @Composable
 private fun LineChart(
     data: List<Pair<Long, Float>>,
     yAxisLabel: String,
     color: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    xAxisType: XAxisType = XAxisType.EPOCH_DAY,
+    xAxisLabel: String = "Data"
 ) {
     if (data.isEmpty()) return
-    
+
+    // To jest wykres „po kolei” (Canvas). X przeliczamy na punkty ekranu równomiernie,
+    // ale etykiety osi X bierzemy z realnych wartości (epochDay / epochMillis).
+    val sorted = remember(data) { data.sortedBy { it.first } }
+
     Canvas(
         modifier = modifier
             .fillMaxWidth()
-            .height(200.dp)
-            .padding(16.dp)
+            .height(220.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
-        val values = data.map { it.second }
-        val max = values.maxOrNull() ?: 0f
-        val min = values.minOrNull() ?: 0f
-        val range = (max - min).takeIf { it != 0f } ?: 1f
-        
-        val stepX = size.width / (values.size - 1).coerceAtLeast(1)
-        val paddingTop = 20f
-        val chartHeight = size.height - paddingTop
-        
-        // Rysowanie linii wykresu
-        val path = Path()
-        values.forEachIndexed { index, value ->
-            val x = stepX * index
-            val normalized = (value - min) / range
-            val y = paddingTop + chartHeight - (normalized * chartHeight)
-            
-            if (index == 0) {
-                path.moveTo(x, y)
-            } else {
-                path.lineTo(x, y)
+        val valuesY = sorted.map { it.second }
+        val maxY = valuesY.maxOrNull() ?: 0f
+        val minY = valuesY.minOrNull() ?: 0f
+        val rangeY = (maxY - minY).takeIf { it != 0f } ?: 1f
+
+        // Marginesy na osie/etykiety
+        val leftAxisWidth = 52f
+        val bottomAxisHeight = 34f
+        val topPadding = 12f
+        val rightPadding = 8f
+
+        val chartLeft = leftAxisWidth
+        val chartTop = topPadding
+        val chartRight = size.width - rightPadding
+        val chartBottom = size.height - bottomAxisHeight
+
+        val chartWidth = (chartRight - chartLeft).coerceAtLeast(1f)
+        val chartHeight = (chartBottom - chartTop).coerceAtLeast(1f)
+
+        val pointCount = sorted.size
+        val stepX = if (pointCount <= 1) 0f else chartWidth / (pointCount - 1)
+
+        fun yToPx(y: Float): Float {
+            val normalized = (y - minY) / rangeY
+            return chartBottom - (normalized * chartHeight)
+        }
+
+        fun drawText(
+            text: String,
+            x: Float,
+            y: Float,
+            color: Int,
+            textSizePx: Float,
+            align: android.graphics.Paint.Align = android.graphics.Paint.Align.LEFT,
+            isBold: Boolean = false
+        ) {
+            drawIntoCanvas { canvas ->
+                val paint = android.graphics.Paint().apply {
+                    this.color = color
+                    this.textSize = textSizePx
+                    this.textAlign = align
+                    this.isAntiAlias = true
+                    this.isFakeBoldText = isBold
+                }
+                canvas.nativeCanvas.drawText(text, x, y, paint)
             }
         }
-        
+
+        fun formatXLabel(x: Long): String {
+            return when (xAxisType) {
+                XAxisType.EPOCH_DAY -> {
+                    val d = LocalDate.ofEpochDay(x)
+                    "%02d.%02d".format(d.dayOfMonth, d.monthValue)
+                }
+
+                XAxisType.EPOCH_MILLIS -> {
+                    val d = Instant.ofEpochMilli(x).atZone(ZoneId.systemDefault()).toLocalDate()
+                    "%02d.%02d".format(d.dayOfMonth, d.monthValue)
+                }
+            }
+        }
+
+        // ====== OŚ Y + ticki ======
+        val axisColor = Color(0xFFBDBDBD)
+        val gridColor = Color(0xFFE0E0E0)
+        val labelColorInt = android.graphics.Color.parseColor("#616161")
+
+        val yLabelTextSize = 26f
+        val xLabelTextSize = 24f
+        val axisTitleTextSize = 24f
+
+        // Oś Y
+        drawLine(
+            color = axisColor,
+            start = Offset(chartLeft, chartTop),
+            end = Offset(chartLeft, chartBottom),
+            strokeWidth = 2f
+        )
+
+        val yTicks = 4
+        for (i in 0..yTicks) {
+            val t = i / yTicks.toFloat()
+            val yVal = maxY - t * (maxY - minY)
+            val yPx = yToPx(yVal)
+
+            // Siatka pozioma
+            drawLine(
+                color = gridColor,
+                start = Offset(chartLeft, yPx),
+                end = Offset(chartRight, yPx),
+                strokeWidth = 1f
+            )
+
+            // Etykieta wartości po lewej
+            val label = if (yAxisLabel.contains("Powt" , ignoreCase = true)) {
+                yVal.roundToInt().toString()
+            } else {
+                // 0 lub 1 miejsce po przecinku max, żeby było czytelnie
+                if (kotlin.math.abs(yVal - yVal.roundToInt()) < 0.05f) yVal.roundToInt().toString() else "%.1f".format(yVal)
+            }
+
+            drawText(
+                text = label,
+                x = chartLeft - 10f,
+                y = yPx + 4f,
+                color = labelColorInt,
+                textSizePx = yLabelTextSize,
+                align = android.graphics.Paint.Align.RIGHT
+            )
+        }
+
+        // Podpis osi Y
+        drawText(
+            text = yAxisLabel,
+            x = chartLeft,
+            y = chartTop - 2f,
+            color = labelColorInt,
+            textSizePx = axisTitleTextSize,
+            align = android.graphics.Paint.Align.LEFT,
+            isBold = true
+        )
+
+        // ====== OŚ X ======
+        drawLine(
+            color = axisColor,
+            start = Offset(chartLeft, chartBottom),
+            end = Offset(chartRight, chartBottom),
+            strokeWidth = 2f
+        )
+
+        // Ticki osi X: max ~4 etykiety, żeby nie nachodziły
+        val xLabelCount = 4
+        val xIndices: List<Int> = when {
+            pointCount <= 1 -> listOf(0)
+            pointCount <= xLabelCount -> (0 until pointCount).toList()
+            else -> {
+                // równomiernie rozłożone indeksy 0..last
+                (0 until xLabelCount).map { idx ->
+                    ((idx / (xLabelCount - 1f)) * (pointCount - 1)).roundToInt()
+                }.distinct()
+            }
+        }
+
+        xIndices.forEach { index ->
+            val xPx = chartLeft + stepX * index
+
+            // mały tick
+            drawLine(
+                color = axisColor,
+                start = Offset(xPx, chartBottom),
+                end = Offset(xPx, chartBottom + 6f),
+                strokeWidth = 2f
+            )
+
+            val xLabel = formatXLabel(sorted[index].first)
+            drawText(
+                text = xLabel,
+                x = xPx,
+                y = chartBottom + 26f,
+                color = labelColorInt,
+                textSizePx = xLabelTextSize,
+                align = android.graphics.Paint.Align.CENTER
+            )
+        }
+
+        // Podpis osi X – na środku pod wykresem (żeby nie kolidował z ostatnią etykietą daty)
+        drawText(
+            text = xAxisLabel,
+            x = (chartLeft + chartRight) / 2f,
+            y = size.height - 4f,
+            color = labelColorInt,
+            textSizePx = axisTitleTextSize,
+            align = android.graphics.Paint.Align.CENTER,
+            isBold = true
+        )
+
+        // ====== Linia wykresu + punkty ======
+        val path = Path()
+        sorted.forEachIndexed { index, point ->
+            val x = chartLeft + stepX * index
+            val y = yToPx(point.second)
+
+            if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        }
+
         drawPath(
             path = path,
             color = color,
             style = Stroke(width = 4f)
         )
-        
-        // Rysowanie punktów
-        values.forEachIndexed { index, value ->
-            val x = stepX * index
-            val normalized = (value - min) / range
-            val y = paddingTop + chartHeight - (normalized * chartHeight)
-            
+
+        sorted.forEachIndexed { index, point ->
+            val x = chartLeft + stepX * index
+            val y = yToPx(point.second)
             drawCircle(
                 color = color,
                 radius = 6f,
@@ -628,4 +815,3 @@ private fun EmptyChartPlaceholder(message: String) {
         )
     }
 }
-
