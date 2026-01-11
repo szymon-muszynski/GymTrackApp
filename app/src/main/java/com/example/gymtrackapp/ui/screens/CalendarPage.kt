@@ -490,7 +490,8 @@ fun SessionsList(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(8.dp)
+        // ZMIANA: Dodano horizontal = 16.dp, aby sesje nie "przyklejały" się do krawędzi ekranu
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
     ) {
         items(trainingSessions) { session ->
             TrainingSessionItem(
