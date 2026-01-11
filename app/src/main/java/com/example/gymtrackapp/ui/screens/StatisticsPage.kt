@@ -184,6 +184,7 @@ fun ChartsContent(
     val availableWeights by viewModel.availableWeights.collectAsState()
     val selectedWeightForReps by viewModel.selectedWeightForReps.collectAsState()
     val selectedOneRMFormula by viewModel.selectedOneRMFormula.collectAsState()
+    val chartsTimeRange by viewModel.chartsTimeRange.collectAsState()
     val isLoading by viewModel.isLoadingCharts.collectAsState()
 
     Column(
@@ -201,6 +202,12 @@ fun ChartsContent(
         )
 
         if (selectedExerciseId != null) {
+            // Zakres czasu dla wykresów (kalendarzowo)
+            com.example.gymtrackapp.ui.screens.statistics.TimeRangeChips(
+                selected = chartsTimeRange,
+                onSelected = { range -> viewModel.setChartsTimeRange(range) }
+            )
+
             if (isLoading) {
                 Box(
                     modifier = Modifier
@@ -211,32 +218,31 @@ fun ChartsContent(
                     CircularProgressIndicator(color = AppGreen)
                 }
             } else {
-                // Wykres 1: Estimated 1RM
                 com.example.gymtrackapp.ui.screens.statistics.Estimated1RMChart(
                     data = estimated1RMHistory,
                     selectedFormula = selectedOneRMFormula,
-                    onFormulaChange = { viewModel.setOneRMFormula(it) }
+                    onFormulaChange = { viewModel.setOneRMFormula(it) },
+                    timeRange = chartsTimeRange
                 )
 
-                // Wykres 2: Volume Load
                 com.example.gymtrackapp.ui.screens.statistics.VolumeLoadChart(
-                    data = volumeHistory
+                    data = volumeHistory,
+                    timeRange = chartsTimeRange
                 )
 
-                // Wykres 3: Top Set Tracking
                 com.example.gymtrackapp.ui.screens.statistics.TopSetTrackingChart(
-                    data = topSetHistory
+                    data = topSetHistory,
+                    timeRange = chartsTimeRange
                 )
 
-                // Wykres 4: Reps at Weight
                 com.example.gymtrackapp.ui.screens.statistics.RepsAtWeightChart(
                     data = repsAtWeightHistory,
                     selectedWeight = selectedWeightForReps,
                     availableWeights = availableWeights,
-                    onWeightSelected = { viewModel.selectWeightForReps(it) }
+                    onWeightSelected = { viewModel.selectWeightForReps(it) },
+                    timeRange = chartsTimeRange
                 )
 
-                // Wykres 5: Rep Max Matrix
                 com.example.gymtrackapp.ui.screens.statistics.RepMaxMatrixCard(
                     matrix = repMaxMatrix
                 )
