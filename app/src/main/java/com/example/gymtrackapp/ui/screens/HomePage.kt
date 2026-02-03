@@ -68,22 +68,12 @@ fun HomePage(
             .padding(vertical = 8.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Text(
-            text = userName ?: "",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier
-                .align(Alignment.Start)
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        )
+        HomePageHeader(userName = userName)
 
         WeeklyPlannerCard(
             plannerViewModel = plannerViewModel,
             uid = uid,
         )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        HomePageHeader(userName = userName)
 
         QuickActionsSection(
             onNavigateToStatistics = onNavigateToStatistics,
@@ -93,8 +83,6 @@ fun HomePage(
         )
 
         WeeklyLoadChartCard(weeklyData = weeklyData)
-
-        TodaySummaryCard()
 
         RecentActivityCard(
             recentSessions = recentSessions,

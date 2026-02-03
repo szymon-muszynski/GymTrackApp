@@ -122,7 +122,7 @@ class AuthViewModel(
                 if (uid != null) {
                     withContext(Dispatchers.IO) {
                         // Pullujemy rzeczy tylko przy loginie (offline-first + nowy telefon):
-                        // 1) Custom exercises first (FK prerequisite for session_exercises.exerciseId)
+                        // 1) Custom exercises
                         val customJob = async {
                             Log.d(TAG, "signIn: pull customExercises START")
                             exercisePullService.pullAllCustomForUser(uid)
@@ -150,7 +150,6 @@ class AuthViewModel(
                             Log.d(TAG, "signIn: pull planner DONE")
                         }
 
-                        // Czekamy na wszystko.
                         awaitAll(customJob, trainingJob, templateJob, plannerJob)
 
                         // 5) Cleanup orphaned pending (best-effort)

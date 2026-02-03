@@ -290,7 +290,7 @@ fun Estimated1RMChart(
                     yAxisLabel = "1RM (kg)",
                     color = Color(0xFF2196F3),
                     xAxisType = XAxisType.EPOCH_DAY,
-                    xAxisLabel = "Data",
+                    xAxisLabel = "",
                     timeRange = timeRange
                 )
             }
@@ -331,7 +331,7 @@ fun VolumeLoadChart(
                     yAxisLabel = "Volume (kg)",
                     color = Color(0xFF4CAF50),
                     xAxisType = XAxisType.EPOCH_DAY,
-                    xAxisLabel = "Data",
+                    xAxisLabel = "",
                     timeRange = timeRange
                 )
             }
@@ -372,7 +372,7 @@ fun TopSetTrackingChart(
                     yAxisLabel = "Ciężar (kg)",
                     color = Color(0xFFF44336),
                     xAxisType = XAxisType.EPOCH_DAY,
-                    xAxisLabel = "Data",
+                    xAxisLabel = "",
                     timeRange = timeRange
                 )
             }
@@ -427,7 +427,7 @@ fun RepsAtWeightChart(
                     yAxisLabel = "Powtórzenia",
                     color = Color(0xFFFF9800),
                     xAxisType = XAxisType.EPOCH_DAY,
-                    xAxisLabel = "Data",
+                    xAxisLabel = "",
                     timeRange = timeRange
                 )
             }
@@ -511,7 +511,7 @@ private fun LineChart(
     color: Color,
     modifier: Modifier = Modifier,
     xAxisType: XAxisType = XAxisType.EPOCH_DAY,
-    xAxisLabel: String = "Data",
+    xAxisLabel: String = "",
     timeRange: ChartsTimeRange = ChartsTimeRange.ALL
 ) {
     if (data.isEmpty()) return
