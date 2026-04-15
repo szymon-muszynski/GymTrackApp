@@ -62,7 +62,7 @@ fun SearchUsersScreen(
                 onValueChange = viewModel::onQueryChange,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                label = { Text("Wpisz nazwę użytkownika") },
+                label = { Text("Enter username") },
                 shape = AppShapes.button,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = AppGreen,
@@ -123,14 +123,14 @@ private fun SearchUsersHeader() {
                 .padding(20.dp)
         ) {
             Text(
-                text = "Znajdź znajomych",
+                text = "Find friends",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = AppGreen
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Wyszukuj i obserwuj innych użytkowników",
+                text = "Search for and follow other users",
                 fontSize = 14.sp,
                 color = AppMutedText
             )
@@ -199,8 +199,8 @@ private fun UserRow(
                 Text(
                     text = when {
                         isBusy -> "..."
-                        isFollowing -> "Obserwujesz"
-                        else -> "Obserwuj"
+                        isFollowing -> "Following"
+                        else -> "Follow"
                     },
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium

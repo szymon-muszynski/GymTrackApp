@@ -66,12 +66,11 @@ fun MainScreen(
                     Text("OK")
                 }
             },
-            title = { Text("Brak internetu") },
+            title = { Text("No internet connection") },
             text = {
                 Text(
-                    "Wylogowanie zostało wyłączone, gdy nie ma internetu, aby zapobiec utracie danych, " +
-                        "które mogłyby nie zostać zsynchronizowane z chmurą.\n\n" +
-                        "Połącz się z internetem i spróbuj ponownie."
+                    "Sign-out is disabled while you're offline to prevent losing data that might not be synced to the cloud.\n\n" +
+                        "Connect to the internet and try again."
                 )
             }
         )
@@ -91,7 +90,7 @@ fun MainScreen(
                 actions = {
                     if (currentRoute == "calendar" || currentRoute?.startsWith("calendar/") == true) {
                         IconButton(onClick = { showMonthlyCalendar = true }) {
-                            Icon(Icons.Default.DateRange, contentDescription = "Kalendarz miesięczny")
+                            Icon(Icons.Default.DateRange, contentDescription = "Monthly calendar")
                         }
                     }
 
@@ -103,7 +102,7 @@ fun MainScreen(
                             showOfflineLogoutDialog = true
                         }
                     }) {
-                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Wyloguj")
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Sign out")
                     }
                 }
             )
@@ -120,7 +119,7 @@ fun MainScreen(
                 ) {
                     Icon(
                         Icons.Default.Add,
-                        contentDescription = "Dodaj sesję",
+                        contentDescription = "Add session",
                         tint = Color.White
                     )
                 }
@@ -268,7 +267,7 @@ fun MainScreen(
                 val uid = currentUser?.uid
 
                 if (uid == null) {
-                    Text("Brak zalogowanego użytkownika")
+                    Text("No signed-in user")
                 } else {
                     val appContainer = LocalAppContainer.current
                     val socialRepository = appContainer.socialRepository

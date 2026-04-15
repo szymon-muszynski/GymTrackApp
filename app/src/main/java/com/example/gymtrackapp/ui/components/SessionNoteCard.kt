@@ -48,7 +48,7 @@ fun SessionNoteCard(
                 verticalAlignment = Alignment.Top,
             ) {
                 Text(
-                    text = "Notatka",
+                    text = "Note",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
@@ -56,7 +56,7 @@ fun SessionNoteCard(
                 IconButton(onClick = onDeleteClick) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "Usuń notatkę",
+                        contentDescription = "Delete note",
                     )
                 }
             }
@@ -69,4 +69,3 @@ fun SessionNoteCard(
         }
     }
 }
-

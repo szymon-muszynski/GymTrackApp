@@ -48,7 +48,7 @@ fun MultiSelectDropdown(
     Column(modifier = Modifier.fillMaxWidth()) {
         Box(modifier = Modifier.fillMaxWidth()) {
             OutlinedTextField(
-                value = "$label (${localSelected.size} wybrane)",
+                value = "$label (${localSelected.size} selected)",
                 onValueChange = {},
                 readOnly = true,
                 enabled = false,
@@ -122,7 +122,7 @@ fun MultiSelectDropdown(
                         showPicker = false
                     }
                 ) {
-                    Text("Anuluj")
+                    Text("Cancel")
                 }
             }
         )

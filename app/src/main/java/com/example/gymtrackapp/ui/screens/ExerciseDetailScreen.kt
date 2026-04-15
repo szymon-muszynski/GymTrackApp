@@ -86,7 +86,7 @@ fun ExerciseDetailScreen(
                     shape = AppShapes.button
                 ) {
                     Text(
-                        text = "Dodaj ćwiczenie",
+                        text = "Add exercise",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = Color.White,
@@ -114,10 +114,10 @@ fun ExerciseDetailScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Wróć")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
                 Text(
-                    text = exercise?.name ?: "Szczegóły ćwiczenia",
+                    text = exercise?.name ?: "Exercise details",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f)
@@ -130,7 +130,7 @@ fun ExerciseDetailScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Ćwiczenie nie znalezione", color = AppMutedText)
+                    Text("Exercise not found", color = AppMutedText)
                 }
             } else {
                 ExerciseDetailContent(
@@ -185,7 +185,7 @@ fun ExerciseDetailContent(
                                 .data(imageUrl)
                                 .crossfade(true)
                                 .build(),
-                            contentDescription = "${exercise.name} - zdjęcie ${page + 1}",
+                            contentDescription = "${exercise.name} - image ${page + 1}",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit,
                             loading = {
@@ -209,13 +209,13 @@ fun ExerciseDetailContent(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Close,
-                                            contentDescription = "Brak internetu",
+                                            contentDescription = "No internet",
                                             modifier = Modifier.size(48.dp),
                                             tint = AppMutedText
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text(
-                                            text = "Brak zdjęć - brak internetu",
+                                            text = "No images - no internet connection",
                                             color = AppMutedText,
                                             fontSize = 14.sp
                                         )
@@ -255,7 +255,7 @@ fun ExerciseDetailContent(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Brak zdjęć dla tego ćwiczenia",
+                        text = "No images for this exercise",
                         color = AppMutedText,
                         fontSize = 14.sp
                     )
@@ -276,11 +276,11 @@ fun ExerciseDetailContent(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                InfoRow(label = "Poziom", value = exercise.level.capitalize())
-                exercise.equipment?.let { InfoRow(label = "Sprzęt", value = it) }
-                InfoRow(label = "Kategoria", value = exercise.category)
-                exercise.mechanic?.let { InfoRow(label = "Mechanika", value = it) }
-                exercise.force?.let { InfoRow(label = "Typ ruchu", value = it) }
+                InfoRow(label = "Level", value = exercise.level.capitalize())
+                exercise.equipment?.let { InfoRow(label = "Equipment", value = it) }
+                InfoRow(label = "Category", value = exercise.category)
+                exercise.mechanic?.let { InfoRow(label = "Mechanic", value = it) }
+                exercise.force?.let { InfoRow(label = "Force", value = it) }
             }
         }
 
@@ -300,7 +300,7 @@ fun ExerciseDetailContent(
                 ) {
                     if (exercise.primaryMuscles.isNotEmpty()) {
                         Text(
-                            text = "Główne mięśnie",
+                            text = "Primary muscles",
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 16.sp
                         )
@@ -309,7 +309,7 @@ fun ExerciseDetailContent(
 
                     if (exercise.secondaryMuscles.isNotEmpty()) {
                         Text(
-                            text = "Drugorzędne mięśnie",
+                            text = "Secondary muscles",
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 16.sp
                         )
@@ -334,7 +334,7 @@ fun ExerciseDetailContent(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
-                        text = "Jak wykonać?",
+                        text = "How to perform?",
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 18.sp,
                         color = AppGreen

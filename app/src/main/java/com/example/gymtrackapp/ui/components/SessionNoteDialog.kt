@@ -38,7 +38,7 @@ fun SessionNoteDialog(
     onDismiss: () -> Unit,
     onSave: (String) -> Unit,
     modifier: Modifier = Modifier,
-    title: String = "Notatka",
+    title: String = "Note",
 ) {
     var text by remember { mutableStateOf(initialText) }
 
@@ -74,14 +74,14 @@ fun SessionNoteDialog(
                         modifier = Modifier.weight(1f),
                     )
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Zamknij")
+                        Icon(Icons.Default.Close, contentDescription = "Close")
                     }
                 }
 
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it },
-                    label = { Text("Treść notatki") },
+                    label = { Text("Note text") },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 4,
                 )
@@ -93,14 +93,13 @@ fun SessionNoteDialog(
                     horizontalArrangement = Arrangement.End,
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Anuluj")
+                        Text("Cancel")
                     }
                     TextButton(onClick = { onSave(text) }) {
-                        Text("Zapisz")
+                        Text("Save")
                     }
                 }
             }
         }
     }
 }
-

@@ -98,7 +98,7 @@ fun ExploreFeedScreen(
                     isRefreshing = refreshing,
                     onRefresh = {
                         if (!isOnline) {
-                            scope.launch { snackbarHostState.showSnackbar("Brak połączenia z internetem") }
+                            scope.launch { snackbarHostState.showSnackbar("No internet connection") }
                         } else {
                             viewModel.refreshFirstPage()
                         }
@@ -163,14 +163,14 @@ private fun ExploreFeedHeader() {
                 .padding(20.dp)
         ) {
             Text(
-                text = "Eksploruj",
+                text = "Explore",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = AppGreen
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Przeglądaj treningi i postępy znajomych",
+                text = "Browse friends' workouts and progress",
                 fontSize = 14.sp,
                 color = AppMutedText
             )
@@ -186,14 +186,14 @@ private fun EmptyFeedState(
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = if (refreshing) "Odświeżanie…" else "Twój feed jest pusty",
+                text = if (refreshing) "Refreshing…" else "Your feed is empty",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = Color.Black
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                text = "Znajdź znajomych i zacznij obserwować, aby widzieć ich treningi.",
+                text = "Find friends and start following them to see their workouts.",
                 color = AppMutedText,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(horizontal = 32.dp),
@@ -206,7 +206,7 @@ private fun EmptyFeedState(
                     colors = ButtonDefaults.buttonColors(containerColor = AppGreen),
                     shape = AppShapes.button
                 ) {
-                    Text("Szukaj znajomych", color = Color.White)
+                    Text("Find friends", color = Color.White)
                 }
             }
         }

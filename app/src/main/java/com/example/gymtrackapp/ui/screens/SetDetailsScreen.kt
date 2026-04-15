@@ -60,7 +60,7 @@ fun SetDetailsScreen(
                 contentColor = Color.White,
                 shape = AppShapes.button // Kształt z szablonów (zaokrąglony kwadrat)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Dodaj serię")
+                Icon(Icons.Default.Add, contentDescription = "Add set")
             }
         },
         containerColor = AppBackground
@@ -81,10 +81,10 @@ fun SetDetailsScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Wróć")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
                 Text(
-                    text = exercise?.name ?: "Szczegóły serii",
+                    text = exercise?.name ?: "Set details",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
@@ -99,7 +99,7 @@ fun SetDetailsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Brak dodanych serii",
+                        text = "No sets added",
                         fontSize = 16.sp,
                         color = AppMutedText
                     )
@@ -128,14 +128,14 @@ fun SetDetailsScreen(
                             ) {
                                 Column {
                                     Text(
-                                        text = "Seria ${set.order + 1}",
+                                        text = "Set ${set.order + 1}",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 16.sp,
                                         color = Color.Black
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "${set.weight} kg × ${set.reps} powtórzeń",
+                                        text = "${set.weight} kg × ${set.reps} reps",
                                         fontSize = 15.sp,
                                         color = Color(0xFF424242)
                                     )
@@ -146,7 +146,7 @@ fun SetDetailsScreen(
                                 }) {
                                     Icon(
                                         Icons.Default.Delete,
-                                        contentDescription = "Usuń",
+                                        contentDescription = "Delete",
                                         tint = Color.Gray // Subtelniejszy kolor ikony usuwania
                                     )
                                 }
@@ -184,7 +184,7 @@ fun AddSetInputDialog(
         containerColor = Color.White,
         title = {
             Text(
-                "Dodaj serię",
+                "Add set",
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp
             )
@@ -194,7 +194,7 @@ fun AddSetInputDialog(
                 OutlinedTextField(
                     value = weight,
                     onValueChange = { weight = it },
-                    label = { Text("Obciążenie (kg)") },
+                    label = { Text("Weight (kg)") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = AppShapes.button,
                     singleLine = true,
@@ -207,7 +207,7 @@ fun AddSetInputDialog(
                 OutlinedTextField(
                     value = reps,
                     onValueChange = { reps = it },
-                    label = { Text("Liczba powtórzeń") },
+                    label = { Text("Reps") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = AppShapes.button,
                     singleLine = true,
@@ -229,7 +229,7 @@ fun AddSetInputDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = AppGreen),
                 shape = AppShapes.button
             ) {
-                Text("Dodaj", fontWeight = FontWeight.SemiBold, color = Color.White)
+                Text("Add", fontWeight = FontWeight.SemiBold, color = Color.White)
             }
         },
         dismissButton = {
@@ -238,7 +238,7 @@ fun AddSetInputDialog(
                 shape = AppShapes.button,
                 border = BorderStroke(1.dp, AppDivider)
             ) {
-                Text("Anuluj", color = AppMutedText)
+                Text("Cancel", color = AppMutedText)
             }
         }
     )

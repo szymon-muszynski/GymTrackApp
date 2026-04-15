@@ -50,13 +50,13 @@ fun ProgressPage(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 TabButton(
-                    text = "Podsumowanie",
+                    text = "Summary",
                     isSelected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
                     modifier = Modifier.weight(1f)
                 )
                 TabButton(
-                    text = "Wykresy",
+                    text = "Charts",
                     isSelected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
                     modifier = Modifier.weight(1f)
@@ -256,7 +256,7 @@ fun ChartsContent(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Wybierz ćwiczenie, aby zobaczyć wykresy",
+                    text = "Select an exercise to view charts",
                     fontSize = 16.sp,
                     color = Color.Gray
                 )

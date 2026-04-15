@@ -52,7 +52,7 @@ fun TrainingHeatmapCard(
         ) {
             // Nagłówek
             Text(
-                text = "Kalendarz Treningowy",
+                text = "Training calendar",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -103,8 +103,8 @@ private fun MonthYearNavigator(
     onNextMonth: () -> Unit
 ) {
     val monthNames = listOf(
-        "Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec",
-        "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień"
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
     )
 
     Row(
@@ -116,7 +116,7 @@ private fun MonthYearNavigator(
         IconButton(onClick = onPreviousMonth) {
             Icon(
                 imageVector = Icons.Default.KeyboardArrowUp,
-                contentDescription = "Poprzedni miesiąc",
+                contentDescription = "Previous month",
                 modifier = Modifier.rotate(-90f)
             )
         }
@@ -132,7 +132,7 @@ private fun MonthYearNavigator(
         IconButton(onClick = onNextMonth) {
             Icon(
                 imageVector = Icons.Default.KeyboardArrowUp,
-                contentDescription = "Następny miesiąc",
+                contentDescription = "Next month",
                 modifier = Modifier.rotate(90f)
             )
         }
@@ -300,7 +300,7 @@ private fun CalendarLegend() {
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("Mniej", fontSize = 11.sp, color = Color.Gray)
+        Text("Less", fontSize = 11.sp, color = Color.Gray)
         Spacer(modifier = Modifier.width(8.dp))
 
         listOf(
@@ -320,7 +320,7 @@ private fun CalendarLegend() {
         }
 
         Spacer(modifier = Modifier.width(8.dp))
-        Text("Więcej", fontSize = 11.sp, color = Color.Gray)
+        Text("More", fontSize = 11.sp, color = Color.Gray)
     }
 }
 
@@ -345,14 +345,14 @@ fun TopPersonalRecordsCard(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "🏆 Najnowsze Rekordy",
+                text = "🏆 Latest PRs",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
 
             if (records.isEmpty()) {
                 Text(
-                    text = "Brak rekordów. Zacznij trenować!",
+                    text = "No PRs yet. Start training!",
                     fontSize = 14.sp,
                     color = Color.Gray,
                     modifier = Modifier.padding(vertical = 16.dp)
@@ -406,7 +406,7 @@ private fun PersonalRecordItem(pr: PersonalRecord) {
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
-                    text = "NOWY",
+                    text = "NEW",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFFF57C00),
@@ -439,7 +439,7 @@ fun TotalVolumeCard(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Całkowity Volume",
+                text = "Total volume",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -450,13 +450,13 @@ fun TotalVolumeCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 VolumeTabButton(
-                    label = "7 dni",
+                    label = "7 days",
                     isSelected = selectedTab == 0,
                     onClick = { onTabChange(0) },
                     modifier = Modifier.weight(1f)
                 )
                 VolumeTabButton(
-                    label = "30 dni",
+                    label = "30 days",
                     isSelected = selectedTab == 1,
                     onClick = { onTabChange(1) },
                     modifier = Modifier.weight(1f)
@@ -516,7 +516,7 @@ private fun VolumeStatsDisplay(stats: TotalVolumeStats) {
 
         // Średnia per dzień
         Text(
-            text = "Średnio ${stats.averagePerDay.toInt()} kg/dzień",
+            text = "Avg ${stats.averagePerDay.toInt()} kg/day",
             fontSize = 14.sp,
             color = Color.Gray
         )
@@ -573,7 +573,7 @@ fun MuscleGroupDistributionCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Rozkład Treningowy",
+                    text = "Workout split",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -594,7 +594,7 @@ fun MuscleGroupDistributionCard(
 
             if (distribution.isEmpty()) {
                 Text(
-                    text = "Brak danych treningowych",
+                    text = "No training data",
                     fontSize = 14.sp,
                     color = Color.Gray,
                     modifier = Modifier.padding(vertical = 16.dp)
@@ -716,4 +716,3 @@ private fun RangeChip(
         )
     }
 }
-

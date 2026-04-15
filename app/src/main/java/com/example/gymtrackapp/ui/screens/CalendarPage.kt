@@ -175,7 +175,7 @@ fun CalendarPage(
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp)
         ) {
-            Text("Kopiuj z innej daty")
+            Text("Copy from another date")
         }
 
         SessionsList(
@@ -208,19 +208,19 @@ fun CalendarPage(
 
         AlertDialog(
             onDismissRequest = { showCopyFromDialog = false },
-            title = { Text(if (!stepPickSession) "Skopiuj z: wybierz dzień" else "Skopiuj z: wybierz sesję") },
+            title = { Text(if (!stepPickSession) "Copy from: select a day" else "Copy from: select a session") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (!stepPickSession) {
                         if (availableCopyDates.isEmpty()) {
-                            Text("Brak dni z sesjami treningowymi")
+                            Text("No days with workout sessions")
                         } else {
                             LazyColumn(
                                 modifier = Modifier.fillMaxWidth(),
                                 contentPadding = PaddingValues(vertical = 4.dp)
                             ) {
                                 itemsIndexed(availableCopyDates) { _, item ->
-                                    val sessionsLabel = if (item.sessionCount == 1) "1 sesja" else "${item.sessionCount} sesje"
+                                    val sessionsLabel = if (item.sessionCount == 1) "1 session" else "${item.sessionCount} sessions"
                                     val label = "${EpochDayFormatter.formatEpochDay(item.date)} ($sessionsLabel)"
 
                                     Card(
@@ -244,10 +244,10 @@ fun CalendarPage(
                         }
                     } else {
                         val dateLabel = EpochDayFormatter.formatEpochDay(copyFromSelectedDateEpochDay!!)
-                        Text("Dzień: $dateLabel")
+                        Text("Day: $dateLabel")
 
                         if (copyFromDateSessions.isEmpty()) {
-                            Text("Brak sesji w tym dniu")
+                            Text("No sessions on this day")
                         } else {
                             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 copyFromDateSessions.forEach { s ->
@@ -269,7 +269,7 @@ fun CalendarPage(
                                                 onClick = { copyFromSelectedSessionId = s.id }
                                             )
                                             Text(
-                                                text = if (s.description.isBlank()) "(bez nazwy)" else s.description,
+                                                text = if (s.description.isBlank()) "(unnamed)" else s.description,
                                                 modifier = Modifier.weight(1f)
                                             )
                                         }
@@ -295,7 +295,7 @@ fun CalendarPage(
                             showCopyFromDialog = false
                         }
                     ) {
-                        Text("Kopiuj")
+                        Text("Copy")
                     }
                 }
             },
@@ -304,13 +304,13 @@ fun CalendarPage(
                     if (stepPickSession) {
                         TextButton(
                             onClick = {
-                                // powrót do kroku wyboru dnia
+                                // back to day selection
                                 copyFromSelectedDateEpochDay = null
                                 copyFromSelectedSessionId = null
                                 trainingViewModel.resetCopyFromDateSessions()
                             }
                         ) {
-                            Text("Wstecz")
+                            Text("Back")
                         }
                     }
                     TextButton(onClick = {
@@ -319,7 +319,7 @@ fun CalendarPage(
                         copyFromSelectedSessionId = null
                         trainingViewModel.resetCopyFromDateSessions()
                     }) {
-                        Text("Anuluj")
+                        Text("Cancel")
                     }
                 }
             }
@@ -584,39 +584,39 @@ fun TrainingSessionItem(
                             colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = AppGreen),
                             shape = AppShapes.button
                         ) {
-                            Text("Dodaj ćwiczenie", color = Color.White)
+                            Text("Add exercise", color = Color.White)
                         }
                         Box {
                             IconButton(onClick = { menuExpanded = true }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "Więcej")
+                                Icon(Icons.Default.MoreVert, contentDescription = "More")
                             }
                             DropdownMenu(
                                 expanded = menuExpanded,
                                 onDismissRequest = { menuExpanded = false }
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("Edytuj") },
+                                    text = { Text("Edit") },
                                     onClick = {
                                         menuExpanded = false
                                         onEdit(session)
                                     }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Usuń") },
+                                    text = { Text("Delete") },
                                     onClick = {
                                         menuExpanded = false
                                         onDelete(session)
                                     }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Udostępnij") },
+                                    text = { Text("Share") },
                                     onClick = {
                                         menuExpanded = false
                                         sharePostViewModel.publish(session.id)
                                     }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Kopiuj do") },
+                                    text = { Text("Copy to") },
                                     onClick = {
                                         menuExpanded = false
                                         showCopyToDatePicker = true
@@ -638,7 +638,7 @@ fun TrainingSessionItem(
                 ) {
                     if (sessionExercises.isEmpty()) {
                         Text(
-                            text = "Sesja jest pusta",
+                            text = "Session is empty",
                             modifier = Modifier.padding(16.dp),
                             fontSize = 15.sp // ← Zwiększona czcionka
                         )
@@ -716,7 +716,7 @@ fun TrainingSessionItem(
                             .fillMaxWidth()
                             .padding(horizontal = 8.dp)
                     ) {
-                        Text("+ Dodaj notatkę")
+                        Text("+ Add note")
                     }
                 }
             }
@@ -736,8 +736,8 @@ fun TrainingSessionItem(
     if (confirmDeleteNote) {
         AlertDialog(
             onDismissRequest = { confirmDeleteNote = false },
-            title = { Text("Usunąć notatkę?") },
-            text = { Text("Ta operacja jest nieodwracalna.") },
+            title = { Text("Delete note?") },
+            text = { Text("This action is irreversible.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -745,12 +745,12 @@ fun TrainingSessionItem(
                         confirmDeleteNote = false
                     }
                 ) {
-                    Text("Usuń")
+                    Text("Delete")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { confirmDeleteNote = false }) {
-                    Text("Anuluj")
+                    Text("Cancel")
                 }
             }
         )
@@ -791,7 +791,7 @@ fun AddSessionDialog(
         shape = AppShapes.dialog,
         title = {
             Text(
-                "Dodaj sesję treningową",
+                "Add training session",
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp
             )
@@ -805,7 +805,7 @@ fun AddSessionDialog(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Opis sesji (opcjonalnie)") },
+                    label = { Text("Session description (optional)") },
                     singleLine = false,
                     modifier = Modifier.fillMaxWidth(),
                     shape = AppShapes.button,
@@ -818,7 +818,7 @@ fun AddSessionDialog(
                 HorizontalDivider(color = AppDivider)
 
                 Text(
-                    text = "Utwórz pustą sesję",
+                    text = "Create an empty session",
                     fontSize = 14.sp,
                     color = AppMutedText
                 )
@@ -831,13 +831,13 @@ fun AddSessionDialog(
                     colors = ButtonDefaults.buttonColors(containerColor = AppGreen),
                     shape = AppShapes.button
                 ) {
-                    Text("Pusta sesja", fontWeight = FontWeight.Medium)
+                    Text("Empty session", fontWeight = FontWeight.Medium)
                 }
 
                 if (templates.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Lub wybierz szablon",
+                        text = "Or select a template",
                         fontSize = 14.sp,
                         color = AppMutedText
                     )
@@ -860,7 +860,7 @@ fun AddSessionDialog(
                 } else {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Brak szablonów. Dodaj je w zakładce Planner.",
+                        text = "No templates available. Add them in the Planner tab.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -876,7 +876,7 @@ fun AddSessionDialog(
                 shape = AppShapes.button,
                 border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
             ) {
-                Text("Anuluj", color = AppMutedText)
+                Text("Cancel", color = AppMutedText)
             }
         }
     )
@@ -895,7 +895,7 @@ fun EditSessionDialog(
         shape = AppShapes.dialog,
         title = {
             Text(
-                "Edytuj nazwę sesji",
+                "Edit session name",
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp
             )
@@ -904,7 +904,7 @@ fun EditSessionDialog(
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Nowa nazwa") },
+                label = { Text("New name") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = AppShapes.button,
                 colors = OutlinedTextFieldDefaults.colors(
@@ -914,22 +914,12 @@ fun EditSessionDialog(
             )
         },
         confirmButton = {
-            Button(
-                onClick = { onConfirm(description) },
-                colors = ButtonDefaults.buttonColors(containerColor = AppGreen),
-                shape = AppShapes.button
-            ) {
-                Text("Zapisz", fontWeight = FontWeight.Medium)
-            }
+            TextButton(
+                onClick = { onConfirm(description) }
+            ) { Text("Save") }
         },
         dismissButton = {
-            OutlinedButton(
-                onClick = onDismiss,
-                shape = AppShapes.button,
-                border = androidx.compose.foundation.BorderStroke(1.dp, AppDivider)
-            ) {
-                Text("Anuluj", color = AppMutedText)
-            }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
 }
@@ -954,12 +944,12 @@ fun AddSetDialog(
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text("Dodaj")
+                Text("Add")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Anuluj")
+                Text("Cancel")
             }
         }
     )

@@ -133,7 +133,7 @@ fun ProfilePage(
                         color = Color.Black
                     )
                     Text(
-                        text = "Twój profil",
+                        text = "My profile",
                         fontSize = 14.sp,
                         color = AppMutedText
                     )
@@ -166,7 +166,7 @@ fun ProfilePage(
                 isRefreshing = refreshing,
                 onRefresh = {
                     if (!isOnline) {
-                        scope.launch { snackbarHostState.showSnackbar("Brak połączenia z internetem") }
+                        scope.launch { snackbarHostState.showSnackbar("No internet connection") }
                     } else {
                         viewModel.refresh()
                     }
@@ -177,14 +177,14 @@ fun ProfilePage(
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = if (refreshing) "Odświeżanie…" else "Brak Twoich postów",
+                                text = if (refreshing) "Refreshing…" else "No posts yet",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.Black
                             )
                             Spacer(Modifier.height(8.dp))
                             Text(
-                                text = "Udostępnij trening, aby pojawił się tutaj.",
+                                text = "Share a workout and it will appear here.",
                                 fontSize = 14.sp,
                                 color = AppMutedText,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -205,7 +205,7 @@ fun ProfilePage(
                                 onOpenDetails = { detailsPost = it },
                                 onDelete = {
                                     if (!isOnline) {
-                                        scope.launch { snackbarHostState.showSnackbar("Brak połączenia z internetem") }
+                                        scope.launch { snackbarHostState.showSnackbar("No internet connection") }
                                     } else {
                                         viewModel.deletePost(post)
                                     }
@@ -260,7 +260,7 @@ private fun MyPostRow(
                     containerColor = AppSurface
                 ) {
                     DropdownMenuItem(
-                        text = { Text(if (busy) "Usuwanie…" else "Usuń post") },
+                        text = { Text(if (busy) "Deleting…" else "Delete post") },
                         onClick = {
                             menuExpanded = false
                             if (!busy) onDelete()

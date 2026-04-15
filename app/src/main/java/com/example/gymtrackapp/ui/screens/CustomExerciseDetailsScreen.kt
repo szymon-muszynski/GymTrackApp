@@ -48,13 +48,13 @@ fun CustomExerciseDetailsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = exercise?.name ?: "Ćwiczenie",
+                        text = exercise?.name ?: "Exercise",
                         fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Wróć")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -68,7 +68,7 @@ fun CustomExerciseDetailsScreen(
                     .padding(16.dp)
             ) {
                 Text(
-                    text = "Nie znaleziono ćwiczenia",
+                    text = "Exercise not found",
                     fontSize = 16.sp,
                     color = Color.Gray
                 )
@@ -89,18 +89,18 @@ fun CustomExerciseDetailsScreen(
                     ) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(
-                                text = "Podstawowe informacje",
+                                text = "Basic info",
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF4CAF50)
                             )
                             HorizontalDivider(color = Color(0xFFE0E0E0))
                             Spacer(modifier = Modifier.height(4.dp))
 
-                            Text("Poziom: ${exercise.level}")
-                            Text("Kategoria: ${exercise.category}")
-                            Text("Sprzęt: ${exercise.equipment ?: "Brak"}")
-                            Text("Mechanika: ${exercise.mechanic ?: "Brak"}")
-                            Text("Force: ${exercise.force ?: "Brak"}")
+                            Text("Level: ${exercise.level}")
+                            Text("Category: ${exercise.category}")
+                            Text("Equipment: ${exercise.equipment ?: "None"}")
+                            Text("Mechanics: ${exercise.mechanic ?: "None"}")
+                            Text("Force: ${exercise.force ?: "None"}")
                         }
                     }
                 }
@@ -113,7 +113,7 @@ fun CustomExerciseDetailsScreen(
                     ) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(
-                                text = "Mięśnie",
+                                text = "Muscles",
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF4CAF50)
                             )
@@ -121,11 +121,11 @@ fun CustomExerciseDetailsScreen(
                             Spacer(modifier = Modifier.height(4.dp))
 
                             Text(
-                                text = "Główne: ${exercise.primaryMuscles.joinToString(", ").ifBlank { "Brak" }}",
+                                text = "Primary: ${exercise.primaryMuscles.joinToString(", ").ifBlank { "None" }}",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Text(
-                                text = "Pomocnicze: ${exercise.secondaryMuscles.joinToString(", ").ifBlank { "Brak" }}",
+                                text = "Secondary: ${exercise.secondaryMuscles.joinToString(", ").ifBlank { "None" }}",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -140,7 +140,7 @@ fun CustomExerciseDetailsScreen(
                     ) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(
-                                text = "Instrukcje",
+                                text = "Instructions",
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF4CAF50)
                             )
@@ -148,7 +148,7 @@ fun CustomExerciseDetailsScreen(
                             Spacer(modifier = Modifier.height(4.dp))
 
                             if (exercise.instructions.isEmpty()) {
-                                Text(text = "Brak instrukcji", color = Color.Gray)
+                                Text(text = "No instructions", color = Color.Gray)
                             } else {
                                 exercise.instructions.forEachIndexed { idx, line ->
                                     Text(text = "${idx + 1}. $line")

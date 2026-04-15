@@ -76,7 +76,7 @@ fun ExercisePickerScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             IconButton(onClick = onNavigateBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Wstecz")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
             }
             Text(
                 text = "Add exercise",
@@ -96,8 +96,8 @@ fun ExercisePickerScreen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                label = { Text("Szukaj ćwiczenia") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Szukaj") },
+                label = { Text("Search exercise") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 shape = AppShapes.button,
@@ -118,7 +118,7 @@ fun ExercisePickerScreen(
                     contentColor = AppGreen
                 )
             ) {
-                Icon(Icons.Default.Create, contentDescription = "Filtruj")
+                Icon(Icons.Default.Create, contentDescription = "Filter")
             }
         }
 
@@ -147,17 +147,17 @@ fun ExercisePickerScreen(
                             fontSize = 18.sp
                         )
                         Text(
-                            text = "Poziom: ${exercise.level}",
+                            text = "Level: ${exercise.level}",
                             fontSize = 14.sp,
                             color = AppMutedText
                         )
                         Text(
-                            text = "Sprzęt: ${exercise.equipment ?: "Brak"}",
+                            text = "Equipment: ${exercise.equipment ?: "None"}",
                             fontSize = 14.sp,
                             color = AppMutedText
                         )
                         Text(
-                            text = "Główne partie: ${exercise.primaryMuscles.joinToString()}",
+                            text = "Primary muscles: ${exercise.primaryMuscles.joinToString()}",
                             fontSize = 12.sp,
                             color = AppMutedText
                         )
@@ -171,16 +171,16 @@ fun ExercisePickerScreen(
         AlertDialog(
             onDismissRequest = { showFilterDialog = false },
             shape = AppShapes.dialog,
-            title = { Text("Filtruj ćwiczenia", fontWeight = FontWeight.Bold) },
+            title = { Text("Filter exercises", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    MultiSelectDropdown("Główne mięśnie", primaryMuscles, exerciseViewModel.tempPrimaryMuscles) { exerciseViewModel.tempPrimaryMuscles = it }
-                    MultiSelectDropdown("Poboczne mięśnie", secondaryMuscles, exerciseViewModel.tempSecondaryMuscles) { exerciseViewModel.tempSecondaryMuscles = it }
-                    MultiSelectDropdown("Poziom", levels, exerciseViewModel.tempLevels) { exerciseViewModel.tempLevels = it }
-                    MultiSelectDropdown("Sprzęt", equipments, exerciseViewModel.tempEquipments) { exerciseViewModel.tempEquipments = it }
-                    MultiSelectDropdown("Kategoria", categories, exerciseViewModel.tempCategories) { exerciseViewModel.tempCategories = it }
-                    MultiSelectDropdown("Mechanika", mechanics, exerciseViewModel.tempMechanics) { exerciseViewModel.tempMechanics = it }
-                    MultiSelectDropdown("Siła", forces, exerciseViewModel.tempForces) { exerciseViewModel.tempForces = it }
+                    MultiSelectDropdown("Primary muscles", primaryMuscles, exerciseViewModel.tempPrimaryMuscles) { exerciseViewModel.tempPrimaryMuscles = it }
+                    MultiSelectDropdown("Secondary muscles", secondaryMuscles, exerciseViewModel.tempSecondaryMuscles) { exerciseViewModel.tempSecondaryMuscles = it }
+                    MultiSelectDropdown("Level", levels, exerciseViewModel.tempLevels) { exerciseViewModel.tempLevels = it }
+                    MultiSelectDropdown("Equipment", equipments, exerciseViewModel.tempEquipments) { exerciseViewModel.tempEquipments = it }
+                    MultiSelectDropdown("Category", categories, exerciseViewModel.tempCategories) { exerciseViewModel.tempCategories = it }
+                    MultiSelectDropdown("Mechanics", mechanics, exerciseViewModel.tempMechanics) { exerciseViewModel.tempMechanics = it }
+                    MultiSelectDropdown("Force", forces, exerciseViewModel.tempForces) { exerciseViewModel.tempForces = it }
                 }
             },
             confirmButton = {
@@ -192,7 +192,7 @@ fun ExercisePickerScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = AppGreen),
                     shape = AppShapes.button
                 ) {
-                    Text("Zastosuj", color = Color.White)
+                    Text("Apply", color = Color.White)
                 }
             },
             dismissButton = {
@@ -201,10 +201,9 @@ fun ExercisePickerScreen(
                     shape = AppShapes.button,
                     border = BorderStroke(1.dp, AppDivider)
                 ) {
-                    Text("Anuluj", color = AppMutedText)
+                    Text("Cancel", color = AppMutedText)
                 }
             }
         )
     }
 }
-

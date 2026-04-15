@@ -72,7 +72,7 @@ fun ExerciseSelector(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Wybierz ćwiczenie",
+                text = "Select exercise",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -85,7 +85,7 @@ fun ExerciseSelector(
                         isSearchActive = true
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Szukaj ćwiczenia...") },
+                    placeholder = { Text("Search exercise...") },
                     trailingIcon = {
                         if (isSearchActive && searchQuery.isNotEmpty()) {
                             IconButton(onClick = {
@@ -94,11 +94,11 @@ fun ExerciseSelector(
                             }) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = "Wyczyść"
+                                    contentDescription = "Clear"
                                 )
                             }
                         } else {
-                            Icon(Icons.Default.Search, "Szukaj")
+                            Icon(Icons.Default.Search, "Search")
                         }
                     },
                     colors = OutlinedTextFieldDefaults.colors(),
@@ -141,7 +141,7 @@ fun ExerciseSelector(
                         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                     ) {
                         Text(
-                            text = "Brak wyników dla \"$searchQuery\"",
+                            text = "No results for \"$searchQuery\"",
                             modifier = Modifier.padding(16.dp),
                             color = Color.Gray,
                             fontSize = 14.sp
@@ -169,7 +169,7 @@ fun ExerciseSelector(
                             color = Color(0xFF1976D2)
                         )
                         TextButton(onClick = { isSearchActive = true }) {
-                            Text("Zmień", fontSize = 12.sp)
+                            Text("Change", fontSize = 12.sp)
                         }
                     }
                 }
@@ -261,7 +261,7 @@ fun Estimated1RMChart(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Szacowany 1RM",
+                    text = "Estimated 1RM",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -282,7 +282,7 @@ fun Estimated1RMChart(
             }
 
             if (data.isEmpty()) {
-                EmptyChartPlaceholder("Brak danych do wyświetlenia")
+                EmptyChartPlaceholder("No data to display")
             } else {
                 // Wykres liniowy używając Canvas
                 LineChart(
@@ -318,13 +318,13 @@ fun VolumeLoadChart(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Objętość Treningowa (Volume Load)",
+                text = "Training volume (Volume Load)",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
-            
+
             if (data.isEmpty()) {
-                EmptyChartPlaceholder("Brak danych do wyświetlenia")
+                EmptyChartPlaceholder("No data to display")
             } else {
                 LineChart(
                     data = data.map { it.date to it.volume },
@@ -359,17 +359,17 @@ fun TopSetTrackingChart(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Najcięższa Seria",
+                text = "Heaviest set",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
-            
+
             if (data.isEmpty()) {
-                EmptyChartPlaceholder("Brak danych do wyświetlenia")
+                EmptyChartPlaceholder("No data to display")
             } else {
                 LineChart(
                     data = data,
-                    yAxisLabel = "Ciężar (kg)",
+                    yAxisLabel = "Weight (kg)",
                     color = Color(0xFFF44336),
                     xAxisType = XAxisType.EPOCH_DAY,
                     xAxisLabel = "",
@@ -403,11 +403,11 @@ fun RepsAtWeightChart(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Powtórzenia dla Ciężaru",
+                text = "Reps at weight",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
-            
+
             // Selektor ciężaru
             if (availableWeights.isNotEmpty()) {
                 WeightSelector(
@@ -416,15 +416,15 @@ fun RepsAtWeightChart(
                     onWeightSelected = onWeightSelected
                 )
             }
-            
+
             if (data.isEmpty()) {
                 EmptyChartPlaceholder(
-                    if (selectedWeight == null) "Wybierz ciężar" else "Brak danych dla tego ciężaru"
+                    if (selectedWeight == null) "Select a weight" else "No data for this weight"
                 )
             } else {
                 LineChart(
                     data = data.map { it.first to it.second.toFloat() },
-                    yAxisLabel = "Powtórzenia",
+                    yAxisLabel = "Reps",
                     color = Color(0xFFFF9800),
                     xAxisType = XAxisType.EPOCH_DAY,
                     xAxisLabel = "",
@@ -454,13 +454,13 @@ fun RepMaxMatrixCard(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Drabina Rekordów",
+                text = "PR ladder",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
-            
+
             if (matrix == null || matrix.records.isEmpty()) {
-                EmptyChartPlaceholder("Brak rekordów do wyświetlenia")
+                EmptyChartPlaceholder("No records to display")
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     RepMaxMatrix.STANDARD_REP_RANGES.forEach { reps ->
@@ -873,7 +873,7 @@ private fun RepMaxRow(
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold
         )
-        
+
         if (record != null) {
             Column(horizontalAlignment = Alignment.End) {
                 Text(

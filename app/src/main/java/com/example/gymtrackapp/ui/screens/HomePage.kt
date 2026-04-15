@@ -109,14 +109,14 @@ private fun HomePageHeader(userName: String? = null) {
                 .padding(20.dp)
         ) {
             Text(
-                text = if (userName != null) "Cześć, $userName!" else "Cześć!",
+                text = if (userName != null) "Hi, $userName!" else "Hi!",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF4CAF50)
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Gotowy na trening?",
+                text = "Ready for a workout?",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color(0xFF757575)
@@ -143,15 +143,15 @@ private fun QuickActionsSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             QuickActionCard(
-                title = "Nowa sesja",
-                subtitle = "Dodaj trening",
+                title = "New session",
+                subtitle = "Add a workout",
                 icon = Icons.Default.Add,
                 modifier = Modifier.weight(1f),
                 onClick = onAddWorkoutSession
             )
             QuickActionCard(
-                title = "Statystyki",
-                subtitle = "Przegląd postępów",
+                title = "Statistics",
+                subtitle = "View progress",
                 icon = Icons.Default.Info,
                 modifier = Modifier.weight(1f),
                 onClick = onNavigateToStatistics
@@ -164,15 +164,15 @@ private fun QuickActionsSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             QuickActionCard(
-                title = "Plany",
-                subtitle = "Twoje rozpiski",
+                title = "Plans",
+                subtitle = "Your schedule",
                 icon = Icons.Default.DateRange,
                 modifier = Modifier.weight(1f),
                 onClick = onNavigateToPlans
             )
             QuickActionCard(
-                title = "Ustawienia",
-                subtitle = "Preferencje",
+                title = "Settings",
+                subtitle = "Preferences",
                 icon = Icons.Default.Settings,
                 modifier = Modifier.weight(1f),
                 onClick = onNavigateToSettings
@@ -255,13 +255,13 @@ private fun WeeklyLoadChartCard(weeklyData: List<com.example.gymtrackapp.data.en
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Obciążenie tygodnia",
+                    text = "Weekly load",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF212121)
                 )
                 Text(
-                    text = "kg / dzień",
+                    text = "kg / day",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color(0xFF757575)
@@ -278,7 +278,7 @@ private fun WeeklyLoadChartCard(weeklyData: List<com.example.gymtrackapp.data.en
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Suma: ${String.format("%.0f", totalVolume)} kg",
+                    text = "Total: ${String.format("%.0f", totalVolume)} kg",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color(0xFF424242)
@@ -319,7 +319,7 @@ private fun WeeklyLoadChartCard(weeklyData: List<com.example.gymtrackapp.data.en
 
 @Composable
 private fun WeeklyBarChart(weeklyData: List<com.example.gymtrackapp.data.entity.statistics.TrainingDayData>) {
-    val days = listOf("Pn", "Wt", "Śr", "Cz", "Pt", "So", "Nd")
+    val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 
     // Mapujemy dane do mapy dla szybkiego dostępu (tak samo jak w kalendarzu treningowym)
     val dataMap = weeklyData.associateBy { it.date }
@@ -476,13 +476,13 @@ private fun TodaySummaryCard() {
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = "Dzisiaj",
+                    text = "Today",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF212121)
                 )
                 Text(
-                    text = "Brak zaplanowanego treningu",
+                    text = "No workout planned",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Normal,
                     color = Color(0xFF757575)
@@ -498,7 +498,7 @@ private fun TodaySummaryCard() {
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
             ) {
                 Text(
-                    text = "Zaplanuj",
+                    text = "Plan",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -528,7 +528,7 @@ private fun RecentActivityCard(
         ) {
             // Section header
             Text(
-                text = "Ostatnie sesje",
+                text = "Recent sessions",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF212121)
@@ -537,7 +537,7 @@ private fun RecentActivityCard(
             if (recentSessions.isEmpty()) {
                 // Placeholder gdy brak sesji
                 Text(
-                    text = "Brak ostatnich treningów",
+                    text = "No recent workouts",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Normal,
                     color = Color(0xFF757575),
@@ -608,7 +608,7 @@ private fun RecentSessionItem(
             )
         } else {
             Text(
-                text = "Brak ćwiczeń",
+                text = "No exercises",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Normal,
                 color = Color(0xFFBDBDBD),
@@ -627,7 +627,7 @@ private fun RecentSessionItem(
             modifier = Modifier.align(Alignment.End)
         ) {
             Text(
-                text = "Pokaż",
+                text = "View",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -646,9 +646,9 @@ private fun formatSessionDate(epochDay: Long): String {
     val diffDays = ((now.timeInMillis - calendar.timeInMillis) / (24 * 60 * 60 * 1000)).toInt()
 
     return when (diffDays) {
-        0 -> "Dzisiaj"
-        1 -> "Wczoraj"
-        in 2..6 -> "$diffDays dni temu"
+        0 -> "Today"
+        1 -> "Yesterday"
+        in 2..6 -> "$diffDays days ago"
         else -> {
             val day = calendar.get(java.util.Calendar.DAY_OF_MONTH)
             val month = calendar.get(java.util.Calendar.MONTH) + 1

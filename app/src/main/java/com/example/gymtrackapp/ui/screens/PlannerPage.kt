@@ -72,7 +72,7 @@ fun PlannerPage(
                         contentColor = fabContentColor,
                         shape = fabShape
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = "Dodaj szablon")
+                        Icon(Icons.Default.Add, contentDescription = "Add template")
                     }
                 }
 
@@ -83,7 +83,7 @@ fun PlannerPage(
                         contentColor = fabContentColor,
                         shape = fabShape
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = "Dodaj ćwiczenie")
+                        Icon(Icons.Default.Add, contentDescription = "Add exercise")
                     }
                 }
             }
@@ -106,13 +106,13 @@ fun PlannerPage(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 TabButton(
-                    text = "Szablony",
+                    text = "Templates",
                     isSelected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
                     modifier = Modifier.weight(1f)
                 )
                 TabButton(
-                    text = "Ćwiczenia",
+                    text = "Exercises",
                     isSelected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
                     modifier = Modifier.weight(1f)
@@ -212,9 +212,9 @@ fun PlannerPage(
             },
             shape = AppShapes.dialog,
             containerColor = AppSurface,
-            title = { Text("Usuń ćwiczenie?") },
+            title = { Text("Delete exercise?") },
             text = {
-                Text("Czy na pewno chcesz usunąć ćwiczenie \"${ex?.name ?: ""}\"?")
+                Text("Are you sure you want to delete the exercise \"${ex?.name ?: ""}\"?")
             },
             confirmButton = {
                 TextButton(
@@ -226,7 +226,7 @@ fun PlannerPage(
                         exerciseToDelete = null
                     }
                 ) {
-                    Text("Usuń", color = Color(0xFFE57373), fontWeight = FontWeight.Bold)
+                    Text("Delete", color = Color(0xFFE57373), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -236,7 +236,7 @@ fun PlannerPage(
                         exerciseToDelete = null
                     }
                 ) {
-                    Text("Anuluj", color = AppMutedText)
+                    Text("Cancel", color = AppMutedText)
                 }
             }
         )
@@ -259,14 +259,14 @@ private fun PlannerPageHeader() {
                 .padding(20.dp)
         ) {
             Text(
-                text = "Szablony Treningowe",
+                text = "Workout templates",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = AppGreen
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Twórz i zarządzaj swoimi planami treningowymi",
+                text = "Create and manage your workout plans",
                 fontSize = 14.sp,
                 color = AppMutedText
             )
@@ -298,13 +298,13 @@ private fun EmptyTemplatesPlaceholder(onAddTemplate: () -> Unit) {
                 tint = Color(0xFFBDBDBD)
             )
             Text(
-                text = "Brak szablonów treningowych",
+                text = "No workout templates",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF424242)
             )
             Text(
-                text = "Utwórz swój pierwszy szablon, aby szybko planować treningi",
+                text = "Create your first template to plan workouts faster",
                 fontSize = 14.sp,
                 color = AppMutedText,
                 textAlign = TextAlign.Center
@@ -316,7 +316,7 @@ private fun EmptyTemplatesPlaceholder(onAddTemplate: () -> Unit) {
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Dodaj szablon", color = Color.White)
+                Text("Add template", color = Color.White)
             }
         }
     }
@@ -338,14 +338,14 @@ private fun CustomExercisesHeader() {
                 .padding(20.dp)
         ) {
             Text(
-                text = "Twoje ćwiczenia",
+                text = "Your exercises",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = AppGreen
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Twórz i zarządzaj własnymi ćwiczeniami",
+                text = "Create and manage your own exercises",
                 fontSize = 14.sp,
                 color = AppMutedText
             )
@@ -377,13 +377,13 @@ private fun EmptyCustomExercisesPlaceholder(onAddExercise: () -> Unit) {
                 tint = Color(0xFFBDBDBD)
             )
             Text(
-                text = "Brak własnych ćwiczeń",
+                text = "No custom exercises",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF424242)
             )
             Text(
-                text = "Utwórz swoje pierwsze ćwiczenie, aby używać go w treningach",
+                text = "Create your first exercise to use it in workouts",
                 fontSize = 14.sp,
                 color = AppMutedText,
                 textAlign = TextAlign.Center
@@ -395,7 +395,7 @@ private fun EmptyCustomExercisesPlaceholder(onAddExercise: () -> Unit) {
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Dodaj ćwiczenie", color = Color.White)
+                Text("Add exercise", color = Color.White)
             }
         }
     }
@@ -433,7 +433,7 @@ private fun CustomExerciseCard(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = exercise.primaryMuscles.joinToString(", ").ifBlank { "Brak mięśni" },
+                    text = exercise.primaryMuscles.joinToString(", ").ifBlank { "No muscles" },
                     fontSize = 13.sp,
                     color = AppMutedText,
                     maxLines = 1,
@@ -444,7 +444,7 @@ private fun CustomExerciseCard(
             IconButton(onClick = onDelete) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Usuń ćwiczenie",
+                    contentDescription = "Delete exercise",
                     tint = Color(0xFFE57373)
                 )
             }
@@ -491,7 +491,7 @@ private fun AddCustomExerciseDialog(
         containerColor = AppSurface,
         title = {
             Text(
-                "Nowe ćwiczenie",
+                "New exercise",
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp
             )
@@ -511,7 +511,7 @@ private fun AddCustomExerciseDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Nazwa") },
+                    label = { Text("Name") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = AppShapes.button,
@@ -521,17 +521,17 @@ private fun AddCustomExerciseDialog(
                     )
                 )
 
-                SingleSelectDropdown("Poziom", levels, selectedLevel, { selectedLevel = it }, false)
-                SingleSelectDropdown("Kategoria", categories, selectedCategory, { selectedCategory = it }, false)
-                SingleSelectDropdown("Sprzęt", equipments, selectedEquipment, { selectedEquipment = it }, true)
-                SingleSelectDropdown("Mechanika", mechanics, selectedMechanic, { selectedMechanic = it }, true)
+                SingleSelectDropdown("Level", levels, selectedLevel, { selectedLevel = it }, false)
+                SingleSelectDropdown("Category", categories, selectedCategory, { selectedCategory = it }, false)
+                SingleSelectDropdown("Equipment", equipments, selectedEquipment, { selectedEquipment = it }, true)
+                SingleSelectDropdown("Mechanics", mechanics, selectedMechanic, { selectedMechanic = it }, true)
                 SingleSelectDropdown("Force", forces, selectedForce, { selectedForce = it }, true)
                 SingleSelectDropdown("Primary muscle", primaryMuscles, selectedPrimaryMuscle, { selectedPrimaryMuscle = it }, false)
 
                 OutlinedTextField(
                     value = instructionsText,
                     onValueChange = { instructionsText = it },
-                    label = { Text("Instrukcje (każda linia = krok)") },
+                    label = { Text("Instructions (each line = step)") },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
                     shape = AppShapes.button,
@@ -565,7 +565,7 @@ private fun AddCustomExerciseDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = AppGreen),
                 shape = AppShapes.button
             ) {
-                Text("Zapisz", fontWeight = FontWeight.Medium, color = Color.White)
+                Text("Save", fontWeight = FontWeight.Medium, color = Color.White)
             }
         },
         dismissButton = {
@@ -574,7 +574,7 @@ private fun AddCustomExerciseDialog(
                 shape = AppShapes.button,
                 border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
             ) {
-                Text("Anuluj", color = AppMutedText)
+                Text("Cancel", color = AppMutedText)
             }
         }
     )
@@ -595,7 +595,7 @@ private fun SingleSelectDropdown(
         expanded = expanded,
         onExpandedChange = { expanded = !expanded }
     ) {
-        val display = selected ?: if (allowNone) "Brak" else "Wybierz"
+        val display = selected ?: if (allowNone) "None" else "Select"
 
         OutlinedTextField(
             value = display,
@@ -619,7 +619,7 @@ private fun SingleSelectDropdown(
         ) {
             if (allowNone) {
                 DropdownMenuItem(
-                    text = { Text("Brak") },
+                    text = { Text("None") },
                     onClick = {
                         onSelectedChange(null)
                         expanded = false
@@ -683,7 +683,7 @@ fun TemplateCard(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "${templateExercises.size} ${if (templateExercises.size == 1) "ćwiczenie" else if (templateExercises.size in 2..4) "ćwiczenia" else "ćwiczeń"}",
+                        text = "${templateExercises.size} ${if (templateExercises.size == 1) "exercise" else "exercises"}",
                         fontSize = 13.sp,
                         color = AppMutedText
                     )
@@ -692,7 +692,7 @@ fun TemplateCard(
                     IconButton(onClick = onDeleteTemplate) {
                         Icon(
                             Icons.Default.Delete,
-                            contentDescription = "Usuń szablon",
+                            contentDescription = "Delete template",
                             tint = Color(0xFFE57373)
                         )
                     }
@@ -712,7 +712,7 @@ fun TemplateCard(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Brak ćwiczeń w szablonie",
+                            text = "No exercises in this template",
                             fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
                             color = AppMutedText,
                             fontSize = 14.sp
@@ -751,7 +751,7 @@ fun TemplateCard(
                                         ) {
                                             Icon(
                                                 Icons.Default.Delete,
-                                                contentDescription = "Usuń ćwiczenie",
+                                                contentDescription = "Delete",
                                                 tint = Color(0xFFE57373),
                                                 modifier = Modifier.size(20.dp)
                                             )
@@ -773,7 +773,7 @@ fun TemplateCard(
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Dodaj ćwiczenie", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color.White)
+                    Text("Add exercise", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color.White)
                 }
             }
         }
@@ -793,7 +793,7 @@ fun AddTemplateDialog(
         containerColor = AppSurface,
         title = {
             Text(
-                "Nowy szablon",
+                "New template",
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp
             )
@@ -801,7 +801,7 @@ fun AddTemplateDialog(
         text = {
             Column {
                 Text(
-                    text = "Nadaj nazwę szablonowi:",
+                    text = "Name your template:",
                     fontSize = 14.sp,
                     color = AppMutedText
                 )
@@ -809,7 +809,7 @@ fun AddTemplateDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Nazwa szablonu") },
+                    label = { Text("Template name") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = AppShapes.button,
@@ -822,15 +822,11 @@ fun AddTemplateDialog(
         },
         confirmButton = {
             Button(
-                onClick = {
-                    if (name.isNotBlank()) {
-                        onConfirm(name)
-                    }
-                },
+                onClick = { onConfirm(name) },
                 colors = ButtonDefaults.buttonColors(containerColor = AppGreen),
                 shape = AppShapes.button
             ) {
-                Text("Utwórz", fontWeight = FontWeight.Medium, color = Color.White)
+                Text("Create", fontWeight = FontWeight.Medium, color = Color.White)
             }
         },
         dismissButton = {
@@ -839,7 +835,7 @@ fun AddTemplateDialog(
                 shape = AppShapes.button,
                 border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
             ) {
-                Text("Anuluj", color = AppMutedText)
+                Text("Cancel", color = AppMutedText)
             }
         }
     )

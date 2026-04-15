@@ -42,13 +42,13 @@ fun FriendsPage(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 FriendsTabButton(
-                    text = "Eksploruj",
+                    text = "Explore",
                     isSelected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
                     modifier = Modifier.weight(1f)
                 )
                 FriendsTabButton(
-                    text = "Szukaj",
+                    text = "Search",
                     isSelected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
                     modifier = Modifier.weight(1f)

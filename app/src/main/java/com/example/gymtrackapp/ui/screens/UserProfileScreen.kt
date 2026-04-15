@@ -88,7 +88,7 @@ fun UserProfileScreen(
                     .padding(20.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val displayName = profile?.displayName ?: "Użytkownik"
+                val displayName = profile?.displayName ?: "User"
                 val avatarColor = profile?.avatarColor ?: "#4CAF50"
 
                 Box(
@@ -149,8 +149,8 @@ fun UserProfileScreen(
                         Text(
                             text = when {
                                 followBusy -> "..."
-                                isFollowing -> "Obserwujesz"
-                                else -> "Obserwuj"
+                                isFollowing -> "Following"
+                                else -> "Follow"
                             },
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold
@@ -177,14 +177,14 @@ fun UserProfileScreen(
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = if (refreshing) "Odświeżanie…" else "Brak udostępnionych treningów",
+                                text = if (refreshing) "Refreshing…" else "No shared workouts",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.Black
                             )
                             Spacer(Modifier.height(6.dp))
                             Text(
-                                text = "Gdy użytkownik udostępni trening, pojawi się tutaj.",
+                                text = "When the user shares a workout, it will show up here.",
                                 fontSize = 14.sp,
                                 color = AppMutedText,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
