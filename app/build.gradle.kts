@@ -72,6 +72,11 @@ dependencies {
     // ViewModel Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
 
+    // Wykresy - Vico (dla Compose)
+    implementation("com.patrykandpatrick.vico:compose:1.13.1")
+    implementation("com.patrykandpatrick.vico:compose-m3:1.13.1")
+    implementation("com.patrykandpatrick.vico:core:1.13.1")
+
     // Testy
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -88,4 +93,13 @@ dependencies {
 
     // Firebase Firestore
     implementation("com.google.firebase:firebase-firestore-ktx")
+
+    // WorkManager (sync offline-first)
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    // Pull-to-Refresh (material pullRefresh)
+    implementation("androidx.compose.material:material")
+
+    // Coil - Image loading library for Compose
+    implementation("io.coil-kt:coil-compose:2.5.0")
 }

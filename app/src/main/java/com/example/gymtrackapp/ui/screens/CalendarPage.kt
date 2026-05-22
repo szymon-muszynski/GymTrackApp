@@ -1,5 +1,6 @@
 package com.example.gymtrackapp.ui.screens
 
+import android.app.DatePickerDialog
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,16 +18,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -48,40 +55,107 @@ import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import com.example.gymtrackapp.data.entity.TrainingSession
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
-import kotlin.collections.forEach
-import kotlin.collections.get
-import kotlin.text.toLong
-import androidx.compose.material3.CardDefaults
-import kotlin.collections.get
-import kotlin.text.toLong
+import com.example.gymtrackapp.ui.viewmodel.SharePostViewModel
+import com.example.gymtrackapp.ui.viewmodel.TemplateViewModel
+import com.example.gymtrackapp.utils.EpochDayFormatter
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import com.example.gymtrackapp.data.entity.WorkoutTemplate
+import com.example.gymtrackapp.ui.components.SessionNoteCard
+import com.example.gymtrackapp.ui.components.SessionNoteDialog
+import com.example.gymtrackapp.ui.theme.AppBackground
+import com.example.gymtrackapp.ui.theme.AppChipBackground
+import com.example.gymtrackapp.ui.theme.AppGreen
+import com.example.gymtrackapp.ui.theme.AppMutedText
+import com.example.gymtrackapp.ui.theme.AppSurface
+import com.example.gymtrackapp.ui.theme.AppDivider
+import com.example.gymtrackapp.ui.theme.AppShapes
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun CalendarPage(
     modifier: Modifier = Modifier,
     trainingViewModel: TrainingViewModel,
-    exerciseViewModel: ExerciseViewModel,  // ← DODAJ TO
+    exerciseViewModel: ExerciseViewModel,
+    statisticsViewModel: com.example.gymtrackapp.ui.viewmodel.StatisticsViewModel,
+    templateViewModel: TemplateViewModel,
+    sharePostViewModel: SharePostViewModel,
     showAddSessionDialog: Boolean,
     onDismissDialog: () -> Unit,
-    navController: NavHostController
+    navController: NavHostController,
+    initialDate: LocalDate? = null,
+    showMonthlyCalendar: Boolean = false,
+    onDismissMonthlyCalendar: () -> Unit = {}
 ) {
-    var selectedDate by remember { mutableStateOf(LocalDate.now()) }
+    var selectedDate by remember { mutableStateOf(initialDate ?: LocalDate.now()) }
     val sessions by trainingViewModel.sessions.collectAsState()
 
+    // --- EDIT state (było przed zmianami) ---
     var showEditDialog by remember { mutableStateOf(false) }
     var sessionToEdit by remember { mutableStateOf<TrainingSession?>(null) }
+
+    val templates by templateViewModel.templates.collectAsState()
+
+    // --- COPY UI state ---
+    var showCopyFromDialog by remember { mutableStateOf(false) }
+    var copyFromSelectedDateEpochDay by remember { mutableStateOf<Long?>(null) }
+    var copyFromSelectedSessionId by remember { mutableStateOf<Long?>(null) }
+
+    val availableCopyDates by trainingViewModel.availableCopySourceDates.collectAsState()
+    val copyFromDateSessions by trainingViewModel.copyFromDateSessions.collectAsState()
+
+    val copyMessage by trainingViewModel.copyMessage.collectAsState()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        templateViewModel.loadTemplates()
+    }
 
     LaunchedEffect(selectedDate) {
         trainingViewModel.loadSessionsForDate(selectedDate.toEpochDay())
     }
 
+    LaunchedEffect(copyMessage) {
+        if (copyMessage != null) {
+            snackbarHostState.showSnackbar(copyMessage!!)
+            trainingViewModel.clearCopyMessage()
+        }
+    }
+
+    val shareMessage by sharePostViewModel.message.collectAsState()
+    LaunchedEffect(shareMessage) {
+        if (shareMessage != null) {
+            snackbarHostState.showSnackbar(shareMessage!!)
+            sharePostViewModel.clearMessage()
+        }
+    }
+
+    // Collector eventów z SharePostViewModel zostaje, ale bez redundancji
+    LaunchedEffect(sharePostViewModel) {
+        sharePostViewModel.events.collectLatest { event ->
+            when (event) {
+                is SharePostViewModel.UiEvent.ShowSnackbar -> {
+                    snackbarHostState.showSnackbar(event.message)
+                }
+            }
+        }
+    }
+
+    // Root wypełnia CAŁY obszar pomiędzy TopAppBar i BottomBar (padding jest już na NavHost w MainScreen).
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF9FBAE8)),
+            .background(AppBackground),
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -90,10 +164,25 @@ fun CalendarPage(
             onDateSelected = { selectedDate = it }
         )
 
+        TextButton(
+            onClick = {
+                trainingViewModel.loadAvailableCopySourceDates()
+                copyFromSelectedDateEpochDay = null
+                copyFromSelectedSessionId = null
+                showCopyFromDialog = true
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp)
+        ) {
+            Text("Copy from another date")
+        }
+
         SessionsList(
             trainingSessions = sessions,
             trainingViewModel = trainingViewModel,
             exerciseViewModel = exerciseViewModel,
+            sharePostViewModel = sharePostViewModel,
             onEdit = { session ->
                 sessionToEdit = session
                 showEditDialog = true
@@ -102,7 +191,7 @@ fun CalendarPage(
                 trainingViewModel.deleteSession(session)
             },
             onAddExercise = { session ->
-                navController.navigate("add_exercise/${session.id}")
+                navController.navigate("exercise_picker?from=session&sessionId=${session.id}")
             },
             onExerciseClick = { sessionExerciseId, exerciseId ->
                 navController.navigate("set_details/$sessionExerciseId/$exerciseId")
@@ -110,15 +199,150 @@ fun CalendarPage(
         )
     }
 
+    // Snackbar: pokazuj jako standardowy toast/snackbar w dialogach lub przenieś do MainScreen.
+    // Zostawiamy logikę showSnackbar(), ale host nie jest tu potrzebny do layoutu.
+
+    // Dialog "Kopiuj z" (2 kroki: data -> sesja)
+    if (showCopyFromDialog) {
+        val stepPickSession = copyFromSelectedDateEpochDay != null
+
+        AlertDialog(
+            onDismissRequest = { showCopyFromDialog = false },
+            title = { Text(if (!stepPickSession) "Copy from: select a day" else "Copy from: select a session") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (!stepPickSession) {
+                        if (availableCopyDates.isEmpty()) {
+                            Text("No days with workout sessions")
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentPadding = PaddingValues(vertical = 4.dp)
+                            ) {
+                                itemsIndexed(availableCopyDates) { _, item ->
+                                    val sessionsLabel = if (item.sessionCount == 1) "1 session" else "${item.sessionCount} sessions"
+                                    val label = "${EpochDayFormatter.formatEpochDay(item.date)} ($sessionsLabel)"
+
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                copyFromSelectedDateEpochDay = item.date
+                                                copyFromSelectedSessionId = null
+                                                trainingViewModel.loadCopyFromDateSessions(item.date)
+                                            },
+                                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+                                    ) {
+                                        Text(
+                                            text = label,
+                                            modifier = Modifier.padding(12.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                }
+                            }
+                        }
+                    } else {
+                        val dateLabel = EpochDayFormatter.formatEpochDay(copyFromSelectedDateEpochDay!!)
+                        Text("Day: $dateLabel")
+
+                        if (copyFromDateSessions.isEmpty()) {
+                            Text("No sessions on this day")
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                copyFromDateSessions.forEach { s ->
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { copyFromSelectedSessionId = s.id },
+                                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            RadioButton(
+                                                selected = copyFromSelectedSessionId == s.id,
+                                                onClick = { copyFromSelectedSessionId = s.id }
+                                            )
+                                            Text(
+                                                text = if (s.description.isBlank()) "(unnamed)" else s.description,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                if (stepPickSession) {
+                    TextButton(
+                        enabled = copyFromSelectedSessionId != null,
+                        onClick = {
+                            val targetEpochDay = selectedDate.toEpochDay()
+                            val targetLabel = EpochDayFormatter.formatEpochDay(targetEpochDay)
+                            trainingViewModel.copySessionToSelectedDateFrom(
+                                sessionId = copyFromSelectedSessionId!!,
+                                selectedDateLabel = targetLabel,
+                                selectedDateEpochDay = targetEpochDay,
+                            )
+                            showCopyFromDialog = false
+                        }
+                    ) {
+                        Text("Copy")
+                    }
+                }
+            },
+            dismissButton = {
+                Row {
+                    if (stepPickSession) {
+                        TextButton(
+                            onClick = {
+                                // back to day selection
+                                copyFromSelectedDateEpochDay = null
+                                copyFromSelectedSessionId = null
+                                trainingViewModel.resetCopyFromDateSessions()
+                            }
+                        ) {
+                            Text("Back")
+                        }
+                    }
+                    TextButton(onClick = {
+                        showCopyFromDialog = false
+                        copyFromSelectedDateEpochDay = null
+                        copyFromSelectedSessionId = null
+                        trainingViewModel.resetCopyFromDateSessions()
+                    }) {
+                        Text("Cancel")
+                    }
+                }
+            }
+        )
+    }
+
     if (showAddSessionDialog) {
         AddSessionDialog(
+            date = selectedDate,
+            templates = templates,
             onDismiss = onDismissDialog,
-            onConfirm = { description ->
+            onCreateEmptySession = { description ->
                 trainingViewModel.createEmptySession(
                     date = selectedDate.toEpochDay(),
                     description = description
                 )
-                onDismissDialog()
+            },
+            onCreateSessionFromTemplate = { templateId, description ->
+                trainingViewModel.createSessionFromTemplate(
+                    templateId = templateId,
+                    date = selectedDate.toEpochDay(),
+                    description = description
+                )
             }
         )
     }
@@ -131,7 +355,34 @@ fun CalendarPage(
                 trainingViewModel.updateSession(
                     sessionToEdit!!.copy(description = newDescription)
                 )
+                statisticsViewModel.refresh() // Odświeżamy statystyki
                 showEditDialog = false
+            }
+        )
+    }
+
+    // Dialog kalendarza miesięcznego
+    if (showMonthlyCalendar) {
+        val trainingDates by trainingViewModel.trainingDatesCache.collectAsState()
+
+        // Załaduj dni z treningami tylko gdy zmienia się miesiąc (nie przy każdym dniu)
+        LaunchedEffect(selectedDate.year, selectedDate.monthValue) {
+            trainingViewModel.loadTrainingDatesForMonth(
+                year = selectedDate.year,
+                month = selectedDate.monthValue
+            )
+        }
+
+        com.example.gymtrackapp.ui.components.MonthlyCalendarDialog(
+            selectedDate = selectedDate,
+            trainingDates = trainingDates,
+            onDateSelected = { date ->
+                selectedDate = date
+                trainingViewModel.loadSessionsForDate(date.toEpochDay())
+            },
+            onDismiss = onDismissMonthlyCalendar,
+            onMonthChanged = { year, month ->
+                trainingViewModel.loadTrainingDatesForMonth(year, month)
             }
         )
     }
@@ -161,7 +412,9 @@ fun HorizontalInfiniteCalendar(
         state = listState,
         modifier = Modifier
             .fillMaxWidth()
-            .height(96.dp),
+            // mniejsza wysokość + brak dodatkowego odstępu u góry
+            .height(92.dp)
+            .padding(top = 0.dp),
         contentPadding = PaddingValues(horizontal = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -186,17 +439,20 @@ fun DayCard(
     selected: Boolean,
     onClick: () -> Unit
 ) {
-    val bg = if (selected) Color(0xFF2B6CB0) else Color.White
+    val bg = if (selected) AppGreen else AppSurface
     val textColor = if (selected) Color.White else Color.Black
+
     Card(
         modifier = Modifier
             .height(88.dp)
-            .padding(vertical = 4.dp)
-            .clickable(onClick = onClick)
+            // usuń padding pionowy - robił wizualnie dodatkową przerwę od góry
+            .clickable(onClick = onClick),
+        shape = AppShapes.card,
+        colors = CardDefaults.cardColors(containerColor = bg),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
-                .background(bg)
                 .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -226,6 +482,7 @@ fun SessionsList(
     trainingSessions: List<TrainingSession>,
     trainingViewModel: TrainingViewModel,
     exerciseViewModel: ExerciseViewModel,
+    sharePostViewModel: SharePostViewModel,
     onEdit: (TrainingSession) -> Unit,
     onDelete: (TrainingSession) -> Unit,
     onAddExercise: (TrainingSession) -> Unit,
@@ -233,7 +490,8 @@ fun SessionsList(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(8.dp)
+        // ZMIANA: Dodano horizontal = 16.dp, aby sesje nie "przyklejały" się do krawędzi ekranu
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
     ) {
         items(trainingSessions) { session ->
             TrainingSessionItem(
@@ -241,6 +499,7 @@ fun SessionsList(
                 session = session,
                 trainingViewModel = trainingViewModel,
                 exerciseViewModel = exerciseViewModel,
+                sharePostViewModel = sharePostViewModel,
                 onEdit = onEdit,
                 onDelete = onDelete,
                 onAddExercise = onAddExercise,
@@ -256,6 +515,7 @@ fun TrainingSessionItem(
     session: TrainingSession,
     trainingViewModel: TrainingViewModel,
     exerciseViewModel: ExerciseViewModel,
+    sharePostViewModel: SharePostViewModel,
     onEdit: (TrainingSession) -> Unit = {},
     onDelete: (TrainingSession) -> Unit = {},
     onAddExercise: (TrainingSession) -> Unit = {},
@@ -275,13 +535,22 @@ fun TrainingSessionItem(
         }
     }
 
+    val noteEditorSessionId by trainingViewModel.noteEditorSessionId.collectAsState()
+    // Źródło prawdy: pole w encji z Room
+    val currentNote: String? = session.note
+
+    var confirmDeleteNote by remember { mutableStateOf(false) }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var showCopyToDatePicker by remember { mutableStateOf(false) }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
             .clickable { isExpanded = !isExpanded },
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF6B9BD1) // ← Zmieniony kolor na ciemniejszy niebieski
-        )
+        shape = AppShapes.card,
+        colors = CardDefaults.cardColors(containerColor = AppSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
             Row(
@@ -297,8 +566,9 @@ fun TrainingSessionItem(
                 ) {
                     Text(
                         text = session.description,
-                        fontWeight = FontWeight.Bold, // ← Pogrubienie
-                        fontSize = 18.sp // ← Można opcjonalnie zwiększyć
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = Color(0xFF212121)
                     )
                 }
                 Column(modifier = Modifier.weight(1f)) {
@@ -309,29 +579,47 @@ fun TrainingSessionItem(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.End,
                     ) {
-                        Button(onClick = { onAddExercise(session) }) {
-                            Text("Add exercise")
+                        Button(
+                            onClick = { onAddExercise(session) },
+                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = AppGreen),
+                            shape = AppShapes.button
+                        ) {
+                            Text("Add exercise", color = Color.White)
                         }
                         Box {
                             IconButton(onClick = { menuExpanded = true }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "Więcej")
+                                Icon(Icons.Default.MoreVert, contentDescription = "More")
                             }
                             DropdownMenu(
                                 expanded = menuExpanded,
                                 onDismissRequest = { menuExpanded = false }
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("Edytuj") },
+                                    text = { Text("Edit") },
                                     onClick = {
                                         menuExpanded = false
                                         onEdit(session)
                                     }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Usuń") },
+                                    text = { Text("Delete") },
                                     onClick = {
                                         menuExpanded = false
                                         onDelete(session)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Share") },
+                                    onClick = {
+                                        menuExpanded = false
+                                        sharePostViewModel.publish(session.id)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Copy to") },
+                                    onClick = {
+                                        menuExpanded = false
+                                        showCopyToDatePicker = true
                                     }
                                 )
                             }
@@ -345,22 +633,24 @@ fun TrainingSessionItem(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFF5F5F5)
-                    )
+                    shape = AppShapes.smallCard,
+                    colors = CardDefaults.cardColors(containerColor = AppChipBackground)
                 ) {
                     if (sessionExercises.isEmpty()) {
                         Text(
-                            text = "Sesja jest pusta",
+                            text = "Session is empty",
                             modifier = Modifier.padding(16.dp),
                             fontSize = 15.sp // ← Zwiększona czcionka
                         )
                     } else {
                         Column {
                             sessionExercises.forEach { sessionExercise ->
-                                val exercise = allExercises.find { it.id == sessionExercise.exerciseId }
+                                val exercise =
+                                    allExercises.find { it.id == sessionExercise.exerciseId }
                                 if (exercise != null) {
-                                    val sets by trainingViewModel.getSetsForSessionExercise(sessionExercise.id).collectAsState(initial = emptyList())
+                                    val sets by trainingViewModel.getSetsForSessionExercise(
+                                        sessionExercise.id
+                                    ).collectAsState(initial = emptyList())
 
                                     LaunchedEffect(sessionExercise.id) {
                                         trainingViewModel.loadSetsForSessionExercise(sessionExercise.id)
@@ -393,7 +683,10 @@ fun TrainingSessionItem(
                                         IconButton(onClick = {
                                             trainingViewModel.deleteSessionExercise(sessionExercise)
                                         }) {
-                                            Icon(Icons.Default.Delete, contentDescription = "Delete")
+                                            Icon(
+                                                Icons.Default.Delete,
+                                                contentDescription = "Delete"
+                                            )
                                         }
                                     }
                                 }
@@ -401,35 +694,190 @@ fun TrainingSessionItem(
                         }
                     }
                 }
+
+                // --- NOTATKA (osobne pole pod ćwiczeniami) ---
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (!currentNote.isNullOrBlank()) {
+                    SessionNoteCard(
+                        note = currentNote,
+                        onClick = { trainingViewModel.openNoteEditor(session.id) },
+                        onDeleteClick = { confirmDeleteNote = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                } else {
+                    TextButton(
+                        onClick = { trainingViewModel.openNoteEditor(session.id) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp)
+                    ) {
+                        Text("+ Add note")
+                    }
+                }
             }
         }
+    }
+
+    // Dialog edycji notatki (z przyciemnionym tłem jak w Social)
+    if (noteEditorSessionId == session.id) {
+        SessionNoteDialog(
+            initialText = currentNote.orEmpty(),
+            onDismiss = { trainingViewModel.closeNoteEditor() },
+            onSave = { trainingViewModel.saveSessionNote(session.id, it) },
+        )
+    }
+
+    // Potwierdzenie usunięcia
+    if (confirmDeleteNote) {
+        AlertDialog(
+            onDismissRequest = { confirmDeleteNote = false },
+            title = { Text("Delete note?") },
+            text = { Text("This action is irreversible.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        trainingViewModel.deleteSessionNote(session.id)
+                        confirmDeleteNote = false
+                    }
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDeleteNote = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showCopyToDatePicker) {
+        val today = LocalDate.now()
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                val target = LocalDate.of(year, month + 1, dayOfMonth)
+                val targetEpochDay = target.toEpochDay()
+                val label = EpochDayFormatter.formatEpochDay(targetEpochDay)
+                trainingViewModel.copySessionToDate(session.id, targetEpochDay, label)
+                showCopyToDatePicker = false
+            },
+            today.year,
+            today.monthValue - 1,
+            today.dayOfMonth
+        ).apply {
+            setOnCancelListener { showCopyToDatePicker = false }
+        }.show()
     }
 }
 
 @Composable
 fun AddSessionDialog(
+    date: LocalDate,
+    templates: List<WorkoutTemplate>,
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
+    onCreateEmptySession: (String) -> Unit,
+    onCreateSessionFromTemplate: (Long, String) -> Unit
 ) {
     var description by remember { mutableStateOf("") }
 
-    androidx.compose.material3.AlertDialog(
+    AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Nowa sesja treningowa") },
-        text = {
-            androidx.compose.material3.OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
-                label = { Text("Opis treningu") }
+        shape = AppShapes.dialog,
+        title = {
+            Text(
+                "Add training session",
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
             )
         },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Session description (optional)") },
+                    singleLine = false,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = AppShapes.button,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AppGreen,
+                        focusedLabelColor = AppGreen
+                    )
+                )
+
+                HorizontalDivider(color = AppDivider)
+
+                Text(
+                    text = "Create an empty session",
+                    fontSize = 14.sp,
+                    color = AppMutedText
+                )
+                Button(
+                    onClick = {
+                        onCreateEmptySession(description)
+                        onDismiss()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = AppGreen),
+                    shape = AppShapes.button
+                ) {
+                    Text("Empty session", fontWeight = FontWeight.Medium)
+                }
+
+                if (templates.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Or select a template",
+                        fontSize = 14.sp,
+                        color = AppMutedText
+                    )
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        templates.forEach { template ->
+                            OutlinedButton(
+                                onClick = {
+                                    onCreateSessionFromTemplate(template.id, description)
+                                    onDismiss()
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = AppShapes.button
+                            ) {
+                                Text(template.name)
+                            }
+                        }
+                    }
+                } else {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "No templates available. Add them in the Planner tab.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
         confirmButton = {
-            TextButton(
-                onClick = { onConfirm(description) }
-            ) { Text("Utwórz") }
+            // zostaw puste, korzystamy z przycisków w `text`
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Anuluj") }
+            OutlinedButton(
+                onClick = onDismiss,
+                shape = AppShapes.button,
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
+            ) {
+                Text("Cancel", color = AppMutedText)
+            }
         }
     )
 }
@@ -442,23 +890,36 @@ fun EditSessionDialog(
 ) {
     var description by remember { mutableStateOf(session.description) }
 
-    androidx.compose.material3.AlertDialog(
+    AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edytuj nazwę sesji") },
+        shape = AppShapes.dialog,
+        title = {
+            Text(
+                "Edit session name",
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
+            )
+        },
         text = {
-            androidx.compose.material3.OutlinedTextField(
+            OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Nowa nazwa") }
+                label = { Text("New name") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = AppShapes.button,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = AppGreen,
+                    focusedLabelColor = AppGreen
+                )
             )
         },
         confirmButton = {
             TextButton(
                 onClick = { onConfirm(description) }
-            ) { Text("Potwierdź") }
+            ) { Text("Save") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Anuluj") }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
 }
@@ -483,12 +944,12 @@ fun AddSetDialog(
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text("Dodaj")
+                Text("Add")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Anuluj")
+                Text("Cancel")
             }
         }
     )
