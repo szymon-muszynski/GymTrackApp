@@ -1,7 +1,5 @@
 package com.example.gymtrackapp.ui.screens
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -9,7 +7,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -29,12 +26,17 @@ import androidx.compose.ui.unit.sp
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.example.gymtrackapp.data.entity.Exercise
+import com.example.gymtrackapp.ui.theme.AppBackground
+import com.example.gymtrackapp.ui.theme.AppDivider
+import com.example.gymtrackapp.ui.theme.AppGreen
+import com.example.gymtrackapp.ui.theme.AppMutedText
+import com.example.gymtrackapp.ui.theme.AppSurface
+import com.example.gymtrackapp.ui.theme.AppShapes
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
 import com.example.gymtrackapp.ui.viewmodel.TemplateViewModel
 import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ExerciseDetailScreen(
     exerciseId: String,
@@ -50,30 +52,15 @@ fun ExerciseDetailScreen(
     val exercise = allExercises.find { it.id == exerciseId }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = exercise?.name ?: "Szczegóły ćwiczenia",
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Wróć")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
-            )
-        },
+        // KLUCZOWA POPRAWKA: Wyłączamy domyślne insetsy (odstępy systemowe),
+        // ponieważ ten ekran jest już wewnątrz innego Scaffolda w MainScreen.
+        // To usuwa niechcianą lukę na górze.
+        contentWindowInsets = WindowInsets(0.dp),
         bottomBar = {
-            // Sticky button na dole
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shadowElevation = 8.dp,
-                color = MaterialTheme.colorScheme.surface
+                color = AppBackground
             ) {
                 Button(
                     onClick = {
@@ -89,39 +76,68 @@ fun ExerciseDetailScreen(
                                 }
                             }
                         }
-                        // Cofnij się 2 razy - z ExerciseDetailScreen -> AddExerciseScreen -> CalendarPage/PlannerPage
-                        onNavigateBack() // pierwszy popBackStack
-                        onNavigateBack() // drugi popBackStack
+                        onNavigateBack()
+                        onNavigateBack()
                     },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = AppGreen),
+                    shape = AppShapes.button
                 ) {
                     Text(
-                        text = "Dodaj ćwiczenie",
+                        text = "Add exercise",
                         fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
                         modifier = Modifier.padding(vertical = 8.dp)
                     )
                 }
             }
-        }
+        },
+        containerColor = AppBackground
     ) { paddingValues ->
-        if (exercise == null) {
-            Box(
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(AppBackground)
+        ) {
+            // --- NAGŁÓWEK ---
+            // Ustawiony idealnie tak jak w AddExerciseScreen.
+            // Tam jest padding(16.dp) na rodzicu, tutaj dajemy go bezpośrednio na Row.
+            Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Ćwiczenie nie znalezione")
+                IconButton(onClick = onNavigateBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+                Text(
+                    text = exercise?.name ?: "Exercise details",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
             }
-        } else {
-            ExerciseDetailContent(
-                exercise = exercise,
-                modifier = Modifier.padding(paddingValues)
-            )
+
+            // --- ZAWARTOŚĆ ---
+            if (exercise == null) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Exercise not found", color = AppMutedText)
+                }
+            } else {
+                ExerciseDetailContent(
+                    exercise = exercise,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }
@@ -137,184 +153,204 @@ fun ExerciseDetailContent(
 
     Column(
         modifier = modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .verticalScroll(scrollState)
     ) {
         // Galeria zdjęć
-        if (exercise.images.isNotEmpty()) {
-            val pagerState = rememberPagerState(pageCount = { exercise.images.size })
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            shape = AppShapes.card,
+            colors = CardDefaults.cardColors(containerColor = AppSurface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            if (exercise.images.isNotEmpty()) {
+                val pagerState = rememberPagerState(pageCount = { exercise.images.size })
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(300.dp)
-                    .background(Color.LightGray)
-            ) {
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxSize()
-                ) { page ->
-                    val imageUrl = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${exercise.images[page]}"
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(260.dp)
+                        .background(AppSurface)
+                ) {
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize()
+                    ) { page ->
+                        val imageUrl = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${exercise.images[page]}"
 
-                    SubcomposeAsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .data(imageUrl)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = "${exercise.name} - zdjęcie ${page + 1}",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit,
-                        loading = {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
-                            }
-                        },
-                        error = {
-                            // Fallback dla braku internetu
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color(0xFFE0E0E0)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
+                        SubcomposeAsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(imageUrl)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "${exercise.name} - image ${page + 1}",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit,
+                            loading = {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Brak internetu",
-                                        modifier = Modifier.size(64.dp),
-                                        tint = Color.Gray
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = "Brak zdjęć - brak internetu",
-                                        color = Color.Gray,
-                                        fontSize = 14.sp
-                                    )
+                                    CircularProgressIndicator(color = AppGreen)
+                                }
+                            },
+                            error = {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(AppSurface),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "No internet",
+                                            modifier = Modifier.size(48.dp),
+                                            tint = AppMutedText
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "No images - no internet connection",
+                                            color = AppMutedText,
+                                            fontSize = 14.sp
+                                        )
+                                    }
                                 }
                             }
+                        )
+                    }
+
+                    if (exercise.images.size > 1) {
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            repeat(exercise.images.size) { index ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(if (pagerState.currentPage == index) 10.dp else 8.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (pagerState.currentPage == index) AppGreen
+                                            else Color.Black.copy(alpha = 0.15f)
+                                        )
+                                )
+                            }
                         }
+                    }
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .background(AppSurface),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No images for this exercise",
+                        color = AppMutedText,
+                        fontSize = 14.sp
                     )
                 }
+            }
+        }
 
-                // Wskaźniki (kropki) - custom implementation
-                if (exercise.images.size > 1) {
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        repeat(exercise.images.size) { index ->
-                            Box(
-                                modifier = Modifier
-                                    .size(if (pagerState.currentPage == index) 10.dp else 8.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (pagerState.currentPage == index)
-                                            MaterialTheme.colorScheme.primary
-                                        else
-                                            Color.White.copy(alpha = 0.5f)
-                                    )
-                            )
+        // Sekcja informacji
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            shape = AppShapes.card,
+            colors = CardDefaults.cardColors(containerColor = AppSurface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                InfoRow(label = "Level", value = exercise.level.capitalize())
+                exercise.equipment?.let { InfoRow(label = "Equipment", value = it) }
+                InfoRow(label = "Category", value = exercise.category)
+                exercise.mechanic?.let { InfoRow(label = "Mechanic", value = it) }
+                exercise.force?.let { InfoRow(label = "Force", value = it) }
+            }
+        }
+
+        // Mięśnie
+        if (exercise.primaryMuscles.isNotEmpty() || exercise.secondaryMuscles.isNotEmpty()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                shape = AppShapes.card,
+                colors = CardDefaults.cardColors(containerColor = AppSurface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (exercise.primaryMuscles.isNotEmpty()) {
+                        Text(
+                            text = "Primary muscles",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp
+                        )
+                        ExerciseFlowRow(items = exercise.primaryMuscles, color = AppGreen)
+                    }
+
+                    if (exercise.secondaryMuscles.isNotEmpty()) {
+                        Text(
+                            text = "Secondary muscles",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp
+                        )
+                        ExerciseFlowRow(items = exercise.secondaryMuscles, color = AppGreen.copy(alpha = 0.75f))
+                    }
+                }
+            }
+        }
+
+        // Instrukcje
+        if (exercise.instructions.isNotEmpty()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                shape = AppShapes.card,
+                colors = CardDefaults.cardColors(containerColor = AppSurface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "How to perform?",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 18.sp,
+                        color = AppGreen
+                    )
+
+                    exercise.instructions.forEachIndexed { index, instruction ->
+                        InstructionItem(number = index + 1, text = instruction)
+                        if (index < exercise.instructions.size - 1) {
+                            HorizontalDivider(color = AppDivider)
                         }
                     }
                 }
             }
-        } else {
-            // Brak zdjęć w danych
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .background(Color(0xFFE0E0E0)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Brak zdjęć dla tego ćwiczenia",
-                    color = Color.Gray,
-                    fontSize = 14.sp
-                )
-            }
         }
 
-        // Informacje o ćwiczeniu
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Poziom trudności
-            InfoRow(label = "Poziom", value = exercise.level.capitalize())
-
-            // Sprzęt
-            exercise.equipment?.let {
-                InfoRow(label = "Sprzęt", value = it)
-            }
-
-            // Kategoria
-            InfoRow(label = "Kategoria", value = exercise.category)
-
-            // Mechanika
-            exercise.mechanic?.let {
-                InfoRow(label = "Mechanika", value = it)
-            }
-
-            // Force
-            exercise.force?.let {
-                InfoRow(label = "Typ ruchu", value = it)
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            // Główne mięśnie
-            if (exercise.primaryMuscles.isNotEmpty()) {
-                Text(
-                    text = "Główne mięśnie:",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
-                ExerciseFlowRow(items = exercise.primaryMuscles, color = Color(0xFF4CAF50))
-            }
-
-            // Drugorzędne mięśnie
-            if (exercise.secondaryMuscles.isNotEmpty()) {
-                Text(
-                    text = "Drugorzędne mięśnie:",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
-                ExerciseFlowRow(items = exercise.secondaryMuscles, color = Color(0xFF2196F3))
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            // Instrukcje
-            if (exercise.instructions.isNotEmpty()) {
-                Text(
-                    text = "Jak wykonać?",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = MaterialTheme.colorScheme.primary
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                exercise.instructions.forEachIndexed { index, instruction ->
-                    InstructionItem(number = index + 1, text = instruction)
-                    if (index < exercise.instructions.size - 1) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-                }
-            }
-
-            // Padding na dole dla przycisku
-            Spacer(modifier = Modifier.height(16.dp))
-        }
+        Spacer(modifier = Modifier.height(90.dp))
     }
 }
 
@@ -328,7 +364,7 @@ fun InfoRow(label: String, value: String) {
             text = "$label:",
             fontWeight = FontWeight.SemiBold,
             fontSize = 14.sp,
-            color = Color.Gray
+            color = AppMutedText
         )
         Text(
             text = value,
@@ -348,15 +384,15 @@ fun ExerciseFlowRow(items: List<String>, color: Color) {
     ) {
         items.forEach { item ->
             Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = color.copy(alpha = 0.2f),
+                shape = AppShapes.button,
+                color = color.copy(alpha = 0.15f),
                 modifier = Modifier.wrapContentSize()
             ) {
                 Text(
                     text = item,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     fontSize = 13.sp,
-                    color = color.copy(alpha = 0.9f),
+                    color = color,
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -371,19 +407,18 @@ fun InstructionItem(number: Int, text: String) {
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.Top
     ) {
-        // Numer w kółku
         Box(
             modifier = Modifier
                 .size(28.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
+                .background(AppGreen.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = number.toString(),
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+                color = AppGreen
             )
         }
 
@@ -401,4 +436,3 @@ fun InstructionItem(number: Int, text: String) {
 fun String.capitalize(): String {
     return this.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
 }
-

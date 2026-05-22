@@ -20,14 +20,22 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.example.gymtrackapp.ui.theme.AppDivider
+import com.example.gymtrackapp.ui.theme.AppGreen
+import com.example.gymtrackapp.ui.theme.AppMutedText
+import com.example.gymtrackapp.ui.theme.AppShapes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
@@ -42,6 +50,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.gymtrackapp.data.entity.PlannedWorkoutEntity
 import com.example.gymtrackapp.ui.viewmodel.PlannerViewModel
 import java.time.LocalDate
@@ -49,7 +58,8 @@ import java.time.format.TextStyle
 import java.util.Locale
 import androidx.compose.foundation.border
 
-private val PolishLocale = Locale("pl", "PL")
+// Zmieniamy locale na EN, żeby daty/dni były po angielsku na screenshotach.
+private val UiLocale = Locale.ENGLISH
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -83,7 +93,7 @@ fun WeeklyPlannerCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 IconButton(onClick = { plannerViewModel.previousWeek() }) {
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Poprzedni tydzień")
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Previous week")
                 }
 
                 Text(
@@ -93,7 +103,7 @@ fun WeeklyPlannerCard(
                 )
 
                 IconButton(onClick = { plannerViewModel.nextWeek() }) {
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Następny tydzień")
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next week")
                 }
             }
 
@@ -153,8 +163,8 @@ private fun DayItem(
     onClick: () -> Unit,
 ) {
     val dayLabel = date.dayOfWeek
-        .getDisplayName(TextStyle.SHORT, PolishLocale)
-        .replaceFirstChar { it.uppercase(PolishLocale) }
+        .getDisplayName(TextStyle.SHORT, UiLocale)
+        .replaceFirstChar { it.uppercase(UiLocale) }
         .trimEnd('.')
 
     Column(
@@ -222,8 +232,8 @@ private fun weekTitleFor(weekStart: LocalDate): String {
 
     // "Styczeń 2026" (PL)
     val monthName = targetMonth
-        .getDisplayName(TextStyle.FULL, PolishLocale)
-        .replaceFirstChar { it.uppercase(PolishLocale) }
+        .getDisplayName(TextStyle.FULL, UiLocale)
+        .replaceFirstChar { it.uppercase(UiLocale) }
 
     return "$monthName $targetYear"
 }
@@ -249,32 +259,61 @@ private fun PlanDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
+        shape = AppShapes.dialog,
+        containerColor = Color.White,
+        title = {
+            Text(
+                title,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
+            )
+        },
         text = {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it },
-                    label = { Text("Nazwa treningu") },
+                    label = { Text("Workout name") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = AppShapes.button,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AppGreen,
+                        focusedLabelColor = AppGreen,
+                        cursorColor = AppGreen
+                    )
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(text) }) {
-                Text("Zapisz")
+            Button(
+                onClick = { onSave(text) },
+                colors = ButtonDefaults.buttonColors(containerColor = AppGreen),
+                shape = AppShapes.button
+            ) {
+                Text("Save", fontWeight = FontWeight.SemiBold, color = Color.White)
             }
         },
         dismissButton = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 if (state.existingPlan != null) {
-                    TextButton(onClick = onDelete) {
-                        Text("Usuń")
+                    OutlinedButton(
+                        onClick = onDelete,
+                        shape = AppShapes.button,
+                        border = BorderStroke(1.dp, Color(0xFFE57373))
+                    ) {
+                        Text("Delete", color = Color(0xFFE57373))
                     }
                 }
-                TextButton(onClick = onDismiss) {
-                    Text("Anuluj")
+                OutlinedButton(
+                    onClick = onDismiss,
+                    shape = AppShapes.button,
+                    border = BorderStroke(1.dp, AppDivider)
+                ) {
+                    Text("Cancel", color = AppMutedText)
                 }
             }
         }

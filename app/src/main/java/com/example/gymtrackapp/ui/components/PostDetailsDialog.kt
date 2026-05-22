@@ -85,14 +85,14 @@ fun PostDetailsDialog(
                         }
 
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Zamknij")
+                            Icon(Icons.Default.Close, contentDescription = "Close")
                         }
                     }
 
                     post.totalVolume?.let {
                         Spacer(Modifier.height(10.dp))
                         Text(
-                            text = "Objętość: ${formatVolume(it)} kg",
+                            text = "Volume: ${formatVolume(it)} kg",
                             color = Color(0xFF4CAF50),
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleMedium
@@ -110,12 +110,12 @@ fun PostDetailsDialog(
                         Spacer(Modifier.height(6.dp))
 
                         if (ex.sets.isEmpty()) {
-                            Text(text = "Brak serii", color = Color.Gray)
+                            Text(text = "No sets", color = Color.Gray)
                         } else {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 ex.sets.forEachIndexed { idx, set ->
                                     Text(
-                                        text = "Seria ${idx + 1}: ${set.format()} ",
+                                        text = "Set ${idx + 1}: ${set.format()} ",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = Color.DarkGray
                                     )
@@ -134,4 +134,3 @@ fun PostDetailsDialog(
 private fun SetSummary.format(): String = "${weight}kg×${reps}"
 
 private fun formatVolume(v: Float): String = String.format(Locale.ROOT, "%.0f", v)
-

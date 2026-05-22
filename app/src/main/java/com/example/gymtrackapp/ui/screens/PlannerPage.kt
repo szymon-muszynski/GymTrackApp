@@ -17,12 +17,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.gymtrackapp.data.entity.Exercise
 import com.example.gymtrackapp.data.entity.WorkoutTemplate
+import com.example.gymtrackapp.ui.theme.AppBackground
+import com.example.gymtrackapp.ui.theme.AppGreen
+import com.example.gymtrackapp.ui.theme.AppMutedText
+import com.example.gymtrackapp.ui.theme.AppShapes
+import com.example.gymtrackapp.ui.theme.AppSurface
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
 import com.example.gymtrackapp.ui.viewmodel.TemplateViewModel
 
@@ -45,63 +51,68 @@ fun PlannerPage(
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var exerciseToDelete by remember { mutableStateOf<Exercise?>(null) }
 
-    // 2adujemy szablony przy wej2bciu na ekran
+    // Załaduj szablony przy wejściu na ekran
     LaunchedEffect(Unit) {
         templateViewModel.loadTemplates()
     }
 
     Scaffold(
+        // KLUCZOWE: Usuwa lukę na górze ekranu (resetuje insetsy systemowe)
+        contentWindowInsets = WindowInsets(0.dp),
         floatingActionButton = {
+            val fabColor = AppGreen
+            val fabContentColor = Color.White
+            val fabShape = AppShapes.button // Kształt zgodny z resztą aplikacji (zaokrąglony kwadrat)
+
             when (selectedTab) {
                 0 -> {
                     FloatingActionButton(
                         onClick = { showAddTemplateDialog = true },
-                        containerColor = Color(0xFF4CAF50)
+                        containerColor = fabColor,
+                        contentColor = fabContentColor,
+                        shape = fabShape
                     ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = "Dodaj szablon",
-                            tint = Color.White
-                        )
+                        Icon(Icons.Default.Add, contentDescription = "Add template")
                     }
                 }
 
                 1 -> {
                     FloatingActionButton(
                         onClick = { showAddExerciseDialog = true },
-                        containerColor = Color(0xFF4CAF50)
+                        containerColor = fabColor,
+                        contentColor = fabContentColor,
+                        shape = fabShape
                     ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = "Dodaj ćwiczenie",
-                            tint = Color.White
-                        )
+                        Icon(Icons.Default.Add, contentDescription = "Add exercise")
                     }
                 }
             }
-        }
+        },
+        containerColor = AppBackground
     ) { paddingValues ->
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .background(Color(0xFFF5F5F5))
+                .background(AppBackground)
                 .padding(paddingValues)
         ) {
-            // Tab Row z przyciskami (jak w Progress)
+            // Tab Row z przyciskami
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                    // Zmniejszyłem górny padding, bo insety są wyzerowane,
+                    // więc treść zaczyna się zaraz pod TopBarem z MainScreen
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 TabButton(
-                    text = "Szablony",
+                    text = "Templates",
                     isSelected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
                     modifier = Modifier.weight(1f)
                 )
                 TabButton(
-                    text = "Ćwiczenia",
+                    text = "Exercises",
                     isSelected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
                     modifier = Modifier.weight(1f)
@@ -110,7 +121,7 @@ fun PlannerPage(
 
             when (selectedTab) {
                 0 -> {
-                    // Nag13wek
+                    // Nagłówek
                     PlannerPageHeader()
 
                     if (templates.isEmpty()) {
@@ -118,7 +129,7 @@ fun PlannerPage(
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 80.dp), // bottom na FAB
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             items(templates) { template ->
@@ -127,15 +138,12 @@ fun PlannerPage(
                                     templateViewModel = templateViewModel,
                                     exerciseViewModel = exerciseViewModel,
                                     onAddExercise = {
-                                        navController.navigate("add_template_exercise/${template.id}")
+                                        navController.navigate("exercise_picker?from=template&templateId=${template.id}")
                                     },
                                     onDeleteTemplate = {
                                         templateViewModel.deleteTemplate(template)
                                     }
                                 )
-                            }
-                            item {
-                                Spacer(modifier = Modifier.height(16.dp))
                             }
                         }
                     }
@@ -149,7 +157,7 @@ fun PlannerPage(
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 80.dp), // bottom na FAB
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             items(customExercises, key = { it.id }) { exercise ->
@@ -163,9 +171,6 @@ fun PlannerPage(
                                         showDeleteConfirm = true
                                     }
                                 )
-                            }
-                            item {
-                                Spacer(modifier = Modifier.height(16.dp))
                             }
                         }
                     }
@@ -205,9 +210,11 @@ fun PlannerPage(
                 showDeleteConfirm = false
                 exerciseToDelete = null
             },
-            title = { Text("Usuń ćwiczenie?") },
+            shape = AppShapes.dialog,
+            containerColor = AppSurface,
+            title = { Text("Delete exercise?") },
             text = {
-                Text("Czy na pewno chcesz usunąć ćwiczenie \"${ex?.name ?: ""}\"?")
+                Text("Are you sure you want to delete the exercise \"${ex?.name ?: ""}\"?")
             },
             confirmButton = {
                 TextButton(
@@ -219,7 +226,7 @@ fun PlannerPage(
                         exerciseToDelete = null
                     }
                 ) {
-                    Text("Usuń", color = Color(0xFFE57373), fontWeight = FontWeight.Bold)
+                    Text("Delete", color = Color(0xFFE57373), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -229,7 +236,7 @@ fun PlannerPage(
                         exerciseToDelete = null
                     }
                 ) {
-                    Text("Anuluj")
+                    Text("Cancel", color = AppMutedText)
                 }
             }
         )
@@ -242,8 +249,8 @@ private fun PlannerPageHeader() {
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = AppShapes.card,
+        colors = CardDefaults.cardColors(containerColor = AppSurface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -252,16 +259,16 @@ private fun PlannerPageHeader() {
                 .padding(20.dp)
         ) {
             Text(
-                text = "Szablony Treningowe",
-                fontSize = 28.sp,
+                text = "Workout templates",
+                fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF4CAF50)
+                color = AppGreen
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Twórz i zarządzaj swoimi planami treningowymi",
+                text = "Create and manage your workout plans",
                 fontSize = 14.sp,
-                color = Color(0xFF757575)
+                color = AppMutedText
             )
         }
     }
@@ -273,8 +280,8 @@ private fun EmptyTemplatesPlaceholder(onAddTemplate: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = AppShapes.card,
+        colors = CardDefaults.cardColors(containerColor = AppSurface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -291,27 +298,25 @@ private fun EmptyTemplatesPlaceholder(onAddTemplate: () -> Unit) {
                 tint = Color(0xFFBDBDBD)
             )
             Text(
-                text = "Brak szablonów treningowych",
+                text = "No workout templates",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF424242)
             )
             Text(
-                text = "Utwórz swój pierwszy szablon, aby szybko planować treningi",
+                text = "Create your first template to plan workouts faster",
                 fontSize = 14.sp,
-                color = Color(0xFF757575),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                color = AppMutedText,
+                textAlign = TextAlign.Center
             )
             Button(
                 onClick = onAddTemplate,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4CAF50)
-                ),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp)
+                colors = ButtonDefaults.buttonColors(containerColor = AppGreen),
+                shape = AppShapes.button
             ) {
-                Icon(Icons.Default.Add, contentDescription = null)
+                Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Dodaj szablon")
+                Text("Add template", color = Color.White)
             }
         }
     }
@@ -323,8 +328,8 @@ private fun CustomExercisesHeader() {
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = AppShapes.card,
+        colors = CardDefaults.cardColors(containerColor = AppSurface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -333,16 +338,16 @@ private fun CustomExercisesHeader() {
                 .padding(20.dp)
         ) {
             Text(
-                text = "Twoje ćwiczenia",
-                fontSize = 28.sp,
+                text = "Your exercises",
+                fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF4CAF50)
+                color = AppGreen
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Twórz i zarządzaj własnymi ćwiczeniami",
+                text = "Create and manage your own exercises",
                 fontSize = 14.sp,
-                color = Color(0xFF757575)
+                color = AppMutedText
             )
         }
     }
@@ -354,8 +359,8 @@ private fun EmptyCustomExercisesPlaceholder(onAddExercise: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = AppShapes.card,
+        colors = CardDefaults.cardColors(containerColor = AppSurface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -372,27 +377,25 @@ private fun EmptyCustomExercisesPlaceholder(onAddExercise: () -> Unit) {
                 tint = Color(0xFFBDBDBD)
             )
             Text(
-                text = "Brak własnych ćwiczeń",
+                text = "No custom exercises",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF424242)
             )
             Text(
-                text = "Utwórz swoje pierwsze ćwiczenie, aby używać go w treningach",
+                text = "Create your first exercise to use it in workouts",
                 fontSize = 14.sp,
-                color = Color(0xFF757575),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                color = AppMutedText,
+                textAlign = TextAlign.Center
             )
             Button(
                 onClick = onAddExercise,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4CAF50)
-                ),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp)
+                colors = ButtonDefaults.buttonColors(containerColor = AppGreen),
+                shape = AppShapes.button
             ) {
-                Icon(Icons.Default.Add, contentDescription = null)
+                Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Dodaj ćwiczenie")
+                Text("Add exercise", color = Color.White)
             }
         }
     }
@@ -408,8 +411,8 @@ private fun CustomExerciseCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = AppShapes.card,
+        colors = CardDefaults.cardColors(containerColor = AppSurface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -430,9 +433,9 @@ private fun CustomExerciseCard(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = exercise.primaryMuscles.joinToString(", ").ifBlank { "Brak mięśni" },
+                    text = exercise.primaryMuscles.joinToString(", ").ifBlank { "No muscles" },
                     fontSize = 13.sp,
-                    color = Color(0xFF757575),
+                    color = AppMutedText,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -441,7 +444,7 @@ private fun CustomExerciseCard(
             IconButton(onClick = onDelete) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Usuń ćwiczenie",
+                    contentDescription = "Delete exercise",
                     tint = Color(0xFFE57373)
                 )
             }
@@ -473,7 +476,6 @@ private fun AddCustomExerciseDialog(
 
     var instructionsText by remember { mutableStateOf("") }
 
-    // Zamknij dialog dopiero gdy operacja zakończy się sukcesem (bez errora)
     val error by exerciseViewModel.customExerciseError.observeAsState(null)
     var saveRequested by remember { mutableStateOf(false) }
 
@@ -485,16 +487,16 @@ private fun AddCustomExerciseDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+        shape = AppShapes.dialog,
+        containerColor = AppSurface,
         title = {
             Text(
-                "Nowe ćwiczenie",
+                "New exercise",
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp
             )
         },
         text = {
-            // Scroll, bo pól jest sporo
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -509,71 +511,34 @@ private fun AddCustomExerciseDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Nazwa") },
+                    label = { Text("Name") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                    shape = AppShapes.button,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF4CAF50),
-                        focusedLabelColor = Color(0xFF4CAF50)
+                        focusedBorderColor = AppGreen,
+                        focusedLabelColor = AppGreen
                     )
                 )
 
-                SingleSelectDropdown(
-                    label = "Poziom",
-                    options = levels,
-                    selected = selectedLevel,
-                    onSelectedChange = { selectedLevel = it },
-                    allowNone = false
-                )
-
-                SingleSelectDropdown(
-                    label = "Kategoria",
-                    options = categories,
-                    selected = selectedCategory,
-                    onSelectedChange = { selectedCategory = it },
-                    allowNone = false
-                )
-
-                SingleSelectDropdown(
-                    label = "Sprzęt",
-                    options = equipments,
-                    selected = selectedEquipment,
-                    onSelectedChange = { selectedEquipment = it },
-                    allowNone = true
-                )
-
-                SingleSelectDropdown(
-                    label = "Mechanika",
-                    options = mechanics,
-                    selected = selectedMechanic,
-                    onSelectedChange = { selectedMechanic = it },
-                    allowNone = true
-                )
-
-                SingleSelectDropdown(
-                    label = "Force",
-                    options = forces,
-                    selected = selectedForce,
-                    onSelectedChange = { selectedForce = it },
-                    allowNone = true
-                )
-
-                SingleSelectDropdown(
-                    label = "Primary muscle",
-                    options = primaryMuscles,
-                    selected = selectedPrimaryMuscle,
-                    onSelectedChange = { selectedPrimaryMuscle = it },
-                    allowNone = false
-                )
+                SingleSelectDropdown("Level", levels, selectedLevel, { selectedLevel = it }, false)
+                SingleSelectDropdown("Category", categories, selectedCategory, { selectedCategory = it }, false)
+                SingleSelectDropdown("Equipment", equipments, selectedEquipment, { selectedEquipment = it }, true)
+                SingleSelectDropdown("Mechanics", mechanics, selectedMechanic, { selectedMechanic = it }, true)
+                SingleSelectDropdown("Force", forces, selectedForce, { selectedForce = it }, true)
+                SingleSelectDropdown("Primary muscle", primaryMuscles, selectedPrimaryMuscle, { selectedPrimaryMuscle = it }, false)
 
                 OutlinedTextField(
                     value = instructionsText,
                     onValueChange = { instructionsText = it },
-                    label = { Text("Instrukcje (każda linia = krok)") },
+                    label = { Text("Instructions (each line = step)") },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+                    shape = AppShapes.button,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AppGreen,
+                        focusedLabelColor = AppGreen
+                    )
                 )
             }
         },
@@ -597,21 +562,19 @@ private fun AddCustomExerciseDialog(
                         createdByUserId = null
                     )
                 },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4CAF50)
-                ),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+                colors = ButtonDefaults.buttonColors(containerColor = AppGreen),
+                shape = AppShapes.button
             ) {
-                Text("Zapisz", fontWeight = FontWeight.Medium)
+                Text("Save", fontWeight = FontWeight.Medium, color = Color.White)
             }
         },
         dismissButton = {
             OutlinedButton(
                 onClick = onDismiss,
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                shape = AppShapes.button,
                 border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
             ) {
-                Text("Anuluj", color = Color(0xFF757575))
+                Text("Cancel", color = AppMutedText)
             }
         }
     )
@@ -632,16 +595,22 @@ private fun SingleSelectDropdown(
         expanded = expanded,
         onExpandedChange = { expanded = !expanded }
     ) {
-        val display = selected ?: if (allowNone) "Brak" else "Wybierz"
+        val display = selected ?: if (allowNone) "None" else "Select"
 
-        TextField(
+        OutlinedTextField(
             value = display,
             onValueChange = {},
             readOnly = true,
             label = { Text(label) },
             modifier = Modifier
-                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                .fillMaxWidth()
+                .menuAnchor()
+                .fillMaxWidth(),
+            shape = AppShapes.button,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
+                focusedBorderColor = AppGreen,
+                focusedLabelColor = AppGreen
+            )
         )
 
         ExposedDropdownMenu(
@@ -650,7 +619,7 @@ private fun SingleSelectDropdown(
         ) {
             if (allowNone) {
                 DropdownMenuItem(
-                    text = { Text("Brak") },
+                    text = { Text("None") },
                     onClick = {
                         onSelectedChange(null)
                         expanded = false
@@ -681,12 +650,9 @@ fun TemplateCard(
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     val templateExercisesMap by templateViewModel.templateExercisesMap.collectAsState()
-
     val templateExercises = templateExercisesMap[template.id] ?: emptyList()
-
     val allExercises by exerciseViewModel.exercises.observeAsState(emptyList())
 
-    // Ładujemy ćwiczenia dla tego szablonu, gdy karta jest rozwijana
     LaunchedEffect(template.id, isExpanded) {
         if (isExpanded) {
             templateViewModel.loadExercisesForTemplate(template.id)
@@ -697,8 +663,8 @@ fun TemplateCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { isExpanded = !isExpanded },
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = AppShapes.card,
+        colors = CardDefaults.cardColors(containerColor = AppSurface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -717,16 +683,16 @@ fun TemplateCard(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "${templateExercises.size} ${if (templateExercises.size == 1) "ćwiczenie" else if (templateExercises.size in 2..4) "ćwiczenia" else "ćwiczeń"}",
+                        text = "${templateExercises.size} ${if (templateExercises.size == 1) "exercise" else "exercises"}",
                         fontSize = 13.sp,
-                        color = Color(0xFF757575)
+                        color = AppMutedText
                     )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onDeleteTemplate) {
                         Icon(
                             Icons.Default.Delete,
-                            contentDescription = "Usuń szablon",
+                            contentDescription = "Delete template",
                             tint = Color(0xFFE57373)
                         )
                     }
@@ -739,24 +705,18 @@ fun TemplateCard(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 if (templateExercises.isEmpty()) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "Brak ćwiczeń w szablonie",
-                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                                color = Color(0xFF9E9E9E),
-                                fontSize = 14.sp
-                            )
-                        }
+                        Text(
+                            text = "No exercises in this template",
+                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                            color = AppMutedText,
+                            fontSize = 14.sp
+                        )
                     }
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -765,8 +725,8 @@ fun TemplateCard(
                             if (exercise != null) {
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+                                    shape = AppShapes.button, // Trochę mniejsze zaokrąglenie wewnątrz
+                                    colors = CardDefaults.cardColors(containerColor = AppBackground)
                                 ) {
                                     Row(
                                         modifier = Modifier
@@ -782,11 +742,6 @@ fun TemplateCard(
                                                 fontWeight = FontWeight.Medium,
                                                 color = Color(0xFF424242)
                                             )
-                                            Text(
-                                                text = exercise.primaryMuscles.joinToString(", "),
-                                                fontSize = 12.sp,
-                                                color = Color(0xFF757575)
-                                            )
                                         }
                                         IconButton(
                                             onClick = {
@@ -796,7 +751,7 @@ fun TemplateCard(
                                         ) {
                                             Icon(
                                                 Icons.Default.Delete,
-                                                contentDescription = "Usuń ćwiczenie",
+                                                contentDescription = "Delete",
                                                 tint = Color(0xFFE57373),
                                                 modifier = Modifier.size(20.dp)
                                             )
@@ -812,15 +767,13 @@ fun TemplateCard(
                 Button(
                     onClick = onAddExercise,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF4CAF50)
-                    ),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AppGreen),
+                    shape = AppShapes.button,
                     contentPadding = PaddingValues(vertical = 12.dp)
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
+                    Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Dodaj ćwiczenie", fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                    Text("Add exercise", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color.White)
                 }
             }
         }
@@ -836,10 +789,11 @@ fun AddTemplateDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+        shape = AppShapes.dialog,
+        containerColor = AppSurface,
         title = {
             Text(
-                "Nowy szablon treningowy",
+                "New template",
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp
             )
@@ -847,46 +801,41 @@ fun AddTemplateDialog(
         text = {
             Column {
                 Text(
-                    text = "Nadaj nazwę swojemu szablonowi treningowemu",
+                    text = "Name your template:",
                     fontSize = 14.sp,
-                    color = Color(0xFF757575)
+                    color = AppMutedText
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Nazwa szablonu") },
+                    label = { Text("Template name") },
                     singleLine = true,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = AppShapes.button,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF4CAF50),
-                        focusedLabelColor = Color(0xFF4CAF50)
+                        focusedBorderColor = AppGreen,
+                        focusedLabelColor = AppGreen
                     )
                 )
             }
         },
         confirmButton = {
             Button(
-                onClick = {
-                    if (name.isNotBlank()) {
-                        onConfirm(name)
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4CAF50)
-                ),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+                onClick = { onConfirm(name) },
+                colors = ButtonDefaults.buttonColors(containerColor = AppGreen),
+                shape = AppShapes.button
             ) {
-                Text("Utwórz", fontWeight = FontWeight.Medium)
+                Text("Create", fontWeight = FontWeight.Medium, color = Color.White)
             }
         },
         dismissButton = {
             OutlinedButton(
                 onClick = onDismiss,
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                shape = AppShapes.button,
                 border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
             ) {
-                Text("Anuluj", color = Color(0xFF757575))
+                Text("Cancel", color = AppMutedText)
             }
         }
     )

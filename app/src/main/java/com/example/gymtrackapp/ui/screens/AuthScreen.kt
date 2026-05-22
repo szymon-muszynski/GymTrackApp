@@ -37,7 +37,7 @@ fun AuthScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = if (isSignUp) "Rejestracja" else "Logowanie",
+            text = if (isSignUp) "Sign up" else "Sign in",
             style = MaterialTheme.typography.headlineMedium
         )
 
@@ -47,7 +47,7 @@ fun AuthScreen(
             OutlinedTextField(
                 value = displayName,
                 onValueChange = { displayName = it },
-                label = { Text("Nazwa użytkownika") },
+                label = { Text("Username") },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -66,7 +66,7 @@ fun AuthScreen(
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Hasło") },
+            label = { Text("Password") },
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth()
         )
@@ -96,15 +96,15 @@ fun AuthScreen(
             modifier = Modifier.fillMaxWidth(),
             enabled = authState !is AuthState.Loading
         ) {
-            Text(if (isSignUp) "Zarejestruj się" else "Zaloguj się")
+            Text(if (isSignUp) "Create account" else "Sign in")
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
         TextButton(onClick = { isSignUp = !isSignUp }) {
             Text(
-                if (isSignUp) "Masz już konto? Zaloguj się"
-                else "Nie masz konta? Zarejestruj się"
+                if (isSignUp) "Already have an account? Sign in"
+                else "Don't have an account? Create one"
             )
         }
     }

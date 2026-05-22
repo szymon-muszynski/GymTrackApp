@@ -1,5 +1,7 @@
 package com.example.gymtrackapp.ui.screens
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,9 +14,16 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.gymtrackapp.ui.theme.AppBackground
+import com.example.gymtrackapp.ui.theme.AppDivider
+import com.example.gymtrackapp.ui.theme.AppGreen
+import com.example.gymtrackapp.ui.theme.AppMutedText
+import com.example.gymtrackapp.ui.theme.AppSurface
+import com.example.gymtrackapp.ui.theme.AppShapes
 import com.example.gymtrackapp.ui.viewmodel.ExerciseViewModel
 import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
 
@@ -40,51 +49,75 @@ fun SetDetailsScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = exercise?.name ?: "Ćwiczenie",
-                        fontWeight = FontWeight.Bold // ← Pogrubienie tytułu
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Wróć")
-                    }
-                }
-            )
-        },
+        // 1. Wyłączamy systemowe insetsy, bo MainScreen już je obsłużył.
+        // To naprawia błąd z "luką" nad nagłówkiem.
+        contentWindowInsets = WindowInsets(0.dp),
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddSetDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Dodaj serię")
+            // 2. Stylizacja FABa: Zielony, zaokrąglony kwadrat
+            FloatingActionButton(
+                onClick = { showAddSetDialog = true },
+                containerColor = AppGreen,
+                contentColor = Color.White,
+                shape = AppShapes.button // Kształt z szablonów (zaokrąglony kwadrat)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add set")
             }
-        }
+        },
+        containerColor = AppBackground
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .background(AppBackground)
         ) {
+            // --- CUSTOM HEADER (spójny z ExerciseDetailScreen i AddExerciseScreen) ---
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // Padding identyczny jak w poprzednich ekranach
+                    .padding(top = 16.dp, start = 8.dp, end = 16.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                IconButton(onClick = onNavigateBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+                Text(
+                    text = exercise?.name ?: "Set details",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                    color = Color.Black
+                )
+            }
+
+            // --- ZAWARTOŚĆ ---
             if (sets.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Brak serii",
-                        fontSize = 20.sp, // ← Zwiększona czcionka
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "No sets added",
+                        fontSize = 16.sp,
+                        color = AppMutedText
                     )
                 }
             } else {
                 LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp), // padding po bokach dla listy
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 80.dp) // miejsce na FAB
                 ) {
                     items(sets) { set ->
                         Card(
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = AppShapes.card,
+                            colors = CardDefaults.cardColors(containerColor = AppSurface),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -95,20 +128,27 @@ fun SetDetailsScreen(
                             ) {
                                 Column {
                                     Text(
-                                        text = "Seria ${set.order + 1}",
+                                        text = "Set ${set.order + 1}",
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 18.sp // ← Zwiększona czcionka
+                                        fontSize = 16.sp,
+                                        color = Color.Black
                                     )
+                                    Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "${set.weight} kg × ${set.reps} powtórzeń",
-                                        fontSize = 16.sp // ← Zwiększona czcionka
+                                        text = "${set.weight} kg × ${set.reps} reps",
+                                        fontSize = 15.sp,
+                                        color = Color(0xFF424242)
                                     )
                                 }
                                 IconButton(onClick = {
                                     trainingViewModel.deleteSet(set)
-                                    statisticsViewModel.refresh() // Odświeżamy statystyki
+                                    statisticsViewModel.refresh()
                                 }) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Usuń")
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Delete",
+                                        tint = Color.Gray // Subtelniejszy kolor ikony usuwania
+                                    )
                                 }
                             }
                         }
@@ -123,13 +163,12 @@ fun SetDetailsScreen(
             onDismiss = { showAddSetDialog = false },
             onConfirm = { weight, reps ->
                 trainingViewModel.addSetToSessionExercise(sessionExerciseId, weight, reps)
-                statisticsViewModel.refresh() // Odświeżamy statystyki
+                statisticsViewModel.refresh()
                 showAddSetDialog = false
             }
         )
     }
 }
-
 
 @Composable
 fun AddSetInputDialog(
@@ -141,37 +180,65 @@ fun AddSetInputDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Dodaj serię") },
+        shape = AppShapes.dialog, // Zaokrąglone rogi dialogu
+        containerColor = Color.White,
+        title = {
+            Text(
+                "Add set",
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
+            )
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = weight,
                     onValueChange = { weight = it },
-                    label = { Text("Obciążenie (kg)") },
-                    modifier = Modifier.fillMaxWidth()
+                    label = { Text("Weight (kg)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = AppShapes.button,
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AppGreen,
+                        focusedLabelColor = AppGreen,
+                        cursorColor = AppGreen
+                    )
                 )
                 OutlinedTextField(
                     value = reps,
                     onValueChange = { reps = it },
-                    label = { Text("Liczba powtórzeń") },
-                    modifier = Modifier.fillMaxWidth()
+                    label = { Text("Reps") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = AppShapes.button,
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AppGreen,
+                        focusedLabelColor = AppGreen,
+                        cursorColor = AppGreen
+                    )
                 )
             }
         },
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = {
                     val w = weight.toFloatOrNull() ?: 0f
                     val r = reps.toIntOrNull() ?: 0
                     onConfirm(w, r)
-                }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = AppGreen),
+                shape = AppShapes.button
             ) {
-                Text("Dodaj")
+                Text("Add", fontWeight = FontWeight.SemiBold, color = Color.White)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Anuluj")
+            OutlinedButton(
+                onClick = onDismiss,
+                shape = AppShapes.button,
+                border = BorderStroke(1.dp, AppDivider)
+            ) {
+                Text("Cancel", color = AppMutedText)
             }
         }
     )

@@ -106,7 +106,7 @@ fun PostCard(
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Objętość",
+                        text = "Volume",
                         color = Color.Gray,
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -137,13 +137,13 @@ fun PostCard(
 
             if (post.exercises.size > 3) {
                 Text(
-                    text = "+${post.exercises.size - 3} więcej (kliknij, aby zobaczyć całość)",
+                    text = "+${post.exercises.size - 3} more (tap to see all)",
                     color = Color.Gray,
                     style = MaterialTheme.typography.bodySmall
                 )
             } else {
                 Text(
-                    text = "Kliknij, aby zobaczyć szczegóły",
+                    text = "Tap to view details",
                     color = Color.Gray,
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -159,12 +159,12 @@ private fun formatVolume(v: Float): String = String.format(Locale.ROOT, "%.0f", 
 private fun relativeTime(createdAtMs: Long): String {
     val delta = System.currentTimeMillis() - createdAtMs
     val minutes = TimeUnit.MILLISECONDS.toMinutes(delta)
-    if (minutes < 1) return "przed chwilą"
-    if (minutes < 60) return "$minutes min temu"
+    if (minutes < 1) return "just now"
+    if (minutes < 60) return "$minutes min ago"
     val hours = TimeUnit.MILLISECONDS.toHours(delta)
-    if (hours < 24) return "$hours godz. temu"
+    if (hours < 24) return "$hours h ago"
     val days = TimeUnit.MILLISECONDS.toDays(delta)
-    return "$days dni temu"
+    return "$days days ago"
 }
 
 @Composable

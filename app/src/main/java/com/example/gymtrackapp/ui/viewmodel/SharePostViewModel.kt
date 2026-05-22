@@ -37,7 +37,7 @@ class SharePostViewModel(
             if (_publishing.value) return@launch
 
             if (networkMonitor.getCurrent() != NetworkMonitor.NetworkState.OnlineValidated) {
-                _events.trySend(UiEvent.ShowSnackbar("Brak połączenia z internetem"))
+                _events.trySend(UiEvent.ShowSnackbar("No internet connection"))
                 return@launch
             }
 
@@ -46,11 +46,11 @@ class SharePostViewModel(
             try {
                 val wasPosted = trainingDao.isSessionPosted(sessionId) == true
                 socialRepository.publishPost(sessionId)
-                val msg = if (wasPosted) "Zaktualizowano post" else "Udostępniono"
+                val msg = if (wasPosted) "Post updated" else "Shared"
                 _message.value = msg
                 _events.trySend(UiEvent.ShowSnackbar(msg))
             } catch (t: Throwable) {
-                val msg = t.message ?: "Błąd udostępniania"
+                val msg = t.message ?: "Sharing failed"
                 _message.value = msg
                 _events.trySend(UiEvent.ShowSnackbar(msg))
             } finally {

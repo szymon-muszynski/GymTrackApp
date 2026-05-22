@@ -211,6 +211,8 @@ class StatisticsRepository(
     /**
      * Oblicza historię estimated 1RM dla ćwiczenia
      * Zwraca najlepszy 1RM z każdego dnia treningowego
+     *
+     * Kontrakt osi X: epochDay (dni od 1970-01-01), spójnie z TrainingSession.date i innymi wykresami.
      */
     suspend fun getEstimated1RMHistory(
         exerciseId: String,
@@ -218,15 +220,12 @@ class StatisticsRepository(
     ): List<Pair<Long, Float>> = withContext(Dispatchers.IO) {
         val sets = getAllSetsForExercise(exerciseId)
 
-        val MILLIS_IN_DAY = 24L * 60 * 60 * 1000
-
         sets.groupBy { it.sessionDate }  // sessionDate to epochDay
             .map { (epochDay, setsInDay) ->
                 val maxOneRM = setsInDay.maxOfOrNull { set ->
                     OneRMCalculator.calculate(set.weight, set.reps, formula)
                 } ?: 0f
-                val millis = epochDay * MILLIS_IN_DAY
-                millis to maxOneRM
+                epochDay to maxOneRM
             }
             .sortedBy { it.first }
     }
@@ -265,11 +264,18 @@ class StatisticsRepository(
         val exercise = exerciseDao.getExerciseById(exerciseId)
         val rawRecords = trainingDao.getRepMaxRecords(exerciseId)
 
+        val zone = java.time.ZoneId.systemDefault()
+
         val recordsMap = rawRecords.associate { raw ->
+            val dateMillis = java.time.LocalDate.ofEpochDay(raw.date)
+                .atStartOfDay(zone)
+                .toInstant()
+                .toEpochMilli()
+
             raw.reps to RepMaxRecord(
                 reps = raw.reps,
                 weight = raw.weight,
-                date = raw.date,
+                date = dateMillis,
                 exerciseId = raw.exerciseId
             )
         }
@@ -302,4 +308,3 @@ class StatisticsRepository(
         sets.map { it.weight }.distinct().sorted()
     }
 }
-

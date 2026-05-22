@@ -72,7 +72,7 @@ class MyProfileViewModel(
                 _hasMore.value = cursorCreatedAtMs != null
                 Log.d(PAGINATION_TAG, "MyProfileVM($myUserId): first page loaded. nextCursor=$cursorCreatedAtMs hasMore=${_hasMore.value}")
             } catch (t: Throwable) {
-                _error.value = t.message ?: "Błąd odświeżania"
+                _error.value = t.message ?: "Loading failed"
             } finally {
                 _refreshing.value = false
             }
@@ -103,7 +103,7 @@ class MyProfileViewModel(
                 _hasMore.value = cursorCreatedAtMs != null
                 Log.d(PAGINATION_TAG, "MyProfileVM($myUserId): loadMore done. nextCursor=$cursorCreatedAtMs hasMore=${_hasMore.value}")
             } catch (t: Throwable) {
-                _error.value = t.message ?: "Błąd ładowania"
+                _error.value = t.message ?: "Loading failed"
             } finally {
                 _loadingMore.value = false
             }
@@ -115,7 +115,7 @@ class MyProfileViewModel(
             if (_deleteBusy.value[post.postId] == true) return@launch
 
             if (networkMonitor.getCurrent() != NetworkMonitor.NetworkState.OnlineValidated) {
-                _events.trySend(UiEvent.ShowSnackbar("Brak połączenia z internetem"))
+                _events.trySend(UiEvent.ShowSnackbar("No internet connection"))
                 return@launch
             }
 
@@ -123,9 +123,9 @@ class MyProfileViewModel(
             _error.value = null
             try {
                 socialRepository.deletePost(post)
-                _events.trySend(UiEvent.ShowSnackbar("Usunięto post"))
+                _events.trySend(UiEvent.ShowSnackbar("Post deleted"))
             } catch (t: Throwable) {
-                val msg = t.message ?: "Błąd usuwania posta"
+                val msg = t.message ?: "Failed to delete post"
                 _error.value = msg
                 _events.trySend(UiEvent.ShowSnackbar(msg))
             } finally {

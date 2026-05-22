@@ -83,6 +83,10 @@ class StatisticsViewModel(
     private val _isLoadingCharts = MutableStateFlow(false)
     val isLoadingCharts: StateFlow<Boolean> = _isLoadingCharts.asStateFlow()
 
+    // Wybrany zakres czasu dla wykresów (kalendarzowo)
+    private val _chartsTimeRange = MutableStateFlow(com.example.gymtrackapp.ui.screens.statistics.ChartsTimeRange.ALL)
+    val chartsTimeRange: StateFlow<com.example.gymtrackapp.ui.screens.statistics.ChartsTimeRange> = _chartsTimeRange.asStateFlow()
+
     // ============= SUMMARY TAB FUNCTIONS =============
 
     /**
@@ -275,6 +279,24 @@ class StatisticsViewModel(
     }
 
     /**
+     * Zmienia zakres czasu dla wykresów (1W/1M/3M/6M/1Y/ALL).
+     *
+     * Dane w repo są pobierane szerzej (np. volume ma filtr po dniach), a właściwe przycięcie
+     * dla osi X robimy w komponencie wykresu na podstawie end = ostatni trening.
+     */
+    fun setChartsTimeRange(range: com.example.gymtrackapp.ui.screens.statistics.ChartsTimeRange) {
+        if (_chartsTimeRange.value == range) return
+        _chartsTimeRange.value = range
+
+        // Jeżeli kiedyś przejdziemy na filtrowanie po starcie/końcu w DAO – tu będzie miejsce na reload.
+        // Na teraz zostawiamy lekkie odświeżenie: tylko wykresy zależne od _chartsDaysRange (np. volume)
+        // i wszystkie, które liczą się dynamicznie (np. 1RM zależy od formuły).
+        _selectedExerciseId.value?.let { exerciseId ->
+            loadChartsForExercise(exerciseId)
+        }
+    }
+
+    /**
      * Odświeża wszystkie dane
      */
     fun refresh() {
@@ -284,4 +306,3 @@ class StatisticsViewModel(
         }
     }
 }
-

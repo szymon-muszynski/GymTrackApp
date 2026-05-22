@@ -123,12 +123,12 @@ fun MonthHeader(
         IconButton(onClick = onPreviousMonth) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                contentDescription = "Poprzedni miesiąc"
+                contentDescription = "Previous month"
             )
         }
 
         Text(
-            text = "${month.month.getDisplayName(TextStyle.FULL_STANDALONE, Locale("pl"))} ${month.year}",
+            text = "${month.month.getDisplayName(TextStyle.FULL_STANDALONE, Locale.ENGLISH)} ${month.year}",
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold
         )
@@ -136,7 +136,7 @@ fun MonthHeader(
         IconButton(onClick = onNextMonth) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = "Następny miesiąc"
+                contentDescription = "Next month"
             )
         }
     }
@@ -144,7 +144,7 @@ fun MonthHeader(
 
 @Composable
 fun WeekDaysHeader() {
-    val daysOfWeek = listOf("Pn", "Wt", "Śr", "Cz", "Pt", "So", "Nd")
+    val daysOfWeek = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -264,4 +264,3 @@ fun RowScope.DayCell(
         }
     }
 }
-

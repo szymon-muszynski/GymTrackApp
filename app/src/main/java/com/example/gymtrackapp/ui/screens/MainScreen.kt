@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -34,6 +35,7 @@ import com.example.gymtrackapp.ui.viewmodel.TrainingViewModel
 import com.example.gymtrackapp.ui.viewmodel.UserProfileViewModel
 import com.example.gymtrackapp.ui.viewmodel.UserProfileViewModelFactory
 import com.example.gymtrackapp.utils.NetworkStatus
+import com.example.gymtrackapp.ui.theme.AppGreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
@@ -64,12 +66,11 @@ fun MainScreen(
                     Text("OK")
                 }
             },
-            title = { Text("Brak internetu") },
+            title = { Text("No internet connection") },
             text = {
                 Text(
-                    "Wylogowanie zostało wyłączone, gdy nie ma internetu, aby zapobiec utracie danych, " +
-                        "które mogłyby nie zostać zsynchronizowane z chmurą.\n\n" +
-                        "Połącz się z internetem i spróbuj ponownie."
+                    "Sign-out is disabled while you're offline to prevent losing data that might not be synced to the cloud.\n\n" +
+                        "Connect to the internet and try again."
                 )
             }
         )
@@ -87,10 +88,9 @@ fun MainScreen(
             TopAppBar(
                 title = { Text("Gym Track App") },
                 actions = {
-                    // Ikona kalendarza miesięcznego (tylko w zakładce Calendar)
                     if (currentRoute == "calendar" || currentRoute?.startsWith("calendar/") == true) {
                         IconButton(onClick = { showMonthlyCalendar = true }) {
-                            Icon(Icons.Default.DateRange, contentDescription = "Kalendarz miesięczny")
+                            Icon(Icons.Default.DateRange, contentDescription = "Monthly calendar")
                         }
                     }
 
@@ -102,7 +102,7 @@ fun MainScreen(
                             showOfflineLogoutDialog = true
                         }
                     }) {
-                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Wyloguj")
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Sign out")
                     }
                 }
             )
@@ -113,16 +113,25 @@ fun MainScreen(
         floatingActionButton = {
             val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
             if (currentRoute == "calendar" || currentRoute == "calendar/{date}") {
-                FloatingActionButton(onClick = { showAddSessionDialog = true }) {
-                    Icon(Icons.Default.Add, contentDescription = "Dodaj sesję")
+                FloatingActionButton(
+                    onClick = { showAddSessionDialog = true },
+                    containerColor = AppGreen
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Add session",
+                        tint = Color.White
+                    )
                 }
             }
         }
     ) { paddingValues ->
+        val hostModifier = Modifier.padding(paddingValues)
+
         NavHost(
             navController = navController,
             startDestination = "home",
-            modifier = Modifier.padding(paddingValues)
+            modifier = hostModifier
         ) {
             composable("home") {
                 val currentUser by authViewModel.currentUser.collectAsState()
@@ -155,6 +164,8 @@ fun MainScreen(
                     trainingViewModel = trainingViewModel,
                     plannerViewModel = plannerViewModel,
                     uid = uid,
+                    // padding już jest na poziomie NavHost
+                    modifier = Modifier
                 )
             }
             composable("calendar/{date}") { backStackEntry ->
@@ -176,6 +187,7 @@ fun MainScreen(
                 }
 
                 CalendarPage(
+                    modifier = Modifier.fillMaxSize(),
                     trainingViewModel = trainingViewModel,
                     exerciseViewModel = exerciseViewModel,
                     statisticsViewModel = statisticsViewModel,
@@ -197,6 +209,7 @@ fun MainScreen(
                 }
 
                 CalendarPage(
+                    modifier = Modifier.fillMaxSize(),
                     trainingViewModel = trainingViewModel,
                     exerciseViewModel = exerciseViewModel,
                     statisticsViewModel = statisticsViewModel,
@@ -213,20 +226,23 @@ fun MainScreen(
                 PlannerPage(
                     templateViewModel = templateViewModel,
                     exerciseViewModel = exerciseViewModel,
-                    navController = navController
+                    navController = navController,
+                    modifier = Modifier
                 )
             }
             composable("progress") {
                 ProgressPage(
                     viewModel = statisticsViewModel,
-                    exerciseViewModel = exerciseViewModel
+                    exerciseViewModel = exerciseViewModel,
+                    modifier = Modifier
                 )
             }
             composable("friends") {
                 FriendsPage(
                     friendsViewModel = friendsViewModel,
                     exploreFeedViewModel = exploreFeedViewModel,
-                    onUserClick = { userId -> navController.navigate("user_profile/$userId") }
+                    onUserClick = { userId -> navController.navigate("user_profile/$userId") },
+                    modifier = Modifier
                 )
             }
 
@@ -251,7 +267,7 @@ fun MainScreen(
                 val uid = currentUser?.uid
 
                 if (uid == null) {
-                    Text("Brak zalogowanego użytkownika")
+                    Text("No signed-in user")
                 } else {
                     val appContainer = LocalAppContainer.current
                     val socialRepository = appContainer.socialRepository
@@ -262,30 +278,11 @@ fun MainScreen(
                         factory = MyProfileViewModelFactory(socialRepository, uid, networkMonitor)
                     )
 
-                    ProfilePage(viewModel = vm)
+                    ProfilePage(
+                        viewModel = vm,
+                        modifier = Modifier
+                    )
                 }
-            }
-            composable("add_exercise/{sessionId}") { backStackEntry ->
-                val sessionId = backStackEntry.arguments?.getString("sessionId")?.toLongOrNull() ?: 0L
-                AddExerciseScreen(
-                    sessionId = sessionId,
-                    onNavigateBack = { navController.popBackStack() },
-                    navController = navController,
-                    exerciseViewModel = exerciseViewModel,
-                    trainingViewModel = trainingViewModel,
-                    statisticsViewModel = statisticsViewModel
-                )
-            }
-
-            composable("add_template_exercise/{templateId}") { backStackEntry ->
-                val templateId = backStackEntry.arguments?.getString("templateId")?.toLongOrNull() ?: 0L
-                AddTemplateExerciseScreen(
-                    templateId = templateId,
-                    onNavigateBack = { navController.popBackStack() },
-                    navController = navController,
-                    exerciseViewModel = exerciseViewModel,
-                    templateViewModel = templateViewModel
-                )
             }
 
             composable(
@@ -343,6 +340,37 @@ fun MainScreen(
                 CustomExerciseDetailsScreen(
                     exerciseId = exerciseId,
                     onNavigateBack = { navController.popBackStack() },
+                    exerciseViewModel = exerciseViewModel
+                )
+            }
+
+            composable(
+                route = "exercise_picker?from={from}&sessionId={sessionId}&templateId={templateId}",
+                arguments = listOf(
+                    navArgument("from") {
+                        type = NavType.StringType
+                        defaultValue = "session"
+                    },
+                    navArgument("sessionId") {
+                        type = NavType.StringType
+                        nullable = true
+                    },
+                    navArgument("templateId") {
+                        type = NavType.StringType
+                        nullable = true
+                    }
+                )
+            ) { backStackEntry ->
+                val from = backStackEntry.arguments?.getString("from") ?: "session"
+                val sessionId = backStackEntry.arguments?.getString("sessionId")?.toLongOrNull()
+                val templateId = backStackEntry.arguments?.getString("templateId")?.toLongOrNull()
+
+                ExercisePickerScreen(
+                    from = from,
+                    sessionId = sessionId,
+                    templateId = templateId,
+                    onNavigateBack = { navController.popBackStack() },
+                    navController = navController,
                     exerciseViewModel = exerciseViewModel
                 )
             }

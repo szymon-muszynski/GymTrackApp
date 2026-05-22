@@ -53,7 +53,7 @@ class AuthViewModel(
 
                 val trimmedDisplayName = displayName.trim()
                 if (trimmedDisplayName.isBlank()) {
-                    _authState.value = AuthState.Error("Podaj nazwę użytkownika")
+                    _authState.value = AuthState.Error("Please enter a username")
                     return@launch
                 }
 
@@ -100,9 +100,9 @@ class AuthViewModel(
 
                 _authState.value = AuthState.Success
                 Log.d(TAG, "signUp: success")
-            } catch (t: Throwable) {
-                Log.e(TAG, "signUp: failed", t)
-                _authState.value = AuthState.Error(t.message ?: "Błąd rejestracji")
+            } catch (e: Throwable) {
+                Log.e(TAG, "signUp: failed", e)
+                _authState.value = AuthState.Error(e.message ?: "Sign-up error")
             }
         }
     }
@@ -122,7 +122,7 @@ class AuthViewModel(
                 if (uid != null) {
                     withContext(Dispatchers.IO) {
                         // Pullujemy rzeczy tylko przy loginie (offline-first + nowy telefon):
-                        // 1) Custom exercises first (FK prerequisite for session_exercises.exerciseId)
+                        // 1) Custom exercises
                         val customJob = async {
                             Log.d(TAG, "signIn: pull customExercises START")
                             exercisePullService.pullAllCustomForUser(uid)
@@ -150,7 +150,6 @@ class AuthViewModel(
                             Log.d(TAG, "signIn: pull planner DONE")
                         }
 
-                        // Czekamy na wszystko.
                         awaitAll(customJob, trainingJob, templateJob, plannerJob)
 
                         // 5) Cleanup orphaned pending (best-effort)
@@ -160,9 +159,9 @@ class AuthViewModel(
 
                 _authState.value = AuthState.Success
                 Log.d(TAG, "signIn: success")
-            } catch (t: Throwable) {
-                Log.e(TAG, "signIn: failed", t)
-                _authState.value = AuthState.Error(t.message ?: "Błąd logowania")
+            } catch (e: Throwable) {
+                Log.e(TAG, "signIn: failed", e)
+                _authState.value = AuthState.Error(e.message ?: "Sign-in error")
             }
         }
     }
@@ -199,7 +198,6 @@ class AuthViewModel(
                     Log.e(TAG, "signOut: wipe customExercises FAILED", t)
                 }
 
-                // Social cache (privacy): usuń prywatne dane społecznościowe aktualnego użytkownika.
                 try {
                     val db = ExerciseDatabase.getDatabase(appContext.applicationContext)
                     db.socialDao().clearPosts()
